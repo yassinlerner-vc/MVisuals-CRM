@@ -4,34 +4,96 @@
 const ACCOUNTS_FOLDER_ID        = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
 const GLOBAL_PIPELINE_FOLDER_ID = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
 
-// Column indexes for Quotations sheet (0-based)
-const Q_COL = {
-  ROW_ID:           0,
+// ============================================================
+//  COLUMN INDEXES — Quotations (0-based)
+// ============================================================
+const Q = {
+  QUOTATION_ID:      0,
+  CURRENT_VERSION:   1,
+  ACCOUNT_ID:        2,
+  ACCOUNT_NAME:      3,
+  PROJECT_NAME:      4,
+  PROJECT_DESC:      5,
+  DATE_ISSUED:       6,
+  MIN_DAYS:          7,
+  MAX_DAYS:          8,
+  DELIVERY_DEADLINE: 9,
+  PRICING_MODE:      10,
+  CURRENCY:          11,
+  SUBTOTAL:          12,
+  DISCOUNTED:        13,
+  DISCOUNT_PERCENT:  14,
+  DISCOUNT_AMOUNT:   15,
+  TAXED:             16,
+  TAX_PERCENT:       17,
+  TAX_AMOUNT:        18,
+  TOTAL:             19,
+  STATUS:            20,
+  NOTES:             21,
+  FOLDER_URL:        22,
+  CREATED_BY:        23,
+  CREATED_AT:        24,
+  LAST_UPDATED_BY:   25,
+  LAST_UPDATED_AT:   26
+};
+
+// ============================================================
+//  COLUMN INDEXES — Quote_Items (0-based)
+// ============================================================
+const QI = {
+  ITEM_ID:          0,
   QUOTATION_ID:     1,
-  VERSION:          2,
-  ACCOUNT_ID:       3,
-  ACCOUNT_NAME:     4,
-  DATE_ISSUED:      5,
-  PROJECT_NAME:     6,
-  PROJECT_DESC:     7,
-  MIN_DAYS:         8,
-  MAX_DAYS:         9,
-  DELIVERY:         10,
-  PRICING_MODE:     11,
-  CURRENCY:         12,
-  SUBTOTAL:         13,
-  TAXED:            14,
-  TAX_PERCENT:      15,
-  TAX_AMOUNT:       16,
-  DISCOUNTED:       17,
-  DISCOUNT_PERCENT: 18,
-  DISCOUNT_AMOUNT:  19,
-  TOTAL:            20,
-  STATUS:           21,
-  NOTES:            22,
-  CREATED_AT:       23,
-  CREATED_BY:       24,
-  FOLDER_URL:       25
+  ITEM_INDEX:       2,
+  ITEM_NAME:        3,
+  QUANTITY:         4,
+  DESCRIPTION:      5,
+  NOTES:            6,
+  UNIT_PRICE:       7,
+  SUBTOTAL:         8,
+  STATUS:           9,
+  LAST_UPDATED_BY:  10,
+  LAST_UPDATED_AT:  11
+};
+
+// ============================================================
+//  COLUMN INDEXES — Projects (0-based)
+// ============================================================
+const P = {
+  PROJECT_ID:        0,
+  QUOTATION_ID:      1,
+  ACCOUNT_ID:        2,
+  ACCOUNT_NAME:      3,
+  PROJECT_NAME:      4,
+  PROJECT_DESC:      5,
+  DELIVERY_DEADLINE: 6,
+  DUE_DATE:          7,
+  STATUS:            8,
+  INTERNAL_NOTES:    9,
+  CREATED_AT:        10,
+  COMPLETED_AT:      11
+};
+
+// ============================================================
+//  COLUMN INDEXES — Project_Items (0-based)
+// ============================================================
+const PI = {
+  ITEM_ID:          0,
+  PROJECT_ID:       1,
+  QUOTATION_ID:     2,
+  ACCOUNT_NAME:     3,
+  PROJECT_NAME:     4,
+  ITEM_NAME:        5,
+  QUANTITY:         6,
+  DESCRIPTION:      7,
+  NOTES:            8,
+  DELIVERY_STATUS:  9,
+  ASSIGNED_TO:      10,
+  REDO_COUNT:       11,
+  UPLOADED_FILE_URL:12,
+  INTERNAL_NOTES:   13,
+  DUE_DATE:         14,
+  COMPLETED_AT:     15,
+  CREATED_AT:       16
 };
 
 // ============================================================
@@ -52,10 +114,34 @@ function openQuotationsModule() {
 }
 
 // ============================================================
-//  SHEET HELPERS
+//  SHEET HELPER
 // ============================================================
 function getSheet(name) {
   return SpreadsheetApp.getActive().getSheetByName(name);
+}
+
+// ============================================================
+//  LOGGING HELPER
+// ============================================================
+function writeLog(sheetName, module, recordId, recordLabel,
+                  accountId, accountName, fieldChanged,
+                  oldValue, newValue, notes) {
+  const sheet = getSheet(sheetName);
+  if (!sheet) return;
+  sheet.appendRow([
+    Utilities.getUuid(),
+    module,
+    recordId,
+    recordLabel,
+    accountId || '',
+    accountName || '',
+    fieldChanged,
+    oldValue !== undefined && oldValue !== null ? String(oldValue) : '',
+    newValue  !== undefined && newValue  !== null ? String(newValue)  : '',
+    Session.getActiveUser().getEmail(),
+    new Date(),
+    notes || ''
+  ]);
 }
 
 // ============================================================
@@ -63,7 +149,9 @@ function getSheet(name) {
 // ============================================================
 function getAccounts() {
   const data = getSheet('Accounts').getDataRange().getValues();
-  return data.slice(1).map(row => ({ id: row[0], name: row[1] }));
+  return data.slice(1)
+    .filter(row => row[0])
+    .map(row => ({ id: row[0], name: row[1] }));
 }
 
 function getAccountRow(accountId) {
@@ -77,7 +165,7 @@ function getAccountRow(accountId) {
   return null;
 }
 
-function promoteAccountToClient(accountId) {
+function promoteAccountToClient(accountId, accountName, quotationId) {
   const sheet = getSheet('Accounts');
   const found = getAccountRow(accountId);
   if (!found) return;
@@ -103,21 +191,51 @@ function promoteAccountToClient(accountId) {
 }
 
 // ============================================================
-//  ITEMS & SETTINGS
+//  SETTINGS
+// ============================================================
+function getSettings() {
+  const sheet = getSheet('Quotation Settings');
+  if (!sheet) return { currencies: [], pricingModes: [] };
+
+  const lastRow = sheet.getLastRow();
+
+  const currencies = lastRow >= 2
+    ? sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat().filter(String)
+    : [];
+
+  const pricingModes = lastRow >= 2
+    ? sheet.getRange(2, 2, lastRow - 1, 1).getValues().flat().filter(String)
+    : [];
+
+  return { currencies, pricingModes };
+}
+
+// ============================================================
+//  ITEMS
 // ============================================================
 function getItems() {
   const data = getSheet('Items').getDataRange().getValues();
-  return data.slice(1).map(row => ({
-    name: row[0], description: row[1], price: row[2]
-  }));
+  return data.slice(1)
+    .filter(row => row[0])
+    .map(row => ({ name: row[0], description: row[1], price: row[2] }));
 }
 
-function getSettings() {
-  const sheet = getSheet('Settings');
-  return {
-    currencies:   sheet.getRange('A2:A20').getValues().flat().filter(String),
-    pricingModes: sheet.getRange('D2:D20').getValues().flat().filter(String)
-  };
+// ============================================================
+//  QUOTATIONS — GENERATE ID
+// ============================================================
+function generateQuotationId() {
+  const sheet = getSheet('Quotations');
+  const data  = sheet.getDataRange().getValues();
+  let maxNum  = 0;
+  data.slice(1).forEach(row => {
+    const qId   = String(row[Q.QUOTATION_ID] || '');
+    const match = qId.match(/^Q-(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+  return 'Q-' + Utilities.formatString('%04d', maxNum + 1);
 }
 
 // ============================================================
@@ -128,53 +246,21 @@ function getQuotations() {
   const data  = sheet.getDataRange().getValues();
   const tz    = Session.getScriptTimeZone();
 
-  const map = {};
-  data.slice(1).forEach(row => {
-    const qId    = String(row[Q_COL.QUOTATION_ID]);
-    const status = String(row[Q_COL.STATUS]);
-    const ver    = Number(row[Q_COL.VERSION]) || 1;
-    if (!qId || status === 'Deleted') return;
-    if (!map[qId] || ver > map[qId].ver) {
-      map[qId] = {
-        rowId:       row[Q_COL.ROW_ID],
-        id:          qId,
-        accountId:   row[Q_COL.ACCOUNT_ID],
-        accountName: row[Q_COL.ACCOUNT_NAME],
-        dateIssued:  row[Q_COL.DATE_ISSUED]
-          ? Utilities.formatDate(new Date(row[Q_COL.DATE_ISSUED]), tz, 'yyyy-MM-dd') : '',
-        projectName: row[Q_COL.PROJECT_NAME],
-        total:       row[Q_COL.TOTAL],
-        currency:    row[Q_COL.CURRENCY],
-        status,
-        ver
-      };
-    }
-  });
-
-  return Object.values(map).sort((a, b) => a.id.localeCompare(b.id));
-}
-
-// ============================================================
-//  QUOTATIONS — GET VERSION HISTORY
-// ============================================================
-function getQuotationHistory(quotationId) {
-  const sheet = getSheet('Quotations');
-  const data  = sheet.getDataRange().getValues();
-  const tz    = Session.getScriptTimeZone();
-
-  const rows = [];
-  data.slice(1).forEach(row => {
-    if (String(row[Q_COL.QUOTATION_ID]) !== String(quotationId)) return;
-    rows.push({
-      version:   Number(row[Q_COL.VERSION]) || 1,
-      status:    String(row[Q_COL.STATUS]),
-      createdAt: row[Q_COL.CREATED_AT]
-        ? Utilities.formatDate(new Date(row[Q_COL.CREATED_AT]), tz, 'dd MMM yyyy') : '',
-      folderUrl: row[Q_COL.FOLDER_URL] || ''
-    });
-  });
-
-  return rows.sort((a, b) => b.version - a.version);
+  return data.slice(1)
+    .filter(row => row[Q.QUOTATION_ID])
+    .map(row => ({
+      id:          String(row[Q.QUOTATION_ID]),
+      version:     row[Q.CURRENT_VERSION] || 1,
+      accountId:   row[Q.ACCOUNT_ID],
+      accountName: row[Q.ACCOUNT_NAME],
+      projectName: row[Q.PROJECT_NAME],
+      dateIssued:  row[Q.DATE_ISSUED]
+        ? Utilities.formatDate(new Date(row[Q.DATE_ISSUED]), tz, 'yyyy-MM-dd') : '',
+      total:       row[Q.TOTAL],
+      currency:    row[Q.CURRENCY],
+      status:      row[Q.STATUS]
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 // ============================================================
@@ -187,71 +273,78 @@ function getQuotationById(quotationId) {
   const iData  = iSheet.getDataRange().getValues();
   const tz     = Session.getScriptTimeZone();
 
-  let best = null;
+  let qRow = null;
   for (let i = 1; i < qData.length; i++) {
-    const row    = qData[i];
-    const qId    = String(row[Q_COL.QUOTATION_ID]);
-    const status = String(row[Q_COL.STATUS]);
-    const ver    = Number(row[Q_COL.VERSION]) || 1;
-    if (qId !== String(quotationId) || status === 'Deleted') continue;
-    if (!best || ver > Number(best[Q_COL.VERSION])) best = row;
+    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
+      qRow = qData[i]; break;
+    }
   }
-  if (!best) return null;
+  if (!qRow) return null;
 
   const items = iData.slice(1)
-    .filter(r => String(r[1]) === String(quotationId) && r[9] !== 'Deleted')
+    .filter(r => String(r[QI.QUOTATION_ID]) === String(quotationId)
+              && r[QI.STATUS] !== 'Deleted')
+    .sort((a, b) => a[QI.ITEM_INDEX] - b[QI.ITEM_INDEX])
     .map(r => ({
-      name: r[3], quantity: r[4], description: r[5],
-      notes: r[6], unitPrice: r[7], subtotal: r[8]
+      itemId:      r[QI.ITEM_ID],
+      name:        r[QI.ITEM_NAME],
+      quantity:    r[QI.QUANTITY],
+      description: r[QI.DESCRIPTION],
+      notes:       r[QI.NOTES],
+      unitPrice:   r[QI.UNIT_PRICE],
+      subtotal:    r[QI.SUBTOTAL]
     }));
 
   return {
-    rowId:              best[Q_COL.ROW_ID],
-    id:                 best[Q_COL.QUOTATION_ID],
-    accountId:          best[Q_COL.ACCOUNT_ID],
-    accountName:        best[Q_COL.ACCOUNT_NAME],
-    dateIssued:         best[Q_COL.DATE_ISSUED]
-      ? Utilities.formatDate(new Date(best[Q_COL.DATE_ISSUED]), tz, 'yyyy-MM-dd') : '',
-    projectName:        best[Q_COL.PROJECT_NAME],
-    projectDescription: best[Q_COL.PROJECT_DESC],
-    minDays:            best[Q_COL.MIN_DAYS],
-    maxDays:            best[Q_COL.MAX_DAYS],
-    deliveryDeadline:   best[Q_COL.DELIVERY]
-      ? Utilities.formatDate(new Date(best[Q_COL.DELIVERY]), tz, 'yyyy-MM-dd') : '',
-    pricingMode:        best[Q_COL.PRICING_MODE],
-    currency:           best[Q_COL.CURRENCY],
-    subtotal:           best[Q_COL.SUBTOTAL],
-    taxed:              best[Q_COL.TAXED],
-    taxPercent:         best[Q_COL.TAX_PERCENT],
-    taxAmount:          best[Q_COL.TAX_AMOUNT],
-    discounted:         best[Q_COL.DISCOUNTED],
-    discountPercent:    best[Q_COL.DISCOUNT_PERCENT],
-    discountAmount:     best[Q_COL.DISCOUNT_AMOUNT],
-    total:              best[Q_COL.TOTAL],
-    status:             best[Q_COL.STATUS],
-    notes:              best[Q_COL.NOTES],
-    version:            best[Q_COL.VERSION] || 1,
-    folderUrl:          best[Q_COL.FOLDER_URL] || '',
+    id:                 String(qRow[Q.QUOTATION_ID]),
+    version:            qRow[Q.CURRENT_VERSION] || 1,
+    accountId:          qRow[Q.ACCOUNT_ID],
+    accountName:        qRow[Q.ACCOUNT_NAME],
+    projectName:        qRow[Q.PROJECT_NAME],
+    projectDescription: qRow[Q.PROJECT_DESC],
+    dateIssued:         qRow[Q.DATE_ISSUED]
+      ? Utilities.formatDate(new Date(qRow[Q.DATE_ISSUED]), tz, 'yyyy-MM-dd') : '',
+    minDays:            qRow[Q.MIN_DAYS],
+    maxDays:            qRow[Q.MAX_DAYS],
+    deliveryDeadline:   qRow[Q.DELIVERY_DEADLINE]
+      ? Utilities.formatDate(new Date(qRow[Q.DELIVERY_DEADLINE]), tz, 'yyyy-MM-dd') : '',
+    pricingMode:        qRow[Q.PRICING_MODE],
+    currency:           qRow[Q.CURRENCY],
+    subtotal:           qRow[Q.SUBTOTAL],
+    discounted:         qRow[Q.DISCOUNTED],
+    discountPercent:    qRow[Q.DISCOUNT_PERCENT],
+    discountAmount:     qRow[Q.DISCOUNT_AMOUNT],
+    taxed:              qRow[Q.TAXED],
+    taxPercent:         qRow[Q.TAX_PERCENT],
+    taxAmount:          qRow[Q.TAX_AMOUNT],
+    total:              qRow[Q.TOTAL],
+    status:             qRow[Q.STATUS],
+    notes:              qRow[Q.NOTES],
+    folderUrl:          qRow[Q.FOLDER_URL] || '',
     items
   };
 }
 
 // ============================================================
-//  QUOTATIONS — GENERATE ID (max + 1, gap-safe)
+//  QUOTATIONS — GET VERSION HISTORY (from log)
 // ============================================================
-function generateQuotationId() {
-  const sheet  = getSheet('Quotations');
-  const data   = sheet.getDataRange().getValues();
-  let maxNum   = 0;
-  data.slice(1).forEach(row => {
-    const qId   = String(row[Q_COL.QUOTATION_ID] || '');
-    const match = qId.match(/^Q-(\d+)$/);
-    if (match) {
-      const num = parseInt(match[1], 10);
-      if (num > maxNum) maxNum = num;
-    }
-  });
-  return 'Q-' + Utilities.formatString('%04d', maxNum + 1);
+function getQuotationHistory(quotationId) {
+  const sheet = getSheet('Quotations_Log');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const tz   = Session.getScriptTimeZone();
+
+  return data.slice(1)
+    .filter(row => String(row[2]) === String(quotationId)
+                && row[6] === 'Version')
+    .map(row => ({
+      version:   row[8],
+      changedBy: row[9],
+      changedAt: row[10]
+        ? Utilities.formatDate(new Date(row[10]), tz, 'dd MMM yyyy HH:mm') : '',
+      folderUrl: row[11] || ''
+    }))
+    .sort((a, b) => b.version - a.version);
 }
 
 // ============================================================
@@ -264,12 +357,13 @@ function createQuotation(data) {
   const accountsSheet = ss.getSheetByName('Accounts');
   const brandingSheet = ss.getSheetByName('Branding');
 
-  const rowId       = Utilities.getUuid();
   const quotationId = generateQuotationId();
   const now         = new Date();
   const user        = Session.getActiveUser().getEmail();
   const version     = 1;
+  const tz          = Session.getScriptTimeZone();
 
+  // Get account details
   const accounts = accountsSheet.getDataRange().getValues();
   let accountName = '', accountFolderUrl = '', accountRowIndex = -1;
 
@@ -282,6 +376,7 @@ function createQuotation(data) {
     }
   }
 
+  // Get or create Pipeline folder
   let pipelineFolder;
   if (accountFolderUrl) {
     const accountFolderId = accountFolderUrl.match(/[-\w]{25,}/)[0];
@@ -301,6 +396,7 @@ function createQuotation(data) {
     accountsSheet.getRange(accountRowIndex, 11).setRichTextValue(richText);
   }
 
+  // Calculations
   let subtotal = data.subtotal;
   if (data.pricingMode === 'Itemized') {
     subtotal = data.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
@@ -310,6 +406,7 @@ function createQuotation(data) {
   const taxAmount          = data.taxed ? discountedSubtotal * (data.taxPercent / 100) : 0;
   const total              = discountedSubtotal + taxAmount;
 
+  // Generate PDF
   const branding = brandingSheet.getDataRange().getValues()[1] || [];
   const html     = generateQuotationHTML({
     quotationId, accountName, ...data,
@@ -322,31 +419,40 @@ function createQuotation(data) {
   const pdfFile = pipelineFolder.createFile(blob);
   const pdfUrl  = pdfFile.getUrl();
 
+  // Write quotation row
   qSheet.appendRow([
-    rowId, quotationId, version, data.accountId, accountName,
-    data.dateIssued, data.projectName, data.projectDescription,
-    data.minDays, data.maxDays, data.deliveryDeadline,
+    quotationId, version, data.accountId, accountName,
+    data.projectName, data.projectDescription,
+    data.dateIssued, data.minDays, data.maxDays, data.deliveryDeadline,
     data.pricingMode, data.currency,
-    subtotal, data.taxed, data.taxPercent, taxAmount,
-    data.discounted, data.discountPercent, discountAmount,
-    total, 'Drafted', data.notes, now, user, pdfUrl
+    subtotal, data.discounted, data.discountPercent, discountAmount,
+    data.taxed, data.taxPercent, taxAmount,
+    total, 'Drafted', data.notes, pdfUrl,
+    user, now, user, now
   ]);
 
+  // Write items
   data.items.forEach((item, index) => {
     iSheet.appendRow([
       Utilities.getUuid(), quotationId, index + 1,
       item.name, item.quantity, item.description, item.notes,
       data.pricingMode === 'Itemized' ? item.unitPrice : '',
       data.pricingMode === 'Itemized' ? item.subtotal  : '',
-      'Active'
+      'Active', user, now
     ]);
   });
+
+  // Log creation
+  writeLog('Quotations_Log', 'Quotations', quotationId,
+    `${quotationId} — ${data.projectName}`,
+    data.accountId, accountName,
+    'Version', '', version, 'Quotation created');
 
   return { success: true, quotationId };
 }
 
 // ============================================================
-//  QUOTATIONS — EDIT
+//  QUOTATIONS — EDIT (in-place update, new version)
 // ============================================================
 function editQuotation(data) {
   const ss            = SpreadsheetApp.getActive();
@@ -358,25 +464,23 @@ function editQuotation(data) {
   const now  = new Date();
   const user = Session.getActiveUser().getEmail();
 
+  // Find quotation row
   const qData = qSheet.getDataRange().getValues();
-  let currentRow = -1, currentVersion = 1, currentPdfUrl = '';
+  let qRowIndex = -1, currentVersion = 1, currentPdfUrl = '';
 
   for (let i = 1; i < qData.length; i++) {
-    const row    = qData[i];
-    const qId    = String(row[Q_COL.QUOTATION_ID]);
-    const status = String(row[Q_COL.STATUS]);
-    const ver    = Number(row[Q_COL.VERSION]) || 1;
-    if (qId !== String(data.id) || status === 'Deleted') continue;
-    if (currentRow === -1 || ver > currentVersion) {
-      currentRow     = i + 1;
-      currentVersion = ver;
-      currentPdfUrl  = row[Q_COL.FOLDER_URL] || '';
+    if (String(qData[i][Q.QUOTATION_ID]) === String(data.id)) {
+      qRowIndex      = i + 1;
+      currentVersion = qData[i][Q.CURRENT_VERSION] || 1;
+      currentPdfUrl  = qData[i][Q.FOLDER_URL] || '';
+      break;
     }
   }
-  if (currentRow === -1) return { success: false, error: 'Quotation not found.' };
+  if (qRowIndex === -1) return { success: false, error: 'Quotation not found.' };
 
-  const newVersion = currentVersion + 1;
+  const newVersion = Number(currentVersion) + 1;
 
+  // Trash old PDF
   if (currentPdfUrl) {
     try {
       const fileId = currentPdfUrl.match(/[-\w]{25,}/)[0];
@@ -384,15 +488,7 @@ function editQuotation(data) {
     } catch(e) { Logger.log('Old PDF delete: ' + e); }
   }
 
-  qSheet.getRange(currentRow, Q_COL.STATUS + 1).setValue('Deleted');
-
-  const iData = iSheet.getDataRange().getValues();
-  for (let i = 1; i < iData.length; i++) {
-    if (String(iData[i][1]) === String(data.id) && iData[i][9] !== 'Deleted') {
-      iSheet.getRange(i + 1, 10).setValue('Deleted');
-    }
-  }
-
+  // Get account details
   const accounts = accountsSheet.getDataRange().getValues();
   let accountName = '', pipelineFolder = null;
 
@@ -412,6 +508,7 @@ function editQuotation(data) {
     }
   }
 
+  // Calculations
   let subtotal = data.subtotal;
   if (data.pricingMode === 'Itemized') {
     subtotal = data.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
@@ -421,6 +518,7 @@ function editQuotation(data) {
   const taxAmount          = data.taxed ? discountedSubtotal * (data.taxPercent / 100) : 0;
   const total              = discountedSubtotal + taxAmount;
 
+  // New PDF
   const branding = brandingSheet.getDataRange().getValues()[1] || [];
   const html     = generateQuotationHTML({
     quotationId: data.id, accountName, ...data,
@@ -434,25 +532,89 @@ function editQuotation(data) {
   const pdfFile = pipelineFolder ? pipelineFolder.createFile(blob) : null;
   const pdfUrl  = pdfFile ? pdfFile.getUrl() : '';
 
-  qSheet.appendRow([
-    Utilities.getUuid(), data.id, newVersion, data.accountId, accountName,
-    data.dateIssued, data.projectName, data.projectDescription,
-    data.minDays, data.maxDays, data.deliveryDeadline,
+  // Update quotation row in place
+  const qRange = qSheet.getRange(qRowIndex, 1, 1, 27);
+  qRange.setValues([[
+    data.id, newVersion, data.accountId, accountName,
+    data.projectName, data.projectDescription,
+    data.dateIssued, data.minDays, data.maxDays, data.deliveryDeadline,
     data.pricingMode, data.currency,
-    subtotal, data.taxed, data.taxPercent, taxAmount,
-    data.discounted, data.discountPercent, discountAmount,
-    total, 'Drafted', data.notes, now, user, pdfUrl
-  ]);
+    subtotal, data.discounted, data.discountPercent, discountAmount,
+    data.taxed, data.taxPercent, taxAmount,
+    total, 'Drafted', data.notes, pdfUrl,
+    qData[qRowIndex - 1][Q.CREATED_BY],
+    qData[qRowIndex - 1][Q.CREATED_AT],
+    user, now
+  ]]);
 
+  // Snapshot old items for log
+  const iData     = iSheet.getDataRange().getValues();
+  const oldItems  = iData.slice(1)
+    .filter(r => String(r[QI.QUOTATION_ID]) === String(data.id)
+              && r[QI.STATUS] !== 'Deleted')
+    .map(r => ({
+      name: r[QI.ITEM_NAME], qty: r[QI.QUANTITY],
+      desc: r[QI.DESCRIPTION], notes: r[QI.NOTES],
+      unitPrice: r[QI.UNIT_PRICE], subtotal: r[QI.SUBTOTAL]
+    }));
+
+  // Update items in place — match by ItemIndex, add new, remove extras
+  const existingItemRows = [];
+  for (let i = 1; i < iData.length; i++) {
+    if (String(iData[i][QI.QUOTATION_ID]) === String(data.id)
+     && iData[i][QI.STATUS] !== 'Deleted') {
+      existingItemRows.push({ sheetRow: i + 1, data: iData[i] });
+    }
+  }
+
+  // Update or create item rows
   data.items.forEach((item, index) => {
-    iSheet.appendRow([
-      Utilities.getUuid(), data.id, index + 1,
-      item.name, item.quantity, item.description, item.notes,
-      data.pricingMode === 'Itemized' ? item.unitPrice : '',
-      data.pricingMode === 'Itemized' ? item.subtotal  : '',
-      'Active'
-    ]);
+    const itemIndex  = index + 1;
+    const existing   = existingItemRows.find(r => r.data[QI.ITEM_INDEX] === itemIndex);
+    const unitPrice  = data.pricingMode === 'Itemized' ? item.unitPrice : '';
+    const itemSubtotal = data.pricingMode === 'Itemized' ? item.subtotal : '';
+
+    if (existing) {
+      iSheet.getRange(existing.sheetRow, 1, 1, 12).setValues([[
+        existing.data[QI.ITEM_ID], data.id, itemIndex,
+        item.name, item.quantity, item.description, item.notes,
+        unitPrice, itemSubtotal, 'Active', user, now
+      ]]);
+    } else {
+      iSheet.appendRow([
+        Utilities.getUuid(), data.id, itemIndex,
+        item.name, item.quantity, item.description, item.notes,
+        unitPrice, itemSubtotal, 'Active', user, now
+      ]);
+    }
   });
+
+  // Mark extra item rows as Deleted if quotation now has fewer items
+  if (existingItemRows.length > data.items.length) {
+    for (let i = data.items.length; i < existingItemRows.length; i++) {
+      iSheet.getRange(existingItemRows[i].sheetRow, QI.STATUS + 1).setValue('Deleted');
+      iSheet.getRange(existingItemRows[i].sheetRow, QI.LAST_UPDATED_BY + 1).setValue(user);
+      iSheet.getRange(existingItemRows[i].sheetRow, QI.LAST_UPDATED_AT + 1).setValue(now);
+    }
+  }
+
+  // Log version bump + items snapshot
+  writeLog('Quotations_Log', 'Quotations', data.id,
+    `${data.id} — ${data.projectName}`,
+    data.accountId, accountName,
+    'Version', currentVersion, newVersion, '');
+
+  writeLog('Quotations_Log', 'Quote_Items', data.id,
+    `${data.id} — ${data.projectName}`,
+    data.accountId, accountName,
+    'Items',
+    JSON.stringify(oldItems),
+    JSON.stringify(data.items.map(i => ({
+      name: i.name, qty: i.quantity,
+      desc: i.description, notes: i.notes,
+      unitPrice: i.unitPrice, subtotal: i.subtotal
+    }))),
+    `Items updated on v${newVersion}`);
 
   return { success: true, quotationId: data.id, version: newVersion };
 }
@@ -463,35 +625,51 @@ function editQuotation(data) {
 function deleteQuotation(quotationId) {
   const qSheet = getSheet('Quotations');
   const qData  = qSheet.getDataRange().getValues();
+  const user   = Session.getActiveUser().getEmail();
+
+  let qRowIndex = -1, pdfUrl = '', accountId = '',
+      accountName = '', projectName = '';
 
   for (let i = 1; i < qData.length; i++) {
-    const row    = qData[i];
-    const qId    = String(row[Q_COL.QUOTATION_ID]);
-    const status = String(row[Q_COL.STATUS]);
-    if (qId !== String(quotationId) || status === 'Deleted') continue;
-
-    if (status === 'Confirmed') {
-      return { success: false, error: 'Cannot delete a confirmed quotation.' };
+    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
+      if (qData[i][Q.STATUS] === 'Confirmed') {
+        return { success: false, error: 'Cannot delete a confirmed quotation.' };
+      }
+      qRowIndex   = i + 1;
+      pdfUrl      = qData[i][Q.FOLDER_URL] || '';
+      accountId   = qData[i][Q.ACCOUNT_ID];
+      accountName = qData[i][Q.ACCOUNT_NAME];
+      projectName = qData[i][Q.PROJECT_NAME];
+      break;
     }
+  }
+  if (qRowIndex === -1) return { success: false, error: 'Quotation not found.' };
 
-    const pdfUrl = row[Q_COL.FOLDER_URL] || '';
-    if (pdfUrl) {
-      try {
-        const fileId = pdfUrl.match(/[-\w]{25,}/)[0];
-        DriveApp.getFileById(fileId).setTrashed(true);
-      } catch(e) { Logger.log('PDF delete: ' + e); }
-    }
-
-    qSheet.getRange(i + 1, Q_COL.STATUS + 1).setValue('Deleted');
+  // Trash PDF
+  if (pdfUrl) {
+    try {
+      const fileId = pdfUrl.match(/[-\w]{25,}/)[0];
+      DriveApp.getFileById(fileId).setTrashed(true);
+    } catch(e) { Logger.log('PDF delete: ' + e); }
   }
 
+  // Delete quotation row
+  qSheet.deleteRow(qRowIndex);
+
+  // Delete items
   const iSheet = getSheet('Quote_Items');
   const iData  = iSheet.getDataRange().getValues();
-  for (let i = 1; i < iData.length; i++) {
-    if (String(iData[i][1]) === String(quotationId) && iData[i][9] !== 'Deleted') {
-      iSheet.getRange(i + 1, 10).setValue('Deleted');
+  for (let i = iData.length - 1; i >= 1; i--) {
+    if (String(iData[i][QI.QUOTATION_ID]) === String(quotationId)) {
+      iSheet.deleteRow(i + 1);
     }
   }
+
+  // Log deletion
+  writeLog('Quotations_Log', 'Quotations', quotationId,
+    `${quotationId} — ${projectName}`,
+    accountId, accountName,
+    'Status', 'Drafted', 'Deleted', 'Quotation deleted');
 
   return { success: true };
 }
@@ -502,28 +680,51 @@ function deleteQuotation(quotationId) {
 function confirmQuotation(quotationId) {
   const ss            = SpreadsheetApp.getActive();
   const qSheet        = ss.getSheetByName('Quotations');
+  const iSheet        = ss.getSheetByName('Quote_Items');
   const accountsSheet = ss.getSheetByName('Accounts');
-  const qData         = qSheet.getDataRange().getValues();
+  const pSheet        = ss.getSheetByName('Projects');
+  const piSheet       = ss.getSheetByName('Project_Items');
 
-  let targetRow = -1, accountId = '', pdfUrl = '',
-      accountFolderUrl = '', currentVersion = 0;
+  const qData  = qSheet.getDataRange().getValues();
+  const user   = Session.getActiveUser().getEmail();
+  const now    = new Date();
+  const tz     = Session.getScriptTimeZone();
 
+  let qRowIndex = -1, qRow = null;
   for (let i = 1; i < qData.length; i++) {
-    const row    = qData[i];
-    const qId    = String(row[Q_COL.QUOTATION_ID]);
-    const status = String(row[Q_COL.STATUS]);
-    const ver    = Number(row[Q_COL.VERSION]) || 1;
-    if (qId !== String(quotationId) || status === 'Deleted') continue;
-    if (ver > currentVersion) {
-      targetRow      = i + 1;
-      currentVersion = ver;
-      accountId      = row[Q_COL.ACCOUNT_ID];
-      pdfUrl         = row[Q_COL.FOLDER_URL] || '';
+    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
+      qRowIndex = i + 1;
+      qRow      = qData[i];
+      break;
     }
   }
-  if (targetRow === -1) return { success: false, error: 'Quotation not found.' };
+  if (!qRow) return { success: false, error: 'Quotation not found.' };
+  if (qRow[Q.STATUS] === 'Confirmed') {
+    return { success: false, error: 'Quotation is already confirmed.' };
+  }
 
+  const accountId      = qRow[Q.ACCOUNT_ID];
+  const accountName    = qRow[Q.ACCOUNT_NAME];
+  const projectName    = qRow[Q.PROJECT_NAME];
+  const projectDesc    = qRow[Q.PROJECT_DESC];
+  const pdfUrl         = qRow[Q.FOLDER_URL] || '';
+  const deliveryDdl    = qRow[Q.DELIVERY_DEADLINE];
+  const dateIssued     = qRow[Q.DATE_ISSUED];
+  const minDays        = qRow[Q.MIN_DAYS];
+
+  // Calculate DueDate = earlier of (DeliveryDeadline - 1) or (DateIssued + MinDays)
+  let dueDate = null;
+  try {
+    const ddl      = new Date(deliveryDdl);
+    const ddlMinus1 = new Date(ddl); ddlMinus1.setDate(ddl.getDate() - 1);
+    const issued   = new Date(dateIssued);
+    const minTarget = new Date(issued); minTarget.setDate(issued.getDate() + Number(minDays));
+    dueDate = ddlMinus1 < minTarget ? ddlMinus1 : minTarget;
+  } catch(e) { Logger.log('DueDate calc: ' + e); }
+
+  // Get account folder URL
   const accounts = accountsSheet.getDataRange().getValues();
+  let accountFolderUrl = '';
   for (let i = 1; i < accounts.length; i++) {
     if (String(accounts[i][0]) === String(accountId)) {
       accountFolderUrl = accountsSheet.getRange(i + 1, 11).getRichTextValue().getLinkUrl();
@@ -531,6 +732,7 @@ function confirmQuotation(quotationId) {
     }
   }
 
+  // Move PDF: Pipeline → Q-XXXX folder, create Deliverables subfolder
   if (pdfUrl && accountFolderUrl) {
     try {
       const pdfFileId       = pdfUrl.match(/[-\w]{25,}/)[0];
@@ -539,13 +741,67 @@ function confirmQuotation(quotationId) {
       const accountFolder   = DriveApp.getFolderById(accountFolderId);
       const qFolder         = accountFolder.createFolder(quotationId);
       qFolder.addFile(pdfFile);
+      qFolder.createFolder('Deliverables');
       const pipelineIt = accountFolder.getFoldersByName('Pipeline');
       if (pipelineIt.hasNext()) pipelineIt.next().removeFile(pdfFile);
     } catch(e) { Logger.log('PDF move error: ' + e); }
   }
 
-  qSheet.getRange(targetRow, Q_COL.STATUS + 1).setValue('Confirmed');
-  promoteAccountToClient(accountId);
+  // Update quotation status in place
+  qSheet.getRange(qRowIndex, Q.STATUS + 1).setValue('Confirmed');
+  qSheet.getRange(qRowIndex, Q.LAST_UPDATED_BY + 1).setValue(user);
+  qSheet.getRange(qRowIndex, Q.LAST_UPDATED_AT + 1).setValue(now);
+
+  // Update Quote_Items to Approved
+  const iData = iSheet.getDataRange().getValues();
+  for (let i = 1; i < iData.length; i++) {
+    if (String(iData[i][QI.QUOTATION_ID]) === String(quotationId)
+     && iData[i][QI.STATUS] === 'Active') {
+      iSheet.getRange(i + 1, QI.STATUS + 1).setValue('Approved');
+      iSheet.getRange(i + 1, QI.LAST_UPDATED_BY + 1).setValue(user);
+      iSheet.getRange(i + 1, QI.LAST_UPDATED_AT + 1).setValue(now);
+    }
+  }
+
+  // Create Projects row
+  const projectId = Utilities.getUuid();
+  pSheet.appendRow([
+    projectId, quotationId, accountId, accountName,
+    projectName, projectDesc,
+    deliveryDdl, dueDate,
+    'Active', '', now, ''
+  ]);
+
+  // Create Project_Items rows from approved Quote_Items
+  const approvedItems = iData.slice(1).filter(r =>
+    String(r[QI.QUOTATION_ID]) === String(quotationId)
+    && r[QI.STATUS] === 'Approved'
+  );
+
+  approvedItems.forEach(item => {
+    piSheet.appendRow([
+      Utilities.getUuid(), projectId, quotationId,
+      accountName, projectName,
+      item[QI.ITEM_NAME], item[QI.QUANTITY],
+      item[QI.DESCRIPTION], item[QI.NOTES],
+      'Pending', '', 0, '', '',
+      dueDate, '', now
+    ]);
+  });
+
+  // Log confirmation
+  writeLog('Quotations_Log', 'Quotations', quotationId,
+    `${quotationId} — ${projectName}`,
+    accountId, accountName,
+    'Status', 'Drafted', 'Confirmed', 'Quotation confirmed');
+
+  writeLog('Projects_Log', 'Projects', projectId,
+    `${quotationId} — ${projectName}`,
+    accountId, accountName,
+    'Status', '', 'Active', 'Project created on confirmation');
+
+  // Promote account to Client
+  promoteAccountToClient(accountId, accountName, quotationId);
 
   return { success: true };
 }
