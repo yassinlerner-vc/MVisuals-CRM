@@ -650,7 +650,8 @@ function renderList(quotations) {
 
   allQuotations.forEach((q, i) => {
     const hasHistory = Number(q.version) > 1;
-    const histId     = 'hist-' + String(q.id).replace(/[^a-z0-9]/gi, '');
+    // Use index-based histId to guarantee uniqueness regardless of ID format
+    const histId = 'hist-idx-' + i;
 
     const mainTbody = document.createElement('tbody');
     mainTbody.innerHTML = `
@@ -668,7 +669,7 @@ function renderList(quotations) {
         <td class="col-acts">
           ${hasHistory
             ? `<button class="btn-hist"
-                onclick="event.stopPropagation();toggleHist('${histId}',this)">
+                onclick="event.stopPropagation();toggleHist('${histId}', '${escHtml(q.id)}', this)">
                 ▶ History</button>`
             : ''}
           <button class="btn-open"
@@ -689,18 +690,14 @@ function renderList(quotations) {
   });
 }
 
-function toggleHist(histId, btn) {
+// ── FIXED: quotationId is passed directly — no reconstruction from histId ──
+function toggleHist(histId, quotationId, btn) {
   const tb     = document.getElementById(histId);
   const isOpen = tb.classList.contains('open');
   if (isOpen) { tb.classList.remove('open'); btn.textContent = '▶ History'; return; }
 
   btn.textContent = '▼ History';
   tb.classList.add('open');
-
-  const q = allQuotations.find(x =>
-    String(x.id).replace(/[^a-z0-9]/gi, '') === histId.replace('hist-', '')
-  );
-  if (!q) return;
 
   startProcessing(null, 'Loading history...');
   google.script.run
@@ -738,7 +735,7 @@ function toggleHist(histId, btn) {
       stopProcessing(null);
       showToast('Could not load history.', 'error');
     })
-    .getQuotationHistory(q.id);
+    .getQuotationHistory(quotationId);
 }
 
 function showList() {
