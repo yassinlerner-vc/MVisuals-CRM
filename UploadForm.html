@@ -38,7 +38,7 @@
     .btn-success:hover:not(:disabled) { background: #166b39; }
     .btn-danger  { background: #fff; color: #c0392b; border-color: #c0392b; }
     .btn-danger:hover:not(:disabled)  { background: #fdecea; }
-    .btn-ghost   {
+    .btn-ghost {
       background: none; border: none; color: #4361ee; font-weight: 600;
       font-size: 13px; cursor: pointer; padding: 7px 4px;
     }
@@ -141,6 +141,8 @@
     .hist-by   { color: #aaa; margin-right: 10px; font-size: 11px; }
     .hist-pdf  { color: #4361ee; text-decoration: none; margin-left: 10px; font-size: 11px; }
     .hist-pdf:hover { text-decoration: underline; }
+    .hist-trash { color: #888; text-decoration: none; margin-left: 10px; font-size: 11px; }
+    .hist-trash:hover { text-decoration: underline; color: #c0392b; }
     .hist-none { color: #aaa; font-size: 11px; margin-left: 10px; }
 
     .nav-bar { display: flex; align-items: center; gap: 6px; }
@@ -211,8 +213,7 @@
       width: 90px; flex-shrink: 0;
     }
     .pct-wrap input {
-      border: none; border-radius: 0; padding: 7px 8px;
-      width: 100%; font-size: 13px;
+      border: none; border-radius: 0; padding: 7px 8px; width: 100%; font-size: 13px;
     }
     .pct-wrap input:focus { outline: none; }
     .pct-wrap span {
@@ -221,23 +222,19 @@
       display: flex; align-items: center;
     }
     .amt-field { flex: 1; }
-    .divider-row {
-      grid-column: 1 / -1; height: 1px; background: #e2e4ef; margin: 4px 0;
-    }
+    .divider-row { grid-column: 1 / -1; height: 1px; background: #e2e4ef; margin: 4px 0; }
     .total-label { font-size: 15px; font-weight: 700; color: #1a1a2e; padding-top: 6px; }
     .total-input {
       font-size: 15px !important; font-weight: 700 !important;
       background: #f0f2fa !important; border-color: #4361ee !important;
     }
     input[type="checkbox"] {
-      width: 16px; height: 16px; accent-color: #4361ee;
-      cursor: pointer; flex-shrink: 0;
+      width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0;
     }
     .error { color: #c0392b; font-size: 11px; margin-top: 3px; min-height: 14px; }
     .btn-add {
       background: none; border: 1px dashed #4361ee; color: #4361ee;
-      padding: 6px 14px; border-radius: 5px; font-size: 13px;
-      font-weight: 600; cursor: pointer;
+      padding: 6px 14px; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
     }
     .btn-add:hover { background: #eef0fd; }
     .hidden { display: none !important; }
@@ -260,12 +257,8 @@
       background: #fff; border-radius: 10px; padding: 24px 28px;
       max-width: 360px; width: 90%;
     }
-    .dialog h4 {
-      font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #1a1a2e;
-    }
-    .dialog p  {
-      font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5;
-    }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #1a1a2e; }
+    .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
     .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
 
     body.readonly-mode .edit-only { display: none !important; }
@@ -282,15 +275,12 @@
 <div class="proc-bar" id="procBar"></div>
 <div class="toast"    id="toast"></div>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-title" id="topbarTitle">Quotations</div>
   <div class="topbar-right"  id="topbarRight"></div>
 </div>
 
-<!-- ══════════════════════════════════
-     LIST VIEW
-══════════════════════════════════ -->
+<!-- LIST VIEW -->
 <div class="view active" id="viewList">
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
@@ -314,31 +304,21 @@
       </thead>
       <tbody id="listBody">
         <tr>
-          <td colspan="8" style="text-align:center;padding:32px;color:#888;">
-            Loading...
-          </td>
+          <td colspan="8" style="text-align:center;padding:32px;color:#888;">Loading...</td>
         </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     FORM VIEW
-══════════════════════════════════ -->
+<!-- FORM VIEW -->
 <div class="view" id="viewForm">
 
   <div class="section">
     <h3>Account & Project</h3>
     <div class="row2">
-      <div class="field">
-        <label>Account</label>
-        <select id="account"></select>
-      </div>
-      <div class="field">
-        <label>Date Issued</label>
-        <input type="date" id="dateIssued">
-      </div>
+      <div class="field"><label>Account</label><select id="account"></select></div>
+      <div class="field"><label>Date Issued</label><input type="date" id="dateIssued"></div>
     </div>
     <div class="field">
       <label>Project Name</label>
@@ -375,12 +355,12 @@
     <div class="row2" style="margin-bottom:12px;">
       <div class="field">
         <label>Pricing Mode</label>
-        <select id="pricingMode"></select>
+        <select id="pricingMode">
+          <option value="Lump Sum">Lump Sum</option>
+          <option value="Itemized">Itemized</option>
+        </select>
       </div>
-      <div class="field">
-        <label>Currency</label>
-        <select id="currency"></select>
-      </div>
+      <div class="field"><label>Currency</label><select id="currency"></select></div>
     </div>
     <div class="items-table-wrap">
       <table class="items-table" id="itemsTable">
@@ -486,7 +466,7 @@
 <div class="overlay" id="overlayDelete">
   <div class="dialog">
     <h4>Delete Quotation</h4>
-    <p>Are you sure? The PDF will be permanently removed from Drive. This cannot be undone.</p>
+    <p>Are you sure? The PDF will be moved to the Deleted Files folder. This cannot be undone.</p>
     <div class="dialog-btns">
       <button class="btn" onclick="closeDialog('overlayDelete')">Cancel</button>
       <button class="btn btn-danger" id="btnDeleteConfirm" onclick="confirmDelete()">
@@ -499,8 +479,8 @@
 <div class="overlay" id="overlayConfirm">
   <div class="dialog">
     <h4>Confirm Quotation</h4>
-    <p>This will approve the quotation, create a project, move the PDF to the account
-       folder, and promote the account to Client if applicable. Continue?</p>
+    <p>This will approve the quotation, create a project with its items, move the PDF
+       to the account folder, and promote the account to Client if applicable. Continue?</p>
     <div class="dialog-btns">
       <button class="btn" onclick="closeDialog('overlayConfirm')">Cancel</button>
       <button class="btn btn-success" id="btnConfirmDo" onclick="doConfirm()">
@@ -511,9 +491,9 @@
 </div>
 
 <script>
-/* ════════════════════════════════════
+/* ══════════════════════════════
    STATE
-════════════════════════════════════ */
+══════════════════════════════ */
 let allQuotations = [];
 let currentIndex  = -1;
 let currentMode   = 'list';
@@ -522,15 +502,14 @@ let itemsList     = [];
 let rowCount      = 0;
 let subtotalCents = 0;
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    PROCESSING
-════════════════════════════════════ */
+══════════════════════════════ */
 function startProcessing(btn, msg) {
   document.getElementById('procBar').className = 'proc-bar active';
   showToast(msg || 'Processing...', 'info', 0);
   if (btn) { btn.classList.add('loading'); btn.disabled = true; }
 }
-
 function stopProcessing(btn) {
   const bar = document.getElementById('procBar');
   bar.className = 'proc-bar done';
@@ -538,9 +517,9 @@ function stopProcessing(btn) {
   if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    TOAST
-════════════════════════════════════ */
+══════════════════════════════ */
 let toastTimer = null;
 function showToast(msg, type, duration) {
   const t = document.getElementById('toast');
@@ -554,11 +533,11 @@ function showToast(msg, type, duration) {
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    INIT
-════════════════════════════════════ */
+══════════════════════════════ */
 function init() {
-  google.script.run.withSuccessHandler(d  => { itemsList = d || []; }).getItems();
+  google.script.run.withSuccessHandler(d => { itemsList = d || []; }).getItems();
   google.script.run.withSuccessHandler(loadSettings).getSettings();
   google.script.run.withSuccessHandler(loadAccounts).getAccounts();
   google.script.run.withSuccessHandler(renderList).getQuotations();
@@ -583,23 +562,14 @@ function loadAccounts(accounts) {
 }
 
 function loadSettings(s) {
-  // Currencies dropdown — from sheet
   const cu = document.getElementById('currency');
   cu.innerHTML = '';
   (s.currencies || []).forEach(c => cu.add(new Option(c, c)));
-
-  // Pricing mode dropdown — from sheet
-  const pm = document.getElementById('pricingMode');
-  pm.innerHTML = '';
-  (s.pricingModes || []).forEach(m => pm.add(new Option(m, m)));
-
-  // Trigger pricing mode UI after options are loaded
-  onPricingModeChange();
 }
 
-/* ════════════════════════════════════
-   SUBTOTAL INPUT (calculator-style)
-════════════════════════════════════ */
+/* ══════════════════════════════
+   SUBTOTAL — calculator style
+══════════════════════════════ */
 function initSubtotalInput() {
   const el = document.getElementById('subtotal');
 
@@ -643,12 +613,10 @@ function initSubtotalInput() {
 function renderSubtotal() {
   document.getElementById('subtotal').value = fmt(subtotalCents / 100);
 }
-
 function getSubtotalValue() {
   if (isItemized()) return safe(document.getElementById('subtotal').value);
   return subtotalCents / 100;
 }
-
 function setSubtotalDisplay(val) {
   if (isItemized()) {
     setFmt(document.getElementById('subtotal'), val);
@@ -658,9 +626,9 @@ function setSubtotalDisplay(val) {
   }
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    LIST VIEW
-════════════════════════════════════ */
+══════════════════════════════ */
 function renderList(quotations) {
   allQuotations = quotations || [];
   const count   = document.getElementById('listCount');
@@ -669,12 +637,10 @@ function renderList(quotations) {
   count.textContent = allQuotations.length + ' quotation' +
     (allQuotations.length !== 1 ? 's' : '');
 
-  // Remove all existing tbodies
   Array.from(table.querySelectorAll('tbody')).forEach(tb => tb.remove());
 
   if (!allQuotations.length) {
     const tb = document.createElement('tbody');
-    tb.id = 'listBody';
     tb.innerHTML = `<tr><td colspan="8"
       style="text-align:center;padding:32px;color:#888;">
       No quotations yet. Create your first one!</td></tr>`;
@@ -683,7 +649,7 @@ function renderList(quotations) {
   }
 
   allQuotations.forEach((q, i) => {
-    const hasHistory = q.version > 1;
+    const hasHistory = Number(q.version) > 1;
     const histId     = 'hist-' + String(q.id).replace(/[^a-z0-9]/gi, '');
 
     const mainTbody = document.createElement('tbody');
@@ -696,8 +662,7 @@ function renderList(quotations) {
         <td class="col-total">${escHtml(q.currency)} ${fmtNum(q.total)}</td>
         <td class="col-status">
           <span class="badge badge-${(q.status||'drafted').toLowerCase()}">
-            ${escHtml(q.status)}
-          </span>
+            ${escHtml(q.status)}</span>
         </td>
         <td class="col-ver"><span class="ver-badge">v${q.version}</span></td>
         <td class="col-acts">
@@ -727,12 +692,7 @@ function renderList(quotations) {
 function toggleHist(histId, btn) {
   const tb     = document.getElementById(histId);
   const isOpen = tb.classList.contains('open');
-
-  if (isOpen) {
-    tb.classList.remove('open');
-    btn.textContent = '▶ History';
-    return;
-  }
+  if (isOpen) { tb.classList.remove('open'); btn.textContent = '▶ History'; return; }
 
   btn.textContent = '▼ History';
   tb.classList.add('open');
@@ -752,18 +712,25 @@ function toggleHist(histId, btn) {
             No history found.</td></tr>`;
         return;
       }
-      tb.innerHTML = rows.map((r, idx) => {
-        const isCurrent = idx === 0;
-        const label     = `v${r.version}${isCurrent ? ' (current)' : ''}`;
-        const pdfLink   = r.folderUrl
-          ? `<a class="hist-pdf" href="${escHtml(r.folderUrl)}"
-               target="_blank">View PDF ↗</a>`
-          : `<span class="hist-none">PDF not available</span>`;
+      tb.innerHTML = rows.map(r => {
+        const label   = `v${r.version}${r.isCurrent ? ' (current)' : ''}`;
+        let   pdfHtml = '';
+        if (r.folderUrl) {
+          if (r.isCurrent) {
+            pdfHtml = `<a class="hist-pdf" href="${escHtml(r.folderUrl)}"
+              target="_blank">View PDF ↗</a>`;
+          } else {
+            pdfHtml = `<a class="hist-trash" href="${escHtml(r.folderUrl)}"
+              target="_blank">View in Trash ↗</a>`;
+          }
+        } else {
+          pdfHtml = `<span class="hist-none">PDF not available</span>`;
+        }
         return `<tr class="hist-row"><td colspan="8">
           <span class="hist-ver">${label}</span>
           <span class="hist-date">${r.changedAt}</span>
           <span class="hist-by">by ${escHtml(r.changedBy)}</span>
-          ${pdfLink}
+          ${pdfHtml}
         </td></tr>`;
       }).join('');
     })
@@ -783,9 +750,9 @@ function showList() {
   google.script.run.withSuccessHandler(renderList).getQuotations();
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    OPEN QUOTATION
-════════════════════════════════════ */
+══════════════════════════════ */
 function openQuotation(index) {
   currentIndex = index;
   const q      = allQuotations[index];
@@ -793,7 +760,6 @@ function openQuotation(index) {
   currentMode  = 'view';
 
   startProcessing(null, 'Loading quotation...');
-
   google.script.run
     .withSuccessHandler(data => {
       stopProcessing(null); hideToast();
@@ -816,9 +782,9 @@ function openQuotation(index) {
     .getQuotationById(q.id);
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    NEW / EDIT
-════════════════════════════════════ */
+══════════════════════════════ */
 function showNew() {
   currentMode = 'new'; currentId = null; currentIndex = -1;
   resetForm();
@@ -837,15 +803,14 @@ function enterEditMode() {
   showFormActions('edit');
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    NAVIGATION
-════════════════════════════════════ */
+══════════════════════════════ */
 function navigate(dir) {
   const next = currentIndex + dir;
   if (next < 0 || next >= allQuotations.length) return;
   openQuotation(next);
 }
-
 function updateNavButtons() {
   document.getElementById('btnPrev').disabled = currentIndex <= 0;
   document.getElementById('btnNext').disabled = currentIndex >= allQuotations.length - 1;
@@ -854,9 +819,9 @@ function updateNavButtons() {
       ? (currentIndex + 1) + ' / ' + allQuotations.length : '';
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    FORM ACTIONS BAR
-════════════════════════════════════ */
+══════════════════════════════ */
 function showFormActions(mode) {
   const bar     = document.getElementById('formActions');
   const btnSave = document.getElementById('btnSave');
@@ -887,21 +852,20 @@ function showFormActions(mode) {
   }
 }
 
-/* ════════════════════════════════════
-   VIEW / READONLY HELPERS
-════════════════════════════════════ */
+/* ══════════════════════════════
+   VIEW HELPERS
+══════════════════════════════ */
 function switchView(name) {
   document.getElementById('viewList').classList.toggle('active', name === 'list');
   document.getElementById('viewForm').classList.toggle('active', name === 'form');
 }
-
 function setReadOnly(on) {
   document.body.classList.toggle('readonly-mode', on);
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    POPULATE FORM
-════════════════════════════════════ */
+══════════════════════════════ */
 function populateForm(q) {
   setValue('pricingMode', q.pricingMode);
   setValue('account', q.accountId);
@@ -946,9 +910,9 @@ function setValue(id, val) {
   }
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    RESET FORM
-════════════════════════════════════ */
+══════════════════════════════ */
 function resetForm() {
   document.getElementById('dateIssued').valueAsDate = new Date();
   ['projectName','projectDescription','minDays','maxDays','deadline','notes']
@@ -966,9 +930,9 @@ function resetForm() {
   applyPricingModeUI();
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    SAVE
-════════════════════════════════════ */
+══════════════════════════════ */
 function saveForm() {
   if (!validateForm()) return;
   const data = collectFormData();
@@ -1006,9 +970,9 @@ function saveForm() {
   }
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    COLLECT DATA
-════════════════════════════════════ */
+══════════════════════════════ */
 function collectFormData() {
   const rows  = document.querySelectorAll('#itemsBody tr');
   const items = Array.from(rows).map(row => ({
@@ -1039,12 +1003,10 @@ function collectFormData() {
   };
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    DELETE
-════════════════════════════════════ */
-function askDelete() {
-  document.getElementById('overlayDelete').classList.add('open');
-}
+══════════════════════════════ */
+function askDelete() { document.getElementById('overlayDelete').classList.add('open'); }
 
 function confirmDelete() {
   const btn = document.getElementById('btnDeleteConfirm');
@@ -1064,12 +1026,10 @@ function confirmDelete() {
     .deleteQuotation(currentId);
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    CONFIRM QUOTATION
-════════════════════════════════════ */
-function askConfirm() {
-  document.getElementById('overlayConfirm').classList.add('open');
-}
+══════════════════════════════ */
+function askConfirm() { document.getElementById('overlayConfirm').classList.add('open'); }
 
 function doConfirm() {
   const btn = document.getElementById('btnConfirmDo');
@@ -1089,13 +1049,11 @@ function doConfirm() {
     .confirmQuotation(currentId);
 }
 
-function closeDialog(id) {
-  document.getElementById(id).classList.remove('open');
-}
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    ITEMS TABLE
-════════════════════════════════════ */
+══════════════════════════════ */
 function addRow(prefill) {
   rowCount++;
   const tr = document.createElement('tr');
@@ -1164,9 +1122,9 @@ function reNumberRows() {
   });
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    PRICING MODE
-════════════════════════════════════ */
+══════════════════════════════ */
 function isItemized() {
   return document.getElementById('pricingMode').value === 'Itemized';
 }
@@ -1197,9 +1155,9 @@ function onPricingModeChange() {
   calc();
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    CALC
-════════════════════════════════════ */
+══════════════════════════════ */
 function calc() {
   let subtotal = 0;
   if (isItemized()) {
@@ -1233,9 +1191,9 @@ function calc() {
   setFmt(document.getElementById('total'), afterDiscount + taxAmt);
 }
 
-/* ════════════════════════════════════
-   DISCOUNT / TAX TOGGLES
-════════════════════════════════════ */
+/* ══════════════════════════════
+   DISCOUNT / TAX
+══════════════════════════════ */
 function onDiscountToggle() {
   const checked = document.getElementById('applyDiscount').checked;
   document.getElementById('discountInputs').style.visibility =
@@ -1246,7 +1204,6 @@ function onDiscountToggle() {
   }
   calc();
 }
-
 function onTaxToggle() {
   const checked = document.getElementById('applyTax').checked;
   document.getElementById('taxInputs').style.visibility =
@@ -1258,17 +1215,16 @@ function onTaxToggle() {
   calc();
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    DELIVERY
-════════════════════════════════════ */
+══════════════════════════════ */
 function onMinDaysInput() {
   const minEl = document.getElementById('minDays');
   const maxEl = document.getElementById('maxDays');
   let v = parseInt(minEl.value, 10);
   if (isNaN(v) || v < 1) {
     minEl.value = '';
-    document.getElementById('minDaysError').textContent =
-      'Must be a positive whole number.';
+    document.getElementById('minDaysError').textContent = 'Must be a positive whole number.';
     document.getElementById('deadline').value = ''; return;
   }
   minEl.value = v;
@@ -1277,19 +1233,16 @@ function onMinDaysInput() {
   if (!curMax || curMax <= v) maxEl.value = v + 1;
   validateMax(); updateDeadline();
 }
-
 function onMaxDaysInput() {
   const maxEl = document.getElementById('maxDays');
   let v = parseInt(maxEl.value, 10);
   if (isNaN(v) || v < 1) {
     maxEl.value = '';
-    document.getElementById('maxDaysError').textContent =
-      'Must be a positive whole number.';
+    document.getElementById('maxDaysError').textContent = 'Must be a positive whole number.';
     document.getElementById('deadline').value = ''; return;
   }
   maxEl.value = v; validateMax(); updateDeadline();
 }
-
 function validateMax() {
   const min = parseInt(document.getElementById('minDays').value, 10);
   const max = parseInt(document.getElementById('maxDays').value, 10);
@@ -1299,7 +1252,6 @@ function validateMax() {
   }
   err.textContent = ''; return true;
 }
-
 function updateDeadline() {
   const dateEl     = document.getElementById('dateIssued');
   const maxDaysEl  = document.getElementById('maxDays');
@@ -1312,9 +1264,9 @@ function updateDeadline() {
   deadlineEl.value = d.toISOString().split('T')[0];
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    VALIDATION
-════════════════════════════════════ */
+══════════════════════════════ */
 function validateForm() {
   const min = parseInt(document.getElementById('minDays').value, 10);
   const max = parseInt(document.getElementById('maxDays').value, 10);
@@ -1331,9 +1283,9 @@ function validateForm() {
   return true;
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    SANITIZERS
-════════════════════════════════════ */
+══════════════════════════════ */
 function sanitizePct(e) {
   const el = e.target;
   let v = el.value.replace(/[^0-9.]/g, '');
@@ -1344,13 +1296,11 @@ function sanitizePct(e) {
   if (v !== '' && v !== '.' && parseFloat(v) > 100) v = '100';
   el.value = v;
 }
-
 function sanitizeQty(e) {
   const el = e.target;
   const v  = parseInt(el.value.replace(/[^0-9]/g, ''), 10);
   el.value = (!v || v < 1) ? '' : v;
 }
-
 function sanitizePrice(e) {
   const el = e.target;
   let v = el.value.replace(/[^0-9.]/g, '');
@@ -1360,9 +1310,9 @@ function sanitizePrice(e) {
   el.value = parts.length === 2 ? parts[0] + '.' + parts[1] : parts[0];
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════
    HELPERS
-════════════════════════════════════ */
+══════════════════════════════ */
 function safe(v)   { return Number(String(v).replace(/,/g, '')) || 0; }
 function fmt(n)    {
   return Number(n).toLocaleString('en-US',
