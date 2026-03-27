@@ -38,8 +38,10 @@
     .btn-success:hover:not(:disabled) { background: #166b39; }
     .btn-danger  { background: #fff; color: #c0392b; border-color: #c0392b; }
     .btn-danger:hover:not(:disabled)  { background: #fdecea; }
-    .btn-ghost   { background: none; border: none; color: #4361ee; font-weight: 600;
-                   font-size: 13px; cursor: pointer; padding: 7px 4px; }
+    .btn-ghost   {
+      background: none; border: none; color: #4361ee; font-weight: 600;
+      font-size: 13px; cursor: pointer; padding: 7px 4px;
+    }
     .btn-ghost:hover { text-decoration: underline; }
 
     .spinner {
@@ -80,7 +82,6 @@
     .badge-confirmed { background: #d1f2e1; color: #0f5132; }
     .badge-deleted   { background: #f8d7da; color: #842029; }
 
-    /* ── List ── */
     .list-toolbar {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 16px;
@@ -109,7 +110,7 @@
     .col-status { width: 105px; }
     .col-date   { width: 110px; color: #666; }
     .col-ver    { width: 55px; text-align: center; }
-    .col-acts   { width: 130px; text-align: right; }
+    .col-acts   { width: 140px; text-align: right; white-space: nowrap; }
 
     .ver-badge {
       display: inline-block; background: #e8ecfd; color: #2f4bcc;
@@ -117,7 +118,8 @@
     }
     .btn-open {
       background: none; border: 1px solid #4361ee; color: #4361ee;
-      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;
+      padding: 4px 10px; border-radius: 4px; font-size: 12px;
+      font-weight: 600; cursor: pointer;
     }
     .btn-open:hover { background: #eef0fd; }
     .btn-hist {
@@ -126,7 +128,6 @@
     }
     .btn-hist:hover { background: #f0f2fa; color: #4361ee; }
 
-    /* ── Version history rows ── */
     .hist-tbody { display: none; }
     .hist-tbody.open { display: table-row-group; }
     .hist-row td {
@@ -135,17 +136,16 @@
       border-bottom: 1px solid #eee;
       font-size: 12px;
     }
-    .hist-ver   { font-weight: 700; color: #4361ee; margin-right: 10px; }
-    .hist-date  { color: #888; margin-right: 10px; }
-    .hist-pdf   { color: #4361ee; text-decoration: none; margin-left: 10px; font-size: 11px; }
+    .hist-ver  { font-weight: 700; color: #4361ee; margin-right: 10px; }
+    .hist-date { color: #888; margin-right: 10px; }
+    .hist-by   { color: #aaa; margin-right: 10px; font-size: 11px; }
+    .hist-pdf  { color: #4361ee; text-decoration: none; margin-left: 10px; font-size: 11px; }
     .hist-pdf:hover { text-decoration: underline; }
-    .hist-none  { color: #aaa; font-size: 11px; margin-left: 10px; }
+    .hist-none { color: #aaa; font-size: 11px; margin-left: 10px; }
 
-    /* ── Nav ── */
     .nav-bar { display: flex; align-items: center; gap: 6px; }
     .nav-counter { font-size: 12px; color: #666; min-width: 48px; text-align: center; }
 
-    /* ── Form ── */
     h3 {
       font-size: 13px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px;
@@ -174,7 +174,6 @@
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
-    /* ── Items table ── */
     .items-table-wrap { overflow-x: auto; margin-bottom: 10px; }
     .items-table { font-size: 13px; }
     .items-table thead th { font-size: 11px; }
@@ -195,7 +194,6 @@
     }
     .btn-del:hover { background: #fdecea; }
 
-    /* ── Pricing summary ── */
     .pricing-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; align-items: start;
     }
@@ -209,28 +207,37 @@
     .pricing-input-cell { display: flex; align-items: center; gap: 6px; }
     .pct-wrap {
       display: flex; align-items: center; border: 1px solid #d0d3e0;
-      border-radius: 5px; overflow: hidden; background: #fff; width: 90px; flex-shrink: 0;
+      border-radius: 5px; overflow: hidden; background: #fff;
+      width: 90px; flex-shrink: 0;
     }
-    .pct-wrap input { border: none; border-radius: 0; padding: 7px 8px; width: 100%; font-size: 13px; }
+    .pct-wrap input {
+      border: none; border-radius: 0; padding: 7px 8px;
+      width: 100%; font-size: 13px;
+    }
     .pct-wrap input:focus { outline: none; }
     .pct-wrap span {
       padding: 0 8px; color: #888; font-size: 13px; background: #f0f2fa;
-      border-left: 1px solid #d0d3e0; align-self: stretch; display: flex; align-items: center;
+      border-left: 1px solid #d0d3e0; align-self: stretch;
+      display: flex; align-items: center;
     }
     .amt-field { flex: 1; }
-    .divider-row { grid-column: 1 / -1; height: 1px; background: #e2e4ef; margin: 4px 0; }
+    .divider-row {
+      grid-column: 1 / -1; height: 1px; background: #e2e4ef; margin: 4px 0;
+    }
     .total-label { font-size: 15px; font-weight: 700; color: #1a1a2e; padding-top: 6px; }
     .total-input {
       font-size: 15px !important; font-weight: 700 !important;
       background: #f0f2fa !important; border-color: #4361ee !important;
     }
     input[type="checkbox"] {
-      width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0;
+      width: 16px; height: 16px; accent-color: #4361ee;
+      cursor: pointer; flex-shrink: 0;
     }
     .error { color: #c0392b; font-size: 11px; margin-top: 3px; min-height: 14px; }
     .btn-add {
       background: none; border: 1px dashed #4361ee; color: #4361ee;
-      padding: 6px 14px; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer;
+      padding: 6px 14px; border-radius: 5px; font-size: 13px;
+      font-weight: 600; cursor: pointer;
     }
     .btn-add:hover { background: #eef0fd; }
     .hidden { display: none !important; }
@@ -253,28 +260,37 @@
       background: #fff; border-radius: 10px; padding: 24px 28px;
       max-width: 360px; width: 90%;
     }
-    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #1a1a2e; }
-    .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .dialog h4 {
+      font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #1a1a2e;
+    }
+    .dialog p  {
+      font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5;
+    }
     .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
 
     body.readonly-mode .edit-only { display: none !important; }
     body.readonly-mode input:not([type="checkbox"]),
     body.readonly-mode select,
-    body.readonly-mode textarea { pointer-events: none; background: #f0f2fa; color: #555; }
+    body.readonly-mode textarea {
+      pointer-events: none; background: #f0f2fa; color: #555;
+    }
     body.readonly-mode input[type="checkbox"] { pointer-events: none; }
   </style>
 </head>
 <body>
 
 <div class="proc-bar" id="procBar"></div>
-<div class="toast" id="toast"></div>
+<div class="toast"    id="toast"></div>
 
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-title" id="topbarTitle">Quotations</div>
-  <div class="topbar-right" id="topbarRight"></div>
+  <div class="topbar-right"  id="topbarRight"></div>
 </div>
 
-<!-- ── LIST VIEW ── -->
+<!-- ══════════════════════════════════
+     LIST VIEW
+══════════════════════════════════ -->
 <div class="view active" id="viewList">
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
@@ -297,20 +313,32 @@
         </tr>
       </thead>
       <tbody id="listBody">
-        <tr><td colspan="8" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+        <tr>
+          <td colspan="8" style="text-align:center;padding:32px;color:#888;">
+            Loading...
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- ── FORM VIEW ── -->
+<!-- ══════════════════════════════════
+     FORM VIEW
+══════════════════════════════════ -->
 <div class="view" id="viewForm">
 
   <div class="section">
     <h3>Account & Project</h3>
     <div class="row2">
-      <div class="field"><label>Account</label><select id="account"></select></div>
-      <div class="field"><label>Date Issued</label><input type="date" id="dateIssued"></div>
+      <div class="field">
+        <label>Account</label>
+        <select id="account"></select>
+      </div>
+      <div class="field">
+        <label>Date Issued</label>
+        <input type="date" id="dateIssued">
+      </div>
     </div>
     <div class="field">
       <label>Project Name</label>
@@ -347,12 +375,12 @@
     <div class="row2" style="margin-bottom:12px;">
       <div class="field">
         <label>Pricing Mode</label>
-        <select id="pricingMode">
-          <option value="Lump Sum">Lump Sum</option>
-          <option value="Itemized">Itemized</option>
-        </select>
+        <select id="pricingMode"></select>
       </div>
-      <div class="field"><label>Currency</label><select id="currency"></select></div>
+      <div class="field">
+        <label>Currency</label>
+        <select id="currency"></select>
+      </div>
     </div>
     <div class="items-table-wrap">
       <table class="items-table" id="itemsTable">
@@ -377,6 +405,7 @@
   <div class="section">
     <h3>Pricing Summary</h3>
     <div class="pricing-grid">
+
       <div class="pricing-label-cell">
         <label style="font-size:14px;font-weight:700;color:#1a1a2e;">Subtotal</label>
       </div>
@@ -384,7 +413,9 @@
         <input type="text" id="subtotal" class="amt-field"
                inputmode="numeric" autocomplete="off" placeholder="0.00">
       </div>
+
       <div class="divider-row"></div>
+
       <div class="pricing-label-cell">
         <input type="checkbox" id="applyDiscount">
         <label for="applyDiscount">Apply Discount</label>
@@ -396,6 +427,7 @@
         </div>
         <input type="text" id="discountAmount" class="amt-field" readonly placeholder="0.00">
       </div>
+
       <div class="pricing-label-cell">
         <input type="checkbox" id="applyTax">
         <label for="applyTax">Apply Tax</label>
@@ -407,13 +439,16 @@
         </div>
         <input type="text" id="taxAmount" class="amt-field" readonly placeholder="0.00">
       </div>
+
       <div class="divider-row"></div>
+
       <div class="pricing-label-cell">
         <label class="total-label">Total</label>
       </div>
       <div class="pricing-input-cell">
         <input type="text" id="total" class="amt-field total-input" readonly placeholder="0.00">
       </div>
+
     </div>
   </div>
 
@@ -424,7 +459,7 @@
 
 </div>
 
-<!-- ── FORM ACTIONS ── -->
+<!-- FORM ACTIONS -->
 <div class="form-actions hidden" id="formActions">
   <button class="btn btn-ghost" onclick="showList()">← Back</button>
   <div class="nav-bar" id="navBar" style="display:none;">
@@ -447,7 +482,7 @@
   </button>
 </div>
 
-<!-- ── DIALOGS ── -->
+<!-- DIALOGS -->
 <div class="overlay" id="overlayDelete">
   <div class="dialog">
     <h4>Delete Quotation</h4>
@@ -464,7 +499,8 @@
 <div class="overlay" id="overlayConfirm">
   <div class="dialog">
     <h4>Confirm Quotation</h4>
-    <p>This will approve the quotation, move the PDF to the account folder, and promote the account to Client if applicable. Continue?</p>
+    <p>This will approve the quotation, create a project, move the PDF to the account
+       folder, and promote the account to Client if applicable. Continue?</p>
     <div class="dialog-btns">
       <button class="btn" onclick="closeDialog('overlayConfirm')">Cancel</button>
       <button class="btn btn-success" id="btnConfirmDo" onclick="doConfirm()">
@@ -475,9 +511,9 @@
 </div>
 
 <script>
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    STATE
-═══════════════════════════════ */
+════════════════════════════════════ */
 let allQuotations = [];
 let currentIndex  = -1;
 let currentMode   = 'list';
@@ -486,12 +522,11 @@ let itemsList     = [];
 let rowCount      = 0;
 let subtotalCents = 0;
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    PROCESSING
-═══════════════════════════════ */
+════════════════════════════════════ */
 function startProcessing(btn, msg) {
-  const bar = document.getElementById('procBar');
-  bar.className = 'proc-bar active';
+  document.getElementById('procBar').className = 'proc-bar active';
   showToast(msg || 'Processing...', 'info', 0);
   if (btn) { btn.classList.add('loading'); btn.disabled = true; }
 }
@@ -503,9 +538,9 @@ function stopProcessing(btn) {
   if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    TOAST
-═══════════════════════════════ */
+════════════════════════════════════ */
 let toastTimer = null;
 function showToast(msg, type, duration) {
   const t = document.getElementById('toast');
@@ -519,11 +554,11 @@ function showToast(msg, type, duration) {
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    INIT
-═══════════════════════════════ */
+════════════════════════════════════ */
 function init() {
-  google.script.run.withSuccessHandler(d => { itemsList = d || []; }).getItems();
+  google.script.run.withSuccessHandler(d  => { itemsList = d || []; }).getItems();
   google.script.run.withSuccessHandler(loadSettings).getSettings();
   google.script.run.withSuccessHandler(loadAccounts).getAccounts();
   google.script.run.withSuccessHandler(renderList).getQuotations();
@@ -548,14 +583,23 @@ function loadAccounts(accounts) {
 }
 
 function loadSettings(s) {
+  // Currencies dropdown — from sheet
   const cu = document.getElementById('currency');
   cu.innerHTML = '';
   (s.currencies || []).forEach(c => cu.add(new Option(c, c)));
+
+  // Pricing mode dropdown — from sheet
+  const pm = document.getElementById('pricingMode');
+  pm.innerHTML = '';
+  (s.pricingModes || []).forEach(m => pm.add(new Option(m, m)));
+
+  // Trigger pricing mode UI after options are loaded
+  onPricingModeChange();
 }
 
-/* ═══════════════════════════════
-   SUBTOTAL INPUT
-═══════════════════════════════ */
+/* ════════════════════════════════════
+   SUBTOTAL INPUT (calculator-style)
+════════════════════════════════════ */
 function initSubtotalInput() {
   const el = document.getElementById('subtotal');
 
@@ -581,7 +625,8 @@ function initSubtotalInput() {
   el.addEventListener('paste', e => {
     if (isItemized()) return;
     e.preventDefault();
-    const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+    const digits = (e.clipboardData || window.clipboardData)
+      .getData('text').replace(/[^0-9]/g, '');
     for (const d of digits) {
       const next = subtotalCents * 10 + parseInt(d, 10);
       if (next <= 99999999999) subtotalCents = next;
@@ -590,7 +635,8 @@ function initSubtotalInput() {
   });
 
   el.addEventListener('focus', () => {
-    if (!isItemized()) setTimeout(() => el.setSelectionRange(el.value.length, el.value.length), 0);
+    if (!isItemized())
+      setTimeout(() => el.setSelectionRange(el.value.length, el.value.length), 0);
   });
 }
 
@@ -612,30 +658,34 @@ function setSubtotalDisplay(val) {
   }
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    LIST VIEW
-═══════════════════════════════ */
+════════════════════════════════════ */
 function renderList(quotations) {
   allQuotations = quotations || [];
-  const tbody   = document.getElementById('listBody');
   const count   = document.getElementById('listCount');
-  count.textContent = allQuotations.length + ' quotation' + (allQuotations.length !== 1 ? 's' : '');
+  const table   = document.getElementById('listTable');
+
+  count.textContent = allQuotations.length + ' quotation' +
+    (allQuotations.length !== 1 ? 's' : '');
+
+  // Remove all existing tbodies
+  Array.from(table.querySelectorAll('tbody')).forEach(tb => tb.remove());
 
   if (!allQuotations.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#888;">No quotations yet. Create your first one!</td></tr>';
+    const tb = document.createElement('tbody');
+    tb.id = 'listBody';
+    tb.innerHTML = `<tr><td colspan="8"
+      style="text-align:center;padding:32px;color:#888;">
+      No quotations yet. Create your first one!</td></tr>`;
+    table.appendChild(tb);
     return;
   }
 
-  // Build all rows + history tbodies as HTML string
-  const table   = document.getElementById('listTable');
-  // Remove all existing tbodies except the header
-  Array.from(table.querySelectorAll('tbody')).forEach(tb => tb.remove());
-
   allQuotations.forEach((q, i) => {
-    const hasHistory = q.ver > 1;
-    const histId     = 'hist-' + q.id.replace(/[^a-z0-9]/gi, '');
+    const hasHistory = q.version > 1;
+    const histId     = 'hist-' + String(q.id).replace(/[^a-z0-9]/gi, '');
 
-    // Main row tbody
     const mainTbody = document.createElement('tbody');
     mainTbody.innerHTML = `
       <tr class="q-main-row" onclick="openQuotation(${i})">
@@ -644,23 +694,31 @@ function renderList(quotations) {
         <td>${escHtml(q.projectName || '—')}</td>
         <td class="col-date">${q.dateIssued || '—'}</td>
         <td class="col-total">${escHtml(q.currency)} ${fmtNum(q.total)}</td>
-        <td class="col-status"><span class="badge badge-${(q.status||'drafted').toLowerCase()}">${escHtml(q.status)}</span></td>
-        <td class="col-ver"><span class="ver-badge">v${q.ver}</span></td>
+        <td class="col-status">
+          <span class="badge badge-${(q.status||'drafted').toLowerCase()}">
+            ${escHtml(q.status)}
+          </span>
+        </td>
+        <td class="col-ver"><span class="ver-badge">v${q.version}</span></td>
         <td class="col-acts">
           ${hasHistory
-            ? `<button class="btn-hist" onclick="event.stopPropagation();toggleHist('${histId}',this)">▶ History</button>`
+            ? `<button class="btn-hist"
+                onclick="event.stopPropagation();toggleHist('${histId}',this)">
+                ▶ History</button>`
             : ''}
-          <button class="btn-open" onclick="event.stopPropagation();openQuotation(${i})">Open →</button>
+          <button class="btn-open"
+            onclick="event.stopPropagation();openQuotation(${i})">Open →</button>
         </td>
       </tr>`;
     table.appendChild(mainTbody);
 
-    // History tbody (hidden until toggled)
     if (hasHistory) {
       const histTbody = document.createElement('tbody');
       histTbody.className = 'hist-tbody';
       histTbody.id        = histId;
-      histTbody.innerHTML = '<tr class="hist-row"><td colspan="8" style="text-align:center;color:#aaa;font-size:12px;">Loading history...</td></tr>';
+      histTbody.innerHTML = `<tr class="hist-row">
+        <td colspan="8" style="text-align:center;color:#aaa;font-size:12px;">
+          Loading history...</td></tr>`;
       table.appendChild(histTbody);
     }
   });
@@ -676,44 +734,37 @@ function toggleHist(histId, btn) {
     return;
   }
 
-  // Find which quotation this belongs to
-  const qId = histId.replace('hist-', '').replace(/(\d+)/, match => {
-    // Reconstruct Q-XXXX from sanitized id
-    return match;
-  });
-
-  // Derive original quotation id from the list
-  const q = allQuotations.find(x => x.id.replace(/[^a-z0-9]/gi,'') === histId.replace('hist-',''));
-
   btn.textContent = '▼ History';
   tb.classList.add('open');
 
+  const q = allQuotations.find(x =>
+    String(x.id).replace(/[^a-z0-9]/gi, '') === histId.replace('hist-', '')
+  );
   if (!q) return;
 
   startProcessing(null, 'Loading history...');
   google.script.run
     .withSuccessHandler(rows => {
-      stopProcessing(null);
-      hideToast();
+      stopProcessing(null); hideToast();
       if (!rows || !rows.length) {
-        tb.innerHTML = '<tr class="hist-row"><td colspan="8" style="text-align:center;color:#aaa;font-size:12px;">No history found.</td></tr>';
+        tb.innerHTML = `<tr class="hist-row">
+          <td colspan="8" style="text-align:center;color:#aaa;font-size:12px;">
+            No history found.</td></tr>`;
         return;
       }
-      tb.innerHTML = rows.map(r => {
-        const isCurrent  = r.status !== 'Deleted';
-        const hasFile    = !!r.folderUrl;
-        const label      = isCurrent ? `v${r.version} (current)` : `v${r.version}`;
-        const pdfLink    = hasFile
-          ? `<a class="hist-pdf" href="${escHtml(r.folderUrl)}" target="_blank">View PDF ↗</a>`
-          : `<span class="hist-none">PDF removed from Drive</span>`;
-        return `<tr class="hist-row">
-          <td colspan="8">
-            <span class="hist-ver">${label}</span>
-            <span class="hist-date">${r.createdAt}</span>
-            <span class="badge badge-${r.status.toLowerCase()}" style="font-size:10px;padding:1px 7px;">${r.status}</span>
-            ${pdfLink}
-          </td>
-        </tr>`;
+      tb.innerHTML = rows.map((r, idx) => {
+        const isCurrent = idx === 0;
+        const label     = `v${r.version}${isCurrent ? ' (current)' : ''}`;
+        const pdfLink   = r.folderUrl
+          ? `<a class="hist-pdf" href="${escHtml(r.folderUrl)}"
+               target="_blank">View PDF ↗</a>`
+          : `<span class="hist-none">PDF not available</span>`;
+        return `<tr class="hist-row"><td colspan="8">
+          <span class="hist-ver">${label}</span>
+          <span class="hist-date">${r.changedAt}</span>
+          <span class="hist-by">by ${escHtml(r.changedBy)}</span>
+          ${pdfLink}
+        </td></tr>`;
       }).join('');
     })
     .withFailureHandler(err => {
@@ -732,9 +783,9 @@ function showList() {
   google.script.run.withSuccessHandler(renderList).getQuotations();
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    OPEN QUOTATION
-═══════════════════════════════ */
+════════════════════════════════════ */
 function openQuotation(index) {
   currentIndex = index;
   const q      = allQuotations[index];
@@ -745,8 +796,7 @@ function openQuotation(index) {
 
   google.script.run
     .withSuccessHandler(data => {
-      stopProcessing(null);
-      hideToast();
+      stopProcessing(null); hideToast();
       if (!data) { showToast('Could not load quotation.', 'error'); return; }
       populateForm(data);
       switchView('form');
@@ -755,7 +805,8 @@ function openQuotation(index) {
       document.getElementById('topbarTitle').textContent =
         q.id + (q.projectName ? ' — ' + q.projectName : '');
       document.getElementById('topbarRight').innerHTML =
-        `<span class="badge badge-${(q.status||'').toLowerCase()}">${escHtml(q.status)}</span>`;
+        `<span class="badge badge-${(q.status||'').toLowerCase()}">
+          ${escHtml(q.status)}</span>`;
       showFormActions('view');
     })
     .withFailureHandler(err => {
@@ -765,9 +816,9 @@ function openQuotation(index) {
     .getQuotationById(q.id);
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    NEW / EDIT
-═══════════════════════════════ */
+════════════════════════════════════ */
 function showNew() {
   currentMode = 'new'; currentId = null; currentIndex = -1;
   resetForm();
@@ -786,9 +837,9 @@ function enterEditMode() {
   showFormActions('edit');
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    NAVIGATION
-═══════════════════════════════ */
+════════════════════════════════════ */
 function navigate(dir) {
   const next = currentIndex + dir;
   if (next < 0 || next >= allQuotations.length) return;
@@ -799,12 +850,13 @@ function updateNavButtons() {
   document.getElementById('btnPrev').disabled = currentIndex <= 0;
   document.getElementById('btnNext').disabled = currentIndex >= allQuotations.length - 1;
   document.getElementById('navCounter').textContent =
-    allQuotations.length > 0 ? (currentIndex + 1) + ' / ' + allQuotations.length : '';
+    allQuotations.length > 0
+      ? (currentIndex + 1) + ' / ' + allQuotations.length : '';
 }
 
-/* ═══════════════════════════════
-   FORM ACTIONS
-═══════════════════════════════ */
+/* ════════════════════════════════════
+   FORM ACTIONS BAR
+════════════════════════════════════ */
 function showFormActions(mode) {
   const bar     = document.getElementById('formActions');
   const btnSave = document.getElementById('btnSave');
@@ -835,9 +887,9 @@ function showFormActions(mode) {
   }
 }
 
-/* ═══════════════════════════════
-   VIEW SWITCHING
-═══════════════════════════════ */
+/* ════════════════════════════════════
+   VIEW / READONLY HELPERS
+════════════════════════════════════ */
 function switchView(name) {
   document.getElementById('viewList').classList.toggle('active', name === 'list');
   document.getElementById('viewForm').classList.toggle('active', name === 'form');
@@ -847,9 +899,9 @@ function setReadOnly(on) {
   document.body.classList.toggle('readonly-mode', on);
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    POPULATE FORM
-═══════════════════════════════ */
+════════════════════════════════════ */
 function populateForm(q) {
   setValue('pricingMode', q.pricingMode);
   setValue('account', q.accountId);
@@ -864,10 +916,12 @@ function populateForm(q) {
 
   document.getElementById('applyDiscount').checked = !!q.discounted;
   document.getElementById('applyTax').checked      = !!q.taxed;
-  document.getElementById('discountInputs').style.visibility = q.discounted ? 'visible' : 'hidden';
-  document.getElementById('taxInputs').style.visibility      = q.taxed      ? 'visible' : 'hidden';
+  document.getElementById('discountInputs').style.visibility =
+    q.discounted ? 'visible' : 'hidden';
+  document.getElementById('taxInputs').style.visibility =
+    q.taxed ? 'visible' : 'hidden';
   setValue('discountPercent', q.discountPercent || '');
-  setValue('taxPercent', q.taxPercent || '');
+  setValue('taxPercent',      q.taxPercent      || '');
   setFmt(document.getElementById('discountAmount'), q.discountAmount || 0);
   setFmt(document.getElementById('taxAmount'),      q.taxAmount      || 0);
   setFmt(document.getElementById('total'),          q.total          || 0);
@@ -884,15 +938,17 @@ function setValue(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
   if (el.tagName === 'SELECT') {
-    for (let o of el.options) { if (String(o.value) === String(val)) { o.selected = true; break; } }
+    for (let o of el.options) {
+      if (String(o.value) === String(val)) { o.selected = true; break; }
+    }
   } else {
     el.value = (val === null || val === undefined) ? '' : val;
   }
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    RESET FORM
-═══════════════════════════════ */
+════════════════════════════════════ */
 function resetForm() {
   document.getElementById('dateIssued').valueAsDate = new Date();
   ['projectName','projectDescription','minDays','maxDays','deadline','notes']
@@ -910,17 +966,17 @@ function resetForm() {
   applyPricingModeUI();
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    SAVE
-═══════════════════════════════ */
+════════════════════════════════════ */
 function saveForm() {
   if (!validateForm()) return;
   const data = collectFormData();
   const btn  = document.getElementById('btnSave');
-
   if (btn.disabled) return;
 
-  startProcessing(btn, currentMode === 'new' ? 'Creating quotation...' : 'Saving changes...');
+  startProcessing(btn,
+    currentMode === 'new' ? 'Creating quotation...' : 'Saving changes...');
 
   if (currentMode === 'new') {
     google.script.run
@@ -950,9 +1006,9 @@ function saveForm() {
   }
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    COLLECT DATA
-═══════════════════════════════ */
+════════════════════════════════════ */
 function collectFormData() {
   const rows  = document.querySelectorAll('#itemsBody tr');
   const items = Array.from(rows).map(row => ({
@@ -983,10 +1039,12 @@ function collectFormData() {
   };
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    DELETE
-═══════════════════════════════ */
-function askDelete() { document.getElementById('overlayDelete').classList.add('open'); }
+════════════════════════════════════ */
+function askDelete() {
+  document.getElementById('overlayDelete').classList.add('open');
+}
 
 function confirmDelete() {
   const btn = document.getElementById('btnDeleteConfirm');
@@ -1006,10 +1064,12 @@ function confirmDelete() {
     .deleteQuotation(currentId);
 }
 
-/* ═══════════════════════════════
-   CONFIRM
-═══════════════════════════════ */
-function askConfirm() { document.getElementById('overlayConfirm').classList.add('open'); }
+/* ════════════════════════════════════
+   CONFIRM QUOTATION
+════════════════════════════════════ */
+function askConfirm() {
+  document.getElementById('overlayConfirm').classList.add('open');
+}
 
 function doConfirm() {
   const btn = document.getElementById('btnConfirmDo');
@@ -1019,8 +1079,8 @@ function doConfirm() {
     .withSuccessHandler(res => {
       stopProcessing(btn);
       if (!res.success) { showToast(res.error || 'Cannot confirm.', 'error'); return; }
-      showToast('Quotation confirmed!', 'success');
-      setTimeout(showList, 1200);
+      showToast('Quotation confirmed! Project created.', 'success');
+      setTimeout(showList, 1400);
     })
     .withFailureHandler(err => {
       stopProcessing(btn);
@@ -1029,39 +1089,49 @@ function doConfirm() {
     .confirmQuotation(currentId);
 }
 
-function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+function closeDialog(id) {
+  document.getElementById(id).classList.remove('open');
+}
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    ITEMS TABLE
-═══════════════════════════════ */
+════════════════════════════════════ */
 function addRow(prefill) {
   rowCount++;
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="col-num row-num"></td>
     <td class="col-item"><select class="item-sel"></select></td>
-    <td class="col-qty"><input type="number" class="item-qty"
-        value="${prefill ? (prefill.quantity || 1) : 1}" min="1" step="1"></td>
+    <td class="col-qty">
+      <input type="number" class="item-qty"
+        value="${prefill ? (prefill.quantity || 1) : 1}" min="1" step="1">
+    </td>
     <td class="col-desc">
-        <input type="text" class="item-desc" value="${escHtml(prefill ? prefill.description : '')}">
+      <input type="text" class="item-desc"
+        value="${escHtml(prefill ? prefill.description : '')}">
     </td>
     <td class="col-notes">
-        <input type="text" class="item-notes" value="${escHtml(prefill ? prefill.notes : '')}">
+      <input type="text" class="item-notes"
+        value="${escHtml(prefill ? prefill.notes : '')}">
     </td>
     <td class="col-price price-col hidden">
-        <input type="text" class="item-price" inputmode="decimal"
-               value="${prefill && prefill.unitPrice ? prefill.unitPrice : ''}">
+      <input type="text" class="item-price" inputmode="decimal"
+        value="${prefill && prefill.unitPrice ? prefill.unitPrice : ''}">
     </td>
     <td class="col-sub price-col hidden">
-        <input type="text" class="item-subtotal" readonly
-               value="${prefill && prefill.subtotal ? fmtNum(prefill.subtotal) : ''}">
+      <input type="text" class="item-subtotal" readonly
+        value="${prefill && prefill.subtotal ? fmtNum(prefill.subtotal) : ''}">
     </td>
-    <td class="col-del edit-only"><button class="btn-del" title="Remove">✕</button></td>`;
+    <td class="col-del edit-only">
+      <button class="btn-del" title="Remove">✕</button>
+    </td>`;
 
   const sel = tr.querySelector('.item-sel');
   itemsList.forEach(i => sel.add(new Option(i.name, i.name)));
   if (prefill) {
-    for (let o of sel.options) { if (o.value === prefill.name) { o.selected = true; break; } }
+    for (let o of sel.options) {
+      if (o.value === prefill.name) { o.selected = true; break; }
+    }
   } else if (itemsList[0]) {
     tr.querySelector('.item-desc').value  = itemsList[0].description || '';
     tr.querySelector('.item-price').value = itemsList[0].price || 0;
@@ -1094,9 +1164,9 @@ function reNumberRows() {
   });
 }
 
-/* ═══════════════════════════════
-   PRICING
-═══════════════════════════════ */
+/* ════════════════════════════════════
+   PRICING MODE
+════════════════════════════════════ */
 function isItemized() {
   return document.getElementById('pricingMode').value === 'Itemized';
 }
@@ -1104,10 +1174,11 @@ function isItemized() {
 function applyPricingModeUI() {
   const itemized   = isItemized();
   const subtotalEl = document.getElementById('subtotal');
-  document.querySelectorAll('.price-col').forEach(c => c.classList.toggle('hidden', !itemized));
-  subtotalEl.readOnly           = itemized;
-  subtotalEl.style.background   = itemized ? '#f0f2fa' : '';
-  subtotalEl.style.color        = itemized ? '#666'    : '';
+  document.querySelectorAll('.price-col').forEach(c =>
+    c.classList.toggle('hidden', !itemized));
+  subtotalEl.readOnly         = itemized;
+  subtotalEl.style.background = itemized ? '#f0f2fa' : '';
+  subtotalEl.style.color      = itemized ? '#666'    : '';
 }
 
 function onPricingModeChange() {
@@ -1126,6 +1197,9 @@ function onPricingModeChange() {
   calc();
 }
 
+/* ════════════════════════════════════
+   CALC
+════════════════════════════════════ */
 function calc() {
   let subtotal = 0;
   if (isItemized()) {
@@ -1159,12 +1233,13 @@ function calc() {
   setFmt(document.getElementById('total'), afterDiscount + taxAmt);
 }
 
-/* ═══════════════════════════════
-   DISCOUNT / TAX
-═══════════════════════════════ */
+/* ════════════════════════════════════
+   DISCOUNT / TAX TOGGLES
+════════════════════════════════════ */
 function onDiscountToggle() {
   const checked = document.getElementById('applyDiscount').checked;
-  document.getElementById('discountInputs').style.visibility = checked ? 'visible' : 'hidden';
+  document.getElementById('discountInputs').style.visibility =
+    checked ? 'visible' : 'hidden';
   if (!checked) {
     document.getElementById('discountPercent').value = '';
     setFmt(document.getElementById('discountAmount'), 0);
@@ -1174,7 +1249,8 @@ function onDiscountToggle() {
 
 function onTaxToggle() {
   const checked = document.getElementById('applyTax').checked;
-  document.getElementById('taxInputs').style.visibility = checked ? 'visible' : 'hidden';
+  document.getElementById('taxInputs').style.visibility =
+    checked ? 'visible' : 'hidden';
   if (!checked) {
     document.getElementById('taxPercent').value = '';
     setFmt(document.getElementById('taxAmount'), 0);
@@ -1182,16 +1258,17 @@ function onTaxToggle() {
   calc();
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    DELIVERY
-═══════════════════════════════ */
+════════════════════════════════════ */
 function onMinDaysInput() {
   const minEl = document.getElementById('minDays');
   const maxEl = document.getElementById('maxDays');
   let v = parseInt(minEl.value, 10);
   if (isNaN(v) || v < 1) {
     minEl.value = '';
-    document.getElementById('minDaysError').textContent = 'Must be a positive whole number.';
+    document.getElementById('minDaysError').textContent =
+      'Must be a positive whole number.';
     document.getElementById('deadline').value = ''; return;
   }
   minEl.value = v;
@@ -1206,7 +1283,8 @@ function onMaxDaysInput() {
   let v = parseInt(maxEl.value, 10);
   if (isNaN(v) || v < 1) {
     maxEl.value = '';
-    document.getElementById('maxDaysError').textContent = 'Must be a positive whole number.';
+    document.getElementById('maxDaysError').textContent =
+      'Must be a positive whole number.';
     document.getElementById('deadline').value = ''; return;
   }
   maxEl.value = v; validateMax(); updateDeadline();
@@ -1226,19 +1304,23 @@ function updateDeadline() {
   const dateEl     = document.getElementById('dateIssued');
   const maxDaysEl  = document.getElementById('maxDays');
   const deadlineEl = document.getElementById('deadline');
-  if (!dateEl.value || !maxDaysEl.value || !validateMax()) { deadlineEl.value = ''; return; }
+  if (!dateEl.value || !maxDaysEl.value || !validateMax()) {
+    deadlineEl.value = ''; return;
+  }
   const d = new Date(dateEl.value);
   d.setDate(d.getDate() + parseInt(maxDaysEl.value, 10));
   deadlineEl.value = d.toISOString().split('T')[0];
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    VALIDATION
-═══════════════════════════════ */
+════════════════════════════════════ */
 function validateForm() {
   const min = parseInt(document.getElementById('minDays').value, 10);
   const max = parseInt(document.getElementById('maxDays').value, 10);
-  if (!min || !max) { showToast('Please fill in Min and Max Days.', 'error'); return false; }
+  if (!min || !max) {
+    showToast('Please fill in Min and Max Days.', 'error'); return false;
+  }
   if (!validateMax()) return false;
   if (!document.getElementById('projectName').value.trim()) {
     showToast('Please enter a Project Name.', 'error'); return false;
@@ -1249,9 +1331,9 @@ function validateForm() {
   return true;
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    SANITIZERS
-═══════════════════════════════ */
+════════════════════════════════════ */
 function sanitizePct(e) {
   const el = e.target;
   let v = el.value.replace(/[^0-9.]/g, '');
@@ -1278,14 +1360,23 @@ function sanitizePrice(e) {
   el.value = parts.length === 2 ? parts[0] + '.' + parts[1] : parts[0];
 }
 
-/* ═══════════════════════════════
+/* ════════════════════════════════════
    HELPERS
-═══════════════════════════════ */
-function safe(v)    { return Number(String(v).replace(/,/g, '')) || 0; }
-function fmt(n)     { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function fmtNum(n)  { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+════════════════════════════════════ */
+function safe(v)   { return Number(String(v).replace(/,/g, '')) || 0; }
+function fmt(n)    {
+  return Number(n).toLocaleString('en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtNum(n) {
+  return Number(n).toLocaleString('en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function setFmt(el, val) { if (el) el.value = fmt(val); }
-function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 init();
 </script>
