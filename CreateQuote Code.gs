@@ -164,7 +164,7 @@ function writeLog(sheetName, module, recordId, recordLabel,
 
 // ============================================================
 //  FIELD-CHANGE LOG HELPER
-// Compares old row array vs new data object and logs each change
+//  Compares old row array vs new data object and logs each change
 // ============================================================
 function logQuotationFieldChanges(oldRow, newData, accountId, accountName) {
   const tz    = Session.getScriptTimeZone();
@@ -385,7 +385,7 @@ function getQuotationHistory(quotationId) {
   const qData   = qSheet.getDataRange().getValues();
   const tz      = Session.getScriptTimeZone();
 
-  // Get current version URL directly from Quotations sheet
+  // Get current version number and PDF URL from the Quotations sheet
   let currentFolderUrl = '';
   let currentVersion   = 1;
   for (let i = 1; i < qData.length; i++) {
@@ -396,28 +396,56 @@ function getQuotationHistory(quotationId) {
     }
   }
 
-  // Gather version log entries — col F = FieldChanged, col G = OldValue (old PDF url),
-  // col H = NewValue (version number), col J = ChangedAt
-  const rows = logData.slice(1)
-    .filter(row => String(row[2]) === String(quotationId)
-                && row[6] === 'Version')
+  // Gather Version log entries for this specific quotation only (col C = recordId = quotationId)
+  // col G (index 6) = FieldChanged = 'Version'
+  // col H (index 7) = OldValue = old version number
+  // col I (index 8) = NewValue = new version number
+  // col J (index 9) = changedBy email
+  // col K (index 10) = changedAt timestamp
+  const versionRows = logData.slice(1)
+    .filter(row =>
+      String(row[2]) === String(quotationId) &&
+      row[6] === 'Version'
+    )
     .map(row => ({
-      version:    Number(row[8]) || 0,
-      oldPdfUrl:  String(row[7] || ''),
-      changedBy:  String(row[9] || ''),
-      changedAt:  row[10]
+      version:   Number(row[8]) || 0,   // NewValue = the version that was saved
+      changedBy: String(row[9]  || ''),
+      changedAt: row[10]
         ? Utilities.formatDate(new Date(row[10]), tz, 'dd MMM yyyy HH:mm') : ''
     }))
     .sort((a, b) => b.version - a.version);
 
-  // Attach correct PDF URL per version
-  return rows.map((r, idx) => {
+  // For each version entry, gather the PDF Link log row that was written at the same edit
+  // col G = 'PDF Link', col H = old PDF URL (in Deleted Files), col I = new PDF URL
+  const pdfRows = logData.slice(1)
+    .filter(row =>
+      String(row[2]) === String(quotationId) &&
+      row[6] === 'PDF Link'
+    )
+    .map(row => ({
+      version:   Number(row[7]) || 0,   // OldValue = old version number stored as reference
+      newPdfUrl: String(row[8]  || '')  // NewValue = new PDF URL for that version
+    }));
+
+  // Build the history list — attach correct PDF URL per version
+  return versionRows.map(r => {
     const isCurrent = r.version === currentVersion;
+    let folderUrl   = '';
+
+    if (isCurrent) {
+      folderUrl = currentFolderUrl;
+    } else {
+      // For old versions, find the PDF Link row where the NEW pdf was saved at that version,
+      // which is now in the Deleted Files folder
+      const pdfEntry = pdfRows.find(p => p.version === r.version - 1);
+      folderUrl = pdfEntry ? pdfEntry.newPdfUrl : '';
+    }
+
     return {
       version:   r.version,
       changedBy: r.changedBy,
       changedAt: r.changedAt,
-      folderUrl: isCurrent ? currentFolderUrl : r.oldPdfUrl,
+      folderUrl,
       isCurrent
     };
   });
@@ -515,12 +543,19 @@ function createQuotation(data) {
     ]);
   });
 
-  // Log creation
+  // Log creation — version entry: old = '' (none), new = 1
   writeLog('Quotations_Log', 'Quotations', quotationId,
     quotationId + ' — ' + data.projectName,
     data.accountId, accountName,
     'Version', '', version,
     'Quotation created');
+
+  // Log initial PDF URL
+  writeLog('Quotations_Log', 'Quotations', quotationId,
+    quotationId + ' — ' + data.projectName,
+    data.accountId, accountName,
+    'PDF Link', '', pdfUrl,
+    'Initial PDF created');
 
   // Log initial items snapshot
   writeLog('Quotations_Log', 'Quote_Items', quotationId,
@@ -566,9 +601,9 @@ function editQuotation(data) {
 
   const newVersion = Number(currentVersion) + 1;
 
-  // Move old PDF to Deleted Files (keep URL for log before moving)
+  // Capture old PDF URL before moving — this is what will be stored as the
+  // "deleted" PDF link in the log (Drive URL doesn't change on folder move)
   const oldPdfUrl = currentPdfUrl;
-  moveToDeleted(currentPdfUrl);
 
   // Get account details + pipeline folder
   const accounts = accountsSheet.getDataRange().getValues();
@@ -598,7 +633,7 @@ function editQuotation(data) {
   const taxAmount          = data.taxed ? discountedSubtotal * (data.taxPercent / 100) : 0;
   const total              = discountedSubtotal + taxAmount;
 
-  // New PDF
+  // Generate new PDF
   const branding = brandingSheet.getDataRange().getValues()[1] || [];
   const html     = generateQuotationHTML({
     quotationId: data.id, accountName, ...data,
@@ -611,6 +646,9 @@ function editQuotation(data) {
     .setName(`${data.id} - ${data.projectName} - v${newVersion}.pdf`);
   const pdfFile = pipelineFolder ? pipelineFolder.createFile(blob) : null;
   const pdfUrl  = pdfFile ? pdfFile.getUrl() : '';
+
+  // Move old PDF to Deleted Files AFTER new PDF is created
+  moveToDeleted(oldPdfUrl);
 
   // Snapshot old items for log
   const iDataBefore = iSheet.getDataRange().getValues();
@@ -681,12 +719,19 @@ function editQuotation(data) {
     }
   }
 
-  // Log version bump with old PDF URL stored in OldValue
+  // Log version bump: OldValue = old version number, NewValue = new version number
   writeLog('Quotations_Log', 'Quotations', data.id,
     data.id + ' — ' + data.projectName,
     data.accountId, accountName,
-    'Version', oldPdfUrl, newVersion,
+    'Version', currentVersion, newVersion,
     'Quotation edited');
+
+  // Log PDF link change: OldValue = old PDF URL (now in Deleted Files), NewValue = new PDF URL
+  writeLog('Quotations_Log', 'Quotations', data.id,
+    data.id + ' — ' + data.projectName,
+    data.accountId, accountName,
+    'PDF Link', oldPdfUrl, pdfUrl,
+    'PDF updated on v' + newVersion);
 
   // Log items snapshot
   writeLog('Quotations_Log', 'Quote_Items', data.id,
