@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f6fa;
+      color: #1a1a2e;
+      font-size: 14px;
+    }
+
+    /* ── Views ── */
+    .view { display: none; padding: 20px 24px 100px; }
+    .view.active { display: block; }
+
+    /* ── Topbar ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; background: #fff;
+      border-bottom: 1px solid #e2e4ef;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .topbar-right { display: flex; gap: 8px; align-items: center; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e;
+      transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover:not(:disabled) { background: #f0f2fa; }
+    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-success { background: #1e8a4a; color: #fff; border-color: #1e8a4a; }
+    .btn-success:hover:not(:disabled) { background: #166b39; }
+    .btn-warning { background: #fff; color: #c07000; border-color: #c07000; }
+    .btn-warning:hover:not(:disabled) { background: #fff8ee; }
+    .btn-danger  { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled)  { background: #fdecea; }
+    .btn-ghost {
+      background: none; border: none; color: #4361ee; font-weight: 600;
+      font-size: 13px; cursor: pointer; padding: 7px 4px;
+    }
+    .btn-ghost:hover { text-decoration: underline; }
+    .btn-sm {
+      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid #d0d3e0; background: #fff;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
+    .btn-sm-primary:hover { background: #eef0fd; }
+    .btn-sm-success { border-color: #1e8a4a; color: #1e8a4a; }
+    .btn-sm-success:hover { background: #edfaf3; }
+    .btn-sm-danger  { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover  { background: #fdecea; }
+    .btn-sm-warning { border-color: #c07000; color: #c07000; }
+    .btn-sm-warning:hover { background: #fff8ee; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.6s linear infinite; display: none; flex-shrink: 0;
+    }
+    .btn.loading .spinner { display: inline-block; }
+    .btn.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Progress bar ── */
+    .proc-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px;
+      background: #4361ee; z-index: 999;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .proc-bar.active { transform: scaleX(0.85); }
+    .proc-bar.done   { transform: scaleX(1); transition: transform 0.15s ease; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      z-index: 998; display: none; white-space: nowrap; pointer-events: none;
+    }
+    .toast-info    { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
+    .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-active         { background: #d1f2e1; color: #0f5132; }
+    .badge-completed      { background: #e8ecfd; color: #2f4bcc; }
+    .badge-pending        { background: #f5f6fa; color: #888; border: 1px solid #d0d3e0; }
+    .badge-uploaded       { background: #fff3cd; color: #856404; }
+    .badge-adminapproved  { background: #d1f2e1; color: #0f5132; }
+    .badge-adminrejected  { background: #f8d7da; color: #842029; }
+    .badge-clientapproved { background: #e8ecfd; color: #2f4bcc; }
+    .badge-clientrejected { background: #fdecea; color: #c0392b; }
+    .badge-delivered      { background: #1e8a4a; color: #fff; }
+
+    /* ── List view ── */
+    .list-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .list-count { font-size: 13px; color: #666; }
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      background: #fff; border-radius: 8px; overflow: hidden;
+      border: 1px solid #e2e4ef;
+    }
+    thead th {
+      background: #4361ee; color: #fff; padding: 10px 12px;
+      text-align: left; font-weight: 600; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+    }
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:nth-child(even) { background: #f8f9ff; }
+    tbody tr:hover { background: #eef0fd; cursor: pointer; }
+    tbody td {
+      padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle;
+    }
+    .col-id   { width: 90px; font-weight: 700; color: #4361ee; }
+    .col-status { width: 110px; }
+    .col-date { width: 110px; color: #666; }
+    .col-acts { width: 90px; text-align: right; }
+
+    /* ── Project detail ── */
+    .section {
+      background: #fff; border-radius: 8px; padding: 16px 18px;
+      margin-bottom: 14px; border: 1px solid #e2e4ef;
+    }
+    h3 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px;
+    }
+    .meta-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 0;
+    }
+    .meta-cell { font-size: 12px; }
+    .meta-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #888; margin-bottom: 3px;
+    }
+    .meta-value { color: #1a1a2e; font-weight: 600; }
+
+    /* ── Items cards ── */
+    .items-grid {
+      display: grid; gap: 12px;
+    }
+    .item-card {
+      background: #fff; border: 1px solid #e2e4ef; border-radius: 8px;
+      padding: 14px 16px;
+      transition: box-shadow 0.15s;
+    }
+    .item-card:hover { box-shadow: 0 2px 8px rgba(67,97,238,0.10); }
+    .item-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .item-name {
+      font-weight: 700; font-size: 14px; color: #1a1a2e;
+    }
+    .item-meta {
+      display: flex; gap: 16px; font-size: 12px; color: #888;
+      margin-bottom: 10px;
+    }
+    .item-desc {
+      font-size: 12px; color: #555; margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .item-actions {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .redo-tag {
+      font-size: 11px; color: #c07000; font-weight: 600;
+      background: #fff8ee; border: 1px solid #f0d090;
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .file-link {
+      font-size: 12px; color: #4361ee; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .file-link:hover { text-decoration: underline; }
+
+    /* ── Upload area ── */
+    .upload-zone {
+      border: 2px dashed #d0d3e0; border-radius: 6px;
+      padding: 14px 16px; text-align: center; background: #f8f9ff;
+      cursor: pointer; transition: border-color 0.2s;
+      font-size: 12px; color: #888;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #4361ee; background: #eef0fd; color: #4361ee;
+    }
+    .upload-zone input[type="file"] { display: none; }
+    .upload-selected {
+      font-size: 12px; color: #1e8a4a; font-weight: 600;
+      margin-top: 6px; display: none;
+    }
+
+    /* ── Notes input ── */
+    .notes-inline {
+      width: 100%; padding: 6px 10px; font-size: 12px;
+      border: 1px solid #d0d3e0; border-radius: 5px;
+      background: #fff; color: #1a1a2e; font-family: inherit;
+      resize: vertical; min-height: 42px; margin-top: 8px;
+    }
+    .notes-inline:focus { outline: none; border-color: #4361ee; }
+
+    /* ── Progress summary ── */
+    .progress-bar-wrap {
+      background: #e8eaf0; border-radius: 4px; height: 6px;
+      margin-top: 8px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: #1e8a4a; border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .progress-label {
+      font-size: 11px; color: #888; margin-top: 4px; text-align: right;
+    }
+
+    /* ── Form actions ── */
+    .form-actions {
+      display: flex; gap: 8px; align-items: center;
+      padding: 12px 24px; background: #fff;
+      border-top: 1px solid #e2e4ef;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9;
+    }
+    .spacer { flex: 1; }
+
+    /* ── Dialog ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .dialog {
+      background: #fff; border-radius: 10px; padding: 24px 28px;
+      max-width: 420px; width: 92%;
+    }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .dialog p  { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .dialog label {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 4px;
+    }
+    textarea.dialog-notes {
+      width: 100%; padding: 8px 10px; font-size: 13px;
+      border: 1px solid #d0d3e0; border-radius: 5px;
+      font-family: inherit; resize: vertical; min-height: 64px;
+      margin-bottom: 16px;
+    }
+    textarea.dialog-notes:focus { outline: none; border-color: #4361ee; }
+
+    .hidden { display: none !important; }
+
+    /* ── Deliverables link ── */
+    .deliverables-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #1e8a4a; font-size: 13px; font-weight: 600;
+      text-decoration: none; padding: 6px 14px;
+      border: 1px solid #1e8a4a; border-radius: 5px;
+    }
+    .deliverables-btn:hover { background: #edfaf3; }
+
+    /* ── Filter tabs ── */
+    .filter-tabs {
+      display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .filter-tab {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888;
+      transition: all 0.15s;
+    }
+    .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
+  </style>
+</head>
+<body>
+
+<div class="proc-bar" id="procBar"></div>
+<div class="toast"    id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-title" id="topbarTitle">Projects</div>
+  <div class="topbar-right"  id="topbarRight"></div>
+</div>
+
+<!-- ═══ LIST VIEW ═══ -->
+<div class="view active" id="viewList">
+  <div class="list-toolbar">
+    <div class="list-count" id="listCount">Loading...</div>
+  </div>
+
+  <div class="filter-tabs" id="filterTabs">
+    <button class="filter-tab active" data-filter="all"       onclick="setFilter('all')">All</button>
+    <button class="filter-tab"        data-filter="Active"    onclick="setFilter('Active')">Active</button>
+    <button class="filter-tab"        data-filter="Completed" onclick="setFilter('Completed')">Completed</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="listTable">
+      <thead>
+        <tr>
+          <th class="col-id">Quotation</th>
+          <th>Client</th>
+          <th>Project</th>
+          <th class="col-date">Due Date</th>
+          <th class="col-date">Deadline</th>
+          <th class="col-status">Status</th>
+          <th class="col-acts"></th>
+        </tr>
+      </thead>
+      <tbody id="listBody">
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ PROJECT DETAIL VIEW ═══ -->
+<div class="view" id="viewProject">
+
+  <!-- Summary -->
+  <div class="section" id="projectSummary"></div>
+
+  <!-- Progress -->
+  <div class="section" id="projectProgress" style="padding:12px 18px;"></div>
+
+  <!-- Items -->
+  <div id="projectItems"></div>
+
+</div>
+
+<!-- ═══ FORM ACTIONS ═══ -->
+<div class="form-actions hidden" id="formActions">
+  <button class="btn btn-ghost" onclick="showList()">← Back</button>
+  <div class="spacer"></div>
+  <a id="deliverablesLink" class="deliverables-btn hidden" href="#" target="_blank">
+    📦 Share Deliverables Folder
+  </a>
+</div>
+
+<!-- ═══ REVIEW DIALOG ═══ -->
+<div class="overlay" id="overlayReview">
+  <div class="dialog">
+    <h4 id="reviewTitle">Review Item</h4>
+    <p  id="reviewDesc"></p>
+    <label>Internal Notes (optional)</label>
+    <textarea class="dialog-notes" id="reviewNotes" placeholder="Add a note for the team..."></textarea>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayReview')">Cancel</button>
+      <button class="btn btn-danger"  id="btnReviewReject" onclick="doReview('reject')">
+        <div class="spinner"></div><span class="btn-label">Reject</span>
+      </button>
+      <button class="btn btn-success" id="btnReviewApprove" onclick="doReview('approve')">
+        <div class="spinner"></div><span class="btn-label">Approve</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════
+   STATE
+══════════════════════════════ */
+let allProjects     = [];
+let currentProject  = null;
+let currentItems    = [];
+let currentFolderUrl = '';
+let currentQuotationId = '';
+let activeFilter    = 'all';
+let reviewItemId    = null;
+let reviewMode      = null; // 'admin' | 'client'
+
+/* ══════════════════════════════
+   PROCESSING / TOAST
+══════════════════════════════ */
+function startProcessing(btn, msg) {
+  document.getElementById('procBar').className = 'proc-bar active';
+  showToast(msg || 'Loading...', 'info', 0);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+}
+function stopProcessing(btn) {
+  const bar = document.getElementById('procBar');
+  bar.className = 'proc-bar done';
+  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
+  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+}
+let toastTimer = null;
+function showToast(msg, type, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast toast-' + (type || 'info');
+  t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration !== 0)
+    toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3500);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
+
+/* ══════════════════════════════
+   INIT
+══════════════════════════════ */
+function init() {
+  google.script.run
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
+    .getProjects();
+}
+
+/* ══════════════════════════════
+   LIST VIEW
+══════════════════════════════ */
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.filter === f));
+  renderList(allProjects);
+}
+
+function renderList(projects) {
+  allProjects = projects || [];
+
+  const filtered = activeFilter === 'all'
+    ? allProjects
+    : allProjects.filter(p => p.status === activeFilter);
+
+  document.getElementById('listCount').textContent =
+    filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+
+  const tbody = document.getElementById('listBody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">
+      No projects found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => `
+    <tr onclick="openProject('${esc(p.projectId)}')">
+      <td class="col-id">${esc(p.quotationId)}</td>
+      <td><strong>${esc(p.accountName)}</strong></td>
+      <td>${esc(p.projectName)}</td>
+      <td class="col-date">${p.dueDate || '—'}</td>
+      <td class="col-date">${p.deliveryDeadline || '—'}</td>
+      <td class="col-status">
+        <span class="badge badge-${(p.status||'active').toLowerCase()}">${esc(p.status)}</span>
+      </td>
+      <td class="col-acts">
+        <button class="btn-sm btn-sm-primary"
+          onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">
+          Open →
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+function showList() {
+  switchView('list');
+  document.getElementById('topbarTitle').textContent = 'Projects';
+  document.getElementById('topbarRight').innerHTML   = '';
+  document.getElementById('formActions').classList.add('hidden');
+  google.script.run
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getProjects();
+}
+
+/* ══════════════════════════════
+   PROJECT DETAIL
+══════════════════════════════ */
+function openProject(projectId) {
+  const p = allProjects.find(x => x.projectId === projectId);
+  if (!p) return;
+  currentProject = p;
+
+  startProcessing(null, 'Loading project...');
+  google.script.run
+    .withSuccessHandler(result => {
+      stopProcessing(null); hideToast();
+      currentItems        = result.items || [];
+      currentFolderUrl    = result.folderUrl || '';
+      currentQuotationId  = result.quotationId || '';
+      renderProjectDetail(p);
+      switchView('project');
+      document.getElementById('formActions').classList.remove('hidden');
+      document.getElementById('topbarTitle').textContent =
+        p.quotationId + ' — ' + p.projectName;
+      document.getElementById('topbarRight').innerHTML =
+        `<span class="badge badge-${(p.status||'').toLowerCase()}">${esc(p.status)}</span>`;
+      // Load deliverables link
+      if (currentQuotationId) {
+        google.script.run
+          .withSuccessHandler(r => {
+            const dl = document.getElementById('deliverablesLink');
+            if (r.success && r.url) {
+              dl.href = r.url;
+              dl.classList.remove('hidden');
+            }
+          })
+          .getDeliverablesUrl(currentQuotationId);
+      }
+    })
+    .withFailureHandler(err => {
+      stopProcessing(null);
+      showToast('Error: ' + err.message, 'error');
+    })
+    .getProjectItems(projectId);
+}
+
+/* ══════════════════════════════
+   RENDER PROJECT DETAIL
+══════════════════════════════ */
+function renderProjectDetail(p) {
+  // Summary section
+  document.getElementById('projectSummary').innerHTML = `
+    <h3>Project Overview</h3>
+    <div class="meta-grid">
+      <div class="meta-cell">
+        <div class="meta-label">Client</div>
+        <div class="meta-value">${esc(p.accountName)}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">Project</div>
+        <div class="meta-value">${esc(p.projectName)}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">Quotation</div>
+        <div class="meta-value">${esc(p.quotationId)}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">Due Date</div>
+        <div class="meta-value">${p.dueDate || '—'}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">Delivery Deadline</div>
+        <div class="meta-value">${p.deliveryDeadline || '—'}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">Status</div>
+        <div class="meta-value">
+          <span class="badge badge-${(p.status||'').toLowerCase()}">${esc(p.status)}</span>
+        </div>
+      </div>
+      ${p.projectDesc ? `
+      <div class="meta-cell" style="grid-column:1/-1;">
+        <div class="meta-label">Description</div>
+        <div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div>
+      </div>` : ''}
+    </div>`;
+
+  // Progress bar
+  renderProgress();
+
+  // Items
+  renderItems();
+}
+
+function renderProgress() {
+  const total     = currentItems.length;
+  const delivered = currentItems.filter(i => i.deliveryStatus === 'Delivered').length;
+  const pct       = total ? Math.round((delivered / total) * 100) : 0;
+
+  document.getElementById('projectProgress').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:12px;font-weight:700;color:#4361ee;text-transform:uppercase;letter-spacing:0.05em;">
+        Delivery Progress
+      </span>
+      <span style="font-size:12px;font-weight:600;color:#1e8a4a;">${delivered} / ${total} delivered</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width:${pct}%;"></div>
+    </div>
+    <div class="progress-label">${pct}% complete</div>`;
+}
+
+function renderItems() {
+  const container = document.getElementById('projectItems');
+  if (!currentItems.length) {
+    container.innerHTML = `<div class="section" style="color:#888;text-align:center;padding:32px;">
+      No items found for this project.</div>`;
+    return;
+  }
+
+  container.innerHTML = currentItems.map(item => buildItemCard(item)).join('');
+}
+
+function buildItemCard(item) {
+  const statusKey  = (item.deliveryStatus || 'Pending').toLowerCase().replace(/\s/g, '');
+  const statusLabel = item.deliveryStatus || 'Pending';
+  const canUpload   = ['Pending', 'Admin Rejected', 'Client Rejected'].includes(item.deliveryStatus);
+  const canAdminReview  = item.deliveryStatus === 'Uploaded';
+  const canClientReview = item.deliveryStatus === 'Admin Approved';
+  const hasFile     = !!item.uploadedFileUrl;
+
+  return `
+  <div class="section item-card" id="card-${esc(item.itemId)}">
+    <div class="item-header">
+      <div class="item-name">${esc(item.itemName)}</div>
+      <span class="badge badge-${statusKey}">${esc(statusLabel)}</span>
+    </div>
+
+    <div class="item-meta">
+      <span>Qty: <strong>${esc(String(item.quantity || '—'))}</strong></span>
+      ${item.dueDate ? `<span>Due: <strong>${esc(item.dueDate)}</strong></span>` : ''}
+      ${item.redoCount > 0
+        ? `<span class="redo-tag">↩ ${item.redoCount} redo${item.redoCount > 1 ? 's' : ''}</span>`
+        : ''}
+    </div>
+
+    ${item.description
+      ? `<div class="item-desc">${esc(item.description)}</div>` : ''}
+
+    <div class="item-actions">
+      ${hasFile && item.deliveryStatus !== 'Admin Rejected' && item.deliveryStatus !== 'Client Rejected'
+        ? `<a class="file-link" href="${esc(item.uploadedFileUrl)}" target="_blank">
+             📄 View File ↗
+           </a>` : ''}
+
+      ${canUpload ? `
+        <div style="width:100%;margin-top:6px;">
+          <div class="upload-zone" id="zone-${esc(item.itemId)}"
+               onclick="triggerUpload('${esc(item.itemId)}')"
+               ondragover="onDragOver(event,'${esc(item.itemId)}')"
+               ondragleave="onDragLeave(event,'${esc(item.itemId)}')"
+               ondrop="onDrop(event,'${esc(item.itemId)}')">
+            <input type="file" id="file-${esc(item.itemId)}"
+                   onchange="onFileSelected('${esc(item.itemId)}', this)">
+            📎 Click to select a file, or drag & drop here
+          </div>
+          <div class="upload-selected" id="sel-${esc(item.itemId)}"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary" id="uploadBtn-${esc(item.itemId)}"
+                    disabled onclick="submitUpload('${esc(item.itemId)}')">
+              <div class="spinner"></div><span class="btn-label">Upload File</span>
+            </button>
+          </div>
+        </div>` : ''}
+
+      ${canAdminReview ? `
+        <button class="btn-sm btn-sm-success"
+                onclick="openReview('${esc(item.itemId)}','admin')">
+          ✓ Admin Approve
+        </button>
+        <button class="btn-sm btn-sm-danger"
+                onclick="openReview('${esc(item.itemId)}','admin-reject')">
+          ✗ Admin Reject
+        </button>` : ''}
+
+      ${canClientReview ? `
+        <button class="btn-sm btn-sm-primary"
+                onclick="openReview('${esc(item.itemId)}','client')">
+          ✓ Client Approve
+        </button>
+        <button class="btn-sm btn-sm-warning"
+                onclick="openReview('${esc(item.itemId)}','client-reject')">
+          ✗ Client Reject
+        </button>` : ''}
+    </div>
+
+    ${item.internalNotes || canAdminReview || canClientReview ? `
+    <div style="margin-top:10px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.06em;color:#888;margin-bottom:4px;">Internal Notes</div>
+      <div style="font-size:12px;color:#555;">${esc(item.internalNotes || '—')}</div>
+    </div>` : ''}
+  </div>`;
+}
+
+/* ══════════════════════════════
+   FILE UPLOAD
+══════════════════════════════ */
+const pendingFiles = {}; // itemId → File
+
+function triggerUpload(itemId) {
+  document.getElementById('file-' + itemId).click();
+}
+
+function onDragOver(e, itemId) {
+  e.preventDefault();
+  document.getElementById('zone-' + itemId).classList.add('drag-over');
+}
+function onDragLeave(e, itemId) {
+  document.getElementById('zone-' + itemId).classList.remove('drag-over');
+}
+function onDrop(e, itemId) {
+  e.preventDefault();
+  document.getElementById('zone-' + itemId).classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) registerFile(itemId, file);
+}
+
+function onFileSelected(itemId, input) {
+  if (input.files[0]) registerFile(itemId, input.files[0]);
+}
+
+function registerFile(itemId, file) {
+  pendingFiles[itemId] = file;
+  const sel = document.getElementById('sel-' + itemId);
+  sel.textContent = '✓ ' + file.name + ' (' + formatBytes(file.size) + ')';
+  sel.style.display = 'block';
+  document.getElementById('uploadBtn-' + itemId).disabled = false;
+}
+
+function formatBytes(b) {
+  if (b < 1024)       return b + ' B';
+  if (b < 1048576)    return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function submitUpload(itemId) {
+  const file = pendingFiles[itemId];
+  if (!file) return;
+
+  const btn = document.getElementById('uploadBtn-' + itemId);
+  startProcessing(btn, 'Uploading ' + file.name + '...');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Strip data URI prefix to get pure base64
+    const base64 = e.target.result.split(',')[1];
+
+    google.script.run
+      .withSuccessHandler(res => {
+        stopProcessing(btn);
+        if (!res.success) { showToast(res.error || 'Upload failed.', 'error'); return; }
+        showToast('File uploaded successfully!', 'success');
+        delete pendingFiles[itemId];
+        // Refresh project items
+        refreshItems();
+      })
+      .withFailureHandler(err => {
+        stopProcessing(btn);
+        showToast('Upload error: ' + err.message, 'error');
+      })
+      .uploadProjectItemFile({
+        itemId:    itemId,
+        projectId: currentProject.projectId,
+        fileName:  file.name,
+        mimeType:  file.type || 'application/octet-stream',
+        base64Data: base64
+      });
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ══════════════════════════════
+   REVIEW DIALOG
+══════════════════════════════ */
+function openReview(itemId, mode) {
+  reviewItemId = itemId;
+  reviewMode   = mode;
+  const item   = currentItems.find(i => i.itemId === itemId);
+  const isAdmin  = mode === 'admin' || mode === 'admin-reject';
+  const isReject = mode === 'admin-reject' || mode === 'client-reject';
+
+  document.getElementById('reviewTitle').textContent =
+    isReject ? 'Reject Item' : (isAdmin ? 'Admin Approve Item' : 'Client Approve Item');
+  document.getElementById('reviewDesc').textContent =
+    '"' + (item ? item.itemName : '') + '" — ' +
+    (isReject ? 'The file will be moved to the Rejected folder. The team will need to re-upload.'
+              : 'The file will be ' + (isAdmin ? 'copied to Deliverables for client review.' : 'marked as Delivered.'));
+
+  document.getElementById('reviewNotes').value = item ? (item.internalNotes || '') : '';
+
+  const btnApprove = document.getElementById('btnReviewApprove');
+  const btnReject  = document.getElementById('btnReviewReject');
+
+  if (isReject) {
+    btnApprove.classList.add('hidden');
+    btnReject.classList.remove('hidden');
+    btnReject.querySelector('.btn-label').textContent = 'Confirm Rejection';
+  } else {
+    btnReject.classList.add('hidden');
+    btnApprove.classList.remove('hidden');
+    btnApprove.querySelector('.btn-label').textContent = isAdmin ? 'Admin Approve' : 'Mark Delivered';
+  }
+
+  document.getElementById('overlayReview').classList.add('open');
+}
+
+function doReview(action) {
+  // action passed from button — but we derive from reviewMode
+  const isReject  = reviewMode === 'admin-reject' || reviewMode === 'client-reject';
+  const isAdmin   = reviewMode === 'admin' || reviewMode === 'admin-reject';
+  const finalAction = isReject ? 'reject' : 'approve';
+  const notes     = document.getElementById('reviewNotes').value;
+
+  const btn = isReject
+    ? document.getElementById('btnReviewReject')
+    : document.getElementById('btnReviewApprove');
+
+  closeDialog('overlayReview');
+  startProcessing(btn, isReject ? 'Rejecting...' : 'Approving...');
+
+  const fn = isAdmin ? 'reviewProjectItem' : 'clientReviewItem';
+
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Action failed.', 'error'); return; }
+      showToast(
+        isReject ? 'Item rejected.' : (isAdmin ? 'Item approved by admin.' : 'Item marked as delivered.'),
+        isReject ? 'error' : 'success'
+      );
+      refreshItems();
+    })
+    .withFailureHandler(err => {
+      stopProcessing(btn);
+      showToast('Error: ' + err.message, 'error');
+    })
+    [fn]({ itemId: reviewItemId, action: finalAction, internalNotes: notes });
+}
+
+function refreshItems() {
+  google.script.run
+    .withSuccessHandler(result => {
+      currentItems       = result.items || [];
+      currentFolderUrl   = result.folderUrl || '';
+      currentQuotationId = result.quotationId || '';
+      renderProgress();
+      renderItems();
+      // Also refresh the project status badge if it changed
+      google.script.run
+        .withSuccessHandler(projects => {
+          allProjects = projects || [];
+          const updated = allProjects.find(p => p.projectId === currentProject.projectId);
+          if (updated) {
+            currentProject = updated;
+            document.getElementById('topbarRight').innerHTML =
+              `<span class="badge badge-${(updated.status||'').toLowerCase()}">${esc(updated.status)}</span>`;
+          }
+        })
+        .getProjects();
+    })
+    .withFailureHandler(err => showToast('Refresh error: ' + err.message, 'error'))
+    .getProjectItems(currentProject.projectId);
+}
+
+/* ══════════════════════════════
+   VIEW HELPERS
+══════════════════════════════ */
+function switchView(name) {
+  document.getElementById('viewList')   .classList.toggle('active', name === 'list');
+  document.getElementById('viewProject').classList.toggle('active', name === 'project');
+}
+function closeDialog(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+/* ══════════════════════════════
+   HELPERS
+══════════════════════════════ */
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+init();
+</script>
+</body>
+</html>
