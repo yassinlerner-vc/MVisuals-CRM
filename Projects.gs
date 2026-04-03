@@ -73,7 +73,7 @@ function getProjectItems(projectId) {
       quotationId:     String(row[PI.QUOTATION_ID]),
       accountName:     String(row[PI.ACCOUNT_NAME]),
       projectName:     String(row[PI.PROJECT_NAME]),
-      projectDescription: String(row[PI.PROJECT_DESCRIPTION]),
+      projectDescription: String(row[PI.PROJECT_DESC]),
       itemName:        String(row[PI.ITEM_NAME]),
       quantity:        row[PI.QUANTITY],
       description:     String(row[PI.DESCRIPTION] || ''),
