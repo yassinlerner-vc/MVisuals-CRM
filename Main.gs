@@ -1,9 +1,13 @@
 // ============================================================
 //  CONSTANTS
 // ============================================================
-const CLIENTS_FOLDER_ID        = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
-const LEADS_FOLDER_ID = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
-const ARCHIVED_FOLDER_ID   = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
+const CLIENTS_FOLDER_ID  = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
+const LEADS_FOLDER_ID    = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
+const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
+// NOTE: Add your Projects root folder ID here when ready.
+// This is the top-level "Projects" folder in Drive (optional — quotation
+// folders currently live inside each Client's own Projects subfolder).
+// const PROJECTS_FOLDER_ID = 'YOUR_FOLDER_ID_HERE';
 
 // ============================================================
 //  COLUMN INDEXES — Accounts (0-based)
@@ -49,7 +53,7 @@ const Q = {
   TOTAL:             19,
   STATUS:            20,
   NOTES:             21,
-  FOLDER_URL:        22,
+  FOLDER_URL:        22,  // ← Now stores the FOLDER url, not PDF url
   CREATED_BY:        23,
   CREATED_AT:        24,
   LAST_UPDATED_BY:   25,
@@ -101,18 +105,19 @@ const PI = {
   QUOTATION_ID:      2,
   ACCOUNT_NAME:      3,
   PROJECT_NAME:      4,
-  ITEM_NAME:         5,
-  QUANTITY:          6,
-  DESCRIPTION:       7,
-  NOTES:             8,
-  DELIVERY_STATUS:   9,
-  ASSIGNED_TO:       10,
-  REDO_COUNT:        11,
-  UPLOADED_FILE_URL: 12,
-  INTERNAL_NOTES:    13,
-  DUE_DATE:          14,
-  COMPLETED_AT:      15,
-  CREATED_AT:        16
+  PROJECT_DESC:      5,
+  ITEM_NAME:         6,
+  QUANTITY:          7,
+  DESCRIPTION:       8,
+  NOTES:             9,
+  DELIVERY_STATUS:   10,
+  ASSIGNED_TO:       11,
+  REDO_COUNT:        12,
+  UPLOADED_FILE_URL: 13,
+  INTERNAL_NOTES:    14,
+  DUE_DATE:          15,
+  COMPLETED_AT:      16,
+  CREATED_AT:        17
 };
 
 // ============================================================
@@ -121,23 +126,29 @@ const PI = {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('CRM System')
-    .addItem('Accounts',   'openAccountsModule')
-    .addItem('Quotations', 'openQuotationsModule')
+    .addItem('Accounts',    'openAccountsModule')
+    .addItem('Quotations',  'openQuotationsModule')
+    .addItem('Projects',    'openProjectsModule')
     .addToUi();
 }
 
 function openAccountsModule() {
   const html = HtmlService.createHtmlOutputFromFile('AccountsForm')
-    .setWidth(960)
-    .setHeight(680);
+    .setWidth(960).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, 'Accounts');
 }
 
 function openQuotationsModule() {
   const html = HtmlService.createHtmlOutputFromFile('QuotationsForm')
-    .setWidth(960)
-    .setHeight(680);
+    .setWidth(960).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, 'Quotations');
+}
+
+function openProjectsModule() {
+  // ProjectsForm.html — to be built in next phase
+  const html = HtmlService.createHtmlOutputFromFile('ProjectsForm')
+    .setWidth(1100).setHeight(720);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Projects');
 }
 
 // ============================================================
@@ -148,19 +159,21 @@ function getSheet(name) {
 }
 
 // ============================================================
-//  DRIVE HELPER
+//  DRIVE HELPER — move a file to the global Archived folder
+//  (used for account archiving — quotation versioning uses
+//   the per-quotation Archived/ subfolder instead)
 // ============================================================
-function moveToDeleted(fileUrl) {
-  if (!fileUrl) return;
+function moveToArchived(fileOrFolderUrl) {
+  if (!fileOrFolderUrl) return;
   try {
-    const fileId      = fileUrl.match(/[-\w]{25,}/)[0];
-    const file        = DriveApp.getFileById(fileId);
-    const trashFolder = DriveApp.getFolderById(DELETED_FILES_FOLDER_ID);
-    const parents     = file.getParents();
-    trashFolder.addFile(file);
-    while (parents.hasNext()) parents.next().removeFile(file);
+    const id          = fileOrFolderUrl.match(/[-\w]{25,}/)[0];
+    const item        = DriveApp.getFileById(id);   // works for both files and folders
+    const archivedRoot = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
+    const parents     = item.getParents();
+    archivedRoot.addFile(item);
+    while (parents.hasNext()) parents.next().removeFile(item);
   } catch(e) {
-    Logger.log('moveToDeleted error: ' + e);
+    Logger.log('moveToArchived error: ' + e);
   }
 }
 
@@ -175,11 +188,11 @@ function writeLog(sheetName, module, recordId, recordLabel,
   sheet.appendRow([
     Utilities.getUuid(),
     module,
-    String(recordId    || ''),
-    String(recordLabel || ''),
-    String(accountId   || ''),
-    String(accountName || ''),
-    String(fieldChanged|| ''),
+    String(recordId     || ''),
+    String(recordLabel  || ''),
+    String(accountId    || ''),
+    String(accountName  || ''),
+    String(fieldChanged || ''),
     oldValue !== null && oldValue !== undefined ? String(oldValue) : '',
     newValue !== null && newValue !== undefined ? String(newValue) : '',
     Session.getActiveUser().getEmail(),
