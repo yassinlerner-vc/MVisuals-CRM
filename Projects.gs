@@ -1,6 +1,5 @@
 // ============================================================
 //  PROJECTS — LIST
-//  Returns all active projects, newest first by created date.
 // ============================================================
 function getProjects() {
   const sheet = getSheet('Projects');
@@ -33,9 +32,6 @@ function getProjects() {
 
 // ============================================================
 //  PROJECTS — GET ITEMS FOR A PROJECT
-//  Returns all Project_Items for a given projectId,
-//  along with the quotation folder URL so the UI can
-//  construct upload folder links.
 // ============================================================
 function getProjectItems(projectId) {
   const piSheet = getSheet('Project_Items');
@@ -46,7 +42,7 @@ function getProjectItems(projectId) {
   const piData = piSheet.getDataRange().getValues();
   const tz     = Session.getScriptTimeZone();
 
-  // Get quotationId and folderUrl from Projects + Quotations sheets
+  // Get quotationId and folderUrl
   let quotationId = '', folderUrl = '';
   const pData = pSheet.getDataRange().getValues();
   for (let i = 1; i < pData.length; i++) {
@@ -68,26 +64,26 @@ function getProjectItems(projectId) {
   const items = piData.slice(1)
     .filter(row => String(row[PI.PROJECT_ID]) === String(projectId))
     .map(row => ({
-      itemId:          String(row[PI.ITEM_ID]),
-      projectId:       String(row[PI.PROJECT_ID]),
-      quotationId:     String(row[PI.QUOTATION_ID]),
-      accountName:     String(row[PI.ACCOUNT_NAME]),
-      projectName:     String(row[PI.PROJECT_NAME]),
-      projectDescription: String(row[PI.PROJECT_DESC]),
-      itemName:        String(row[PI.ITEM_NAME]),
-      quantity:        row[PI.QUANTITY],
-      description:     String(row[PI.DESCRIPTION] || ''),
-      notes:           String(row[PI.NOTES]        || ''),
-      deliveryStatus:  String(row[PI.DELIVERY_STATUS] || 'Pending'),
-      assignedTo:      String(row[PI.ASSIGNED_TO]     || ''),
-      redoCount:       Number(row[PI.REDO_COUNT]       || 0),
-      uploadedFileUrl: String(row[PI.UPLOADED_FILE_URL]|| ''),
-      internalNotes:   String(row[PI.INTERNAL_NOTES]   || ''),
-      dueDate:         row[PI.DUE_DATE]
+      itemId:             String(row[PI.ITEM_ID]),
+      projectId:          String(row[PI.PROJECT_ID]),
+      quotationId:        String(row[PI.QUOTATION_ID]),
+      accountName:        String(row[PI.ACCOUNT_NAME]),
+      projectName:        String(row[PI.PROJECT_NAME]),
+      projectDesc:        String(row[PI.PROJECT_DESC] || ''),   // ← fixed: was PI.PROJECT_DESCRIPTION
+      itemName:           String(row[PI.ITEM_NAME]),
+      quantity:           row[PI.QUANTITY],
+      description:        String(row[PI.DESCRIPTION] || ''),
+      notes:              String(row[PI.NOTES]        || ''),
+      deliveryStatus:     String(row[PI.DELIVERY_STATUS] || 'Pending'),
+      assignedTo:         String(row[PI.ASSIGNED_TO]     || ''),
+      redoCount:          Number(row[PI.REDO_COUNT]       || 0),
+      uploadedFileUrl:    String(row[PI.UPLOADED_FILE_URL]|| ''),
+      internalNotes:      String(row[PI.INTERNAL_NOTES]   || ''),
+      dueDate:            row[PI.DUE_DATE]
         ? Utilities.formatDate(new Date(row[PI.DUE_DATE]), tz, 'yyyy-MM-dd') : '',
-      completedAt:     row[PI.COMPLETED_AT]
+      completedAt:        row[PI.COMPLETED_AT]
         ? Utilities.formatDate(new Date(row[PI.COMPLETED_AT]), tz, 'yyyy-MM-dd') : '',
-      createdAt:       row[PI.CREATED_AT]
+      createdAt:          row[PI.CREATED_AT]
         ? Utilities.formatDate(new Date(row[PI.CREATED_AT]), tz, 'yyyy-MM-dd') : ''
     }));
 
@@ -97,15 +93,13 @@ function getProjectItems(projectId) {
 // ============================================================
 //  PROJECTS — UPLOAD FILE TO ITEM
 //
-//  Called when a team member uploads a file for a specific item.
-//  The file (base64) is saved into:
-//    qFolder/Uploads/[Item Name]/[filename]
-//
-//  If a file already exists for this item (re-upload after rejection),
-//  the old file is moved to qFolder/Rejected/[Item Name]/ automatically
-//  before saving the new one.
-//
-//  Returns the uploaded file's Drive URL.
+//  Supports multiple uploads per item:
+//    • Each call uploads ONE file (the front-end loops per file).
+//    • File URLs are stored newline-separated in UPLOADED_FILE_URL.
+//    • On a re-upload after rejection, ALL previous files are cleared
+//      (moved to Rejected/) and the cell is reset before appending.
+//    • Status is set to 'Uploaded' on the first file of a batch;
+//      subsequent calls in the same batch leave it as 'Uploaded'.
 // ============================================================
 function uploadProjectItemFile(params) {
   // params: { itemId, projectId, fileName, mimeType, base64Data }
@@ -130,12 +124,14 @@ function uploadProjectItemFile(params) {
   }
   if (!piRow) return { success: false, error: 'Item not found.' };
 
-  const itemName   = String(piRow[PI.ITEM_NAME]);
-  const projectId  = String(piRow[PI.PROJECT_ID]);
+  const itemName    = String(piRow[PI.ITEM_NAME]);
+  const projectId   = String(piRow[PI.PROJECT_ID]);
   const quotationId = String(piRow[PI.QUOTATION_ID]);
+  const currentStatus = String(piRow[PI.DELIVERY_STATUS] || 'Pending');
 
-  // ── Resolve the quotation folder → Uploads/[Item]/ ───────
+  // ── Resolve the quotation folder ──────────────────────────
   let uploadsItemFolder = null;
+  let qFolder           = null;
   try {
     const qData = qSheet.getDataRange().getValues();
     let folderUrl = '';
@@ -147,24 +143,35 @@ function uploadProjectItemFile(params) {
     }
     if (!folderUrl) return { success: false, error: 'Quotation folder not found.' };
 
-    const fid         = folderUrl.match(/[-\w]{25,}/)[0];
-    const qFolder     = DriveApp.getFolderById(fid);
+    const fid          = folderUrl.match(/[-\w]{25,}/)[0];
+    qFolder            = DriveApp.getFolderById(fid);
     const uploadsFolder = getOrCreateSubfolder(qFolder, 'Uploads');
     uploadsItemFolder   = getOrCreateSubfolder(uploadsFolder, itemName);
 
-    // ── If there's a previous upload, move it to Rejected/ ──
-    const prevUrl = String(piRow[PI.UPLOADED_FILE_URL] || '');
-    if (prevUrl) {
-      try {
-        const prevMatch = prevUrl.match(/[-\w]{25,}/);
-        if (prevMatch) {
-          const prevFile      = DriveApp.getFileById(prevMatch[0]);
-          const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
-          const rejectedItem   = getOrCreateSubfolder(rejectedFolder, itemName);
-          rejectedItem.addFile(prevFile);
-          uploadsItemFolder.removeFile(prevFile);
-        }
-      } catch(e) { Logger.log('Previous file move error: ' + e); }
+    // ── If this is a re-upload after rejection, clear old files ──
+    // A re-upload is identified by: there are existing URLs AND the status
+    // indicates the item was previously rejected (not just 'Uploaded' mid-batch).
+    const prevUrls = String(piRow[PI.UPLOADED_FILE_URL] || '')
+      .split('\n').map(s => s.trim()).filter(Boolean);
+    const isRejectedReupload = prevUrls.length > 0
+      && (currentStatus === 'Admin Rejected' || currentStatus === 'Client Rejected');
+
+    if (isRejectedReupload) {
+      // Move all previously uploaded files to Rejected/
+      const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
+      const rejectedItem   = getOrCreateSubfolder(rejectedFolder, itemName);
+      prevUrls.forEach(url => {
+        try {
+          const match = url.match(/[-\w]{25,}/);
+          if (match) {
+            const prevFile = DriveApp.getFileById(match[0]);
+            rejectedItem.addFile(prevFile);
+            uploadsItemFolder.removeFile(prevFile);
+          }
+        } catch(e) { Logger.log('Previous file move error: ' + e); }
+      });
+      // Clear the stored URLs — we'll rebuild from scratch
+      piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
     }
 
   } catch(e) {
@@ -172,27 +179,39 @@ function uploadProjectItemFile(params) {
     return { success: false, error: 'Could not access upload folder: ' + e.message };
   }
 
-  // ── Decode and save the new file ─────────────────────────
+  // ── Decode and save the new file ──────────────────────────
   let fileUrl = '';
   try {
-    const bytes    = Utilities.base64Decode(params.base64Data);
-    const blob     = Utilities.newBlob(bytes, params.mimeType, params.fileName);
-    const newFile  = uploadsItemFolder.createFile(blob);
-    fileUrl        = newFile.getUrl();
+    const bytes   = Utilities.base64Decode(params.base64Data);
+    const blob    = Utilities.newBlob(bytes, params.mimeType, params.fileName);
+    const newFile = uploadsItemFolder.createFile(blob);
+    fileUrl       = newFile.getUrl();
   } catch(e) {
     Logger.log('File save error: ' + e);
     return { success: false, error: 'Could not save file: ' + e.message };
   }
 
-  // ── Update Project_Items row ──────────────────────────────
-  const currentRedoCount = Number(piRow[PI.REDO_COUNT] || 0);
-  const isReupload       = String(piRow[PI.UPLOADED_FILE_URL] || '') !== '';
+  // ── Append the new URL to the stored list ─────────────────
+  // Re-read the cell to get the latest value (another file in the same
+  // batch may have just written to it a moment ago).
+  const currentUrlsRaw = String(
+    piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).getValue() || ''
+  ).trim();
+  const newUrlsValue = currentUrlsRaw
+    ? currentUrlsRaw + '\n' + fileUrl
+    : fileUrl;
 
+  piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue(newUrlsValue);
   piSheet.getRange(piRowIndex, PI.DELIVERY_STATUS   + 1).setValue('Uploaded');
-  piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue(fileUrl);
   piSheet.getRange(piRowIndex, PI.ASSIGNED_TO       + 1).setValue(user);
-  if (isReupload) {
-    piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(currentRedoCount + 1);
+
+  // Increment redo count only on the first file of a rejected re-upload
+  const prevCount = Number(piRow[PI.REDO_COUNT] || 0);
+  if (currentStatus === 'Admin Rejected' || currentStatus === 'Client Rejected') {
+    if (!currentUrlsRaw) {
+      // First file of this re-upload batch → increment redo
+      piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(prevCount + 1);
+    }
   }
 
   // ── Log ──────────────────────────────────────────────────
@@ -200,7 +219,7 @@ function uploadProjectItemFile(params) {
     quotationId + ' — ' + itemName,
     '', String(piRow[PI.ACCOUNT_NAME]),
     'DeliveryStatus',
-    isReupload ? 'Re-uploaded' : 'Pending', 'Uploaded',
+    currentStatus, 'Uploaded',
     'File uploaded by ' + user + ': ' + params.fileName);
 
   return { success: true, fileUrl };
@@ -209,20 +228,17 @@ function uploadProjectItemFile(params) {
 // ============================================================
 //  PROJECTS — ADMIN REVIEW ITEM
 //
-//  action: 'approve' | 'reject'
-//
 //  On approve:
-//    • File is COPIED from Uploads/[Item]/ → Deliverables/[Item]/
-//      (copy, not move — original stays in Uploads as audit trail)
+//    • ALL files in Uploads/[Item]/ are copied → Deliverables/[Item]/
 //    • Status → 'Admin Approved'
 //
 //  On reject:
-//    • File is moved from Uploads/[Item]/ → Rejected/[Item]/
+//    • ALL files in Uploads/[Item]/ are moved → Rejected/[Item]/
+//    • UPLOADED_FILE_URL cleared
 //    • Status → 'Admin Rejected'
 //    • REDO_COUNT incremented
 // ============================================================
 function reviewProjectItem(params) {
-  // params: { itemId, action, internalNotes }
   const piSheet = getSheet('Project_Items');
   const qSheet  = getSheet('Quotations');
 
@@ -245,10 +261,11 @@ function reviewProjectItem(params) {
 
   const itemName    = String(piRow[PI.ITEM_NAME]);
   const quotationId = String(piRow[PI.QUOTATION_ID]);
-  const fileUrl     = String(piRow[PI.UPLOADED_FILE_URL] || '');
+  const fileUrlsRaw = String(piRow[PI.UPLOADED_FILE_URL] || '');
+  const fileUrls    = fileUrlsRaw.split('\n').map(s => s.trim()).filter(Boolean);
   const oldStatus   = String(piRow[PI.DELIVERY_STATUS]);
 
-  if (!fileUrl) return { success: false, error: 'No uploaded file to review.' };
+  if (!fileUrls.length) return { success: false, error: 'No uploaded files to review.' };
 
   // ── Resolve folders ───────────────────────────────────────
   let qFolder = null;
@@ -262,64 +279,64 @@ function reviewProjectItem(params) {
       }
     }
     if (folderUrl) {
-      const fid = folderUrl.match(/[-\w]{25,}/)[0];
-      qFolder   = DriveApp.getFolderById(fid);
+      qFolder = DriveApp.getFolderById(folderUrl.match(/[-\w]{25,}/)[0]);
     }
   } catch(e) { Logger.log('Folder resolve error: ' + e); }
 
   let newStatus = oldStatus;
 
   if (params.action === 'approve') {
-    // Copy file to Deliverables/[Item]/
+    // Copy ALL files → Deliverables/[Item]/
     if (qFolder) {
       try {
-        const fileId      = fileUrl.match(/[-\w]{25,}/)[0];
-        const file        = DriveApp.getFileById(fileId);
         const delivFolder = getOrCreateSubfolder(qFolder, 'Deliverables');
         const delivItem   = getOrCreateSubfolder(delivFolder, itemName);
-        file.makeCopy(file.getName(), delivItem);
-      } catch(e) { Logger.log('Deliverables copy error: ' + e); }
+        fileUrls.forEach(url => {
+          try {
+            const fileId = url.match(/[-\w]{25,}/)[0];
+            const file   = DriveApp.getFileById(fileId);
+            file.makeCopy(file.getName(), delivItem);
+          } catch(e) { Logger.log('Deliverables copy error for ' + url + ': ' + e); }
+        });
+      } catch(e) { Logger.log('Deliverables folder error: ' + e); }
     }
     newStatus = 'Admin Approved';
 
   } else if (params.action === 'reject') {
-    // Move file from Uploads/[Item]/ → Rejected/[Item]/
+    // Move ALL files → Rejected/[Item]/
     if (qFolder) {
       try {
-        const fileId         = fileUrl.match(/[-\w]{25,}/)[0];
-        const file           = DriveApp.getFileById(fileId);
         const uploadsFolder  = getOrCreateSubfolder(qFolder, 'Uploads');
         const uploadsItem    = getOrCreateSubfolder(uploadsFolder, itemName);
         const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
         const rejectedItem   = getOrCreateSubfolder(rejectedFolder, itemName);
-        rejectedItem.addFile(file);
-        uploadsItem.removeFile(file);
-      } catch(e) { Logger.log('Reject move error: ' + e); }
+        fileUrls.forEach(url => {
+          try {
+            const fileId = url.match(/[-\w]{25,}/)[0];
+            const file   = DriveApp.getFileById(fileId);
+            rejectedItem.addFile(file);
+            uploadsItem.removeFile(file);
+          } catch(e) { Logger.log('Reject move error for ' + url + ': ' + e); }
+        });
+      } catch(e) { Logger.log('Reject folder error: ' + e); }
     }
     newStatus = 'Admin Rejected';
-    // Increment redo count on rejection
     const currentRedo = Number(piRow[PI.REDO_COUNT] || 0);
     piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(currentRedo + 1);
+    piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
   }
 
-  // ── Update row ────────────────────────────────────────────
   piSheet.getRange(piRowIndex, PI.DELIVERY_STATUS + 1).setValue(newStatus);
   if (params.internalNotes !== undefined && params.internalNotes !== null) {
     piSheet.getRange(piRowIndex, PI.INTERNAL_NOTES + 1).setValue(params.internalNotes);
   }
-  if (newStatus === 'Admin Approved') {
-    // Clear file URL only on rejection (file moved); keep it on approval (file copied)
-  }
-  if (params.action === 'reject') {
-    piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
-  }
 
-  // ── Log ──────────────────────────────────────────────────
   writeLog('Projects_Log', 'Project_Items', params.itemId,
     quotationId + ' — ' + itemName,
     '', String(piRow[PI.ACCOUNT_NAME]),
     'DeliveryStatus', oldStatus, newStatus,
-    (params.action === 'approve' ? 'Admin approved' : 'Admin rejected') + ' by ' + user);
+    (params.action === 'approve' ? 'Admin approved' : 'Admin rejected') + ' by ' + user
+    + ' (' + fileUrls.length + ' file(s))');
 
   return { success: true, newStatus };
 }
@@ -327,21 +344,11 @@ function reviewProjectItem(params) {
 // ============================================================
 //  PROJECTS — CLIENT REVIEW ITEM
 //
-//  action: 'approve' | 'reject'
-//  Only valid when item is 'Admin Approved'.
-//
-//  On approve:
-//    • Status → 'Delivered'
-//    • completedAt set
-//    • File remains in Deliverables/ (shareable with client)
-//
-//  On reject:
-//    • File moved from Deliverables/[Item]/ → Rejected/[Item]/
-//    • Status → 'Client Rejected'
-//    • REDO_COUNT incremented
+//  On approve:  Status → 'Delivered', completedAt set
+//  On reject:   All Deliverables/[Item]/ files moved → Rejected/[Item]/
+//               UPLOADED_FILE_URL cleared, Status → 'Client Rejected'
 // ============================================================
 function clientReviewItem(params) {
-  // params: { itemId, action, internalNotes }
   const piSheet = getSheet('Project_Items');
   const qSheet  = getSheet('Quotations');
 
@@ -361,14 +368,15 @@ function clientReviewItem(params) {
   }
   if (!piRow) return { success: false, error: 'Item not found.' };
 
-  const oldStatus   = String(piRow[PI.DELIVERY_STATUS]);
+  const oldStatus = String(piRow[PI.DELIVERY_STATUS]);
   if (oldStatus !== 'Admin Approved') {
     return { success: false, error: 'Item must be Admin Approved before client review.' };
   }
 
   const itemName    = String(piRow[PI.ITEM_NAME]);
   const quotationId = String(piRow[PI.QUOTATION_ID]);
-  const fileUrl     = String(piRow[PI.UPLOADED_FILE_URL] || '');
+  const fileUrlsRaw = String(piRow[PI.UPLOADED_FILE_URL] || '');
+  const fileUrls    = fileUrlsRaw.split('\n').map(s => s.trim()).filter(Boolean);
 
   let qFolder = null;
   try {
@@ -381,8 +389,7 @@ function clientReviewItem(params) {
       }
     }
     if (folderUrl) {
-      const fid = folderUrl.match(/[-\w]{25,}/)[0];
-      qFolder   = DriveApp.getFolderById(fid);
+      qFolder = DriveApp.getFolderById(folderUrl.match(/[-\w]{25,}/)[0]);
     }
   } catch(e) { Logger.log('Folder resolve error: ' + e); }
 
@@ -391,23 +398,26 @@ function clientReviewItem(params) {
   if (params.action === 'approve') {
     newStatus = 'Delivered';
     piSheet.getRange(piRowIndex, PI.COMPLETED_AT + 1).setValue(now);
-    // Check if all items in this project are Delivered → mark project complete
     autoCompleteProject(String(piRow[PI.PROJECT_ID]));
 
   } else if (params.action === 'reject') {
     newStatus = 'Client Rejected';
-    // Move file from Deliverables/[Item]/ → Rejected/[Item]/
-    if (qFolder && fileUrl) {
+    // Move all files from Deliverables/[Item]/ → Rejected/[Item]/
+    if (qFolder && fileUrls.length) {
       try {
-        const fileId        = fileUrl.match(/[-\w]{25,}/)[0];
-        const file          = DriveApp.getFileById(fileId);
         const delivFolder   = getOrCreateSubfolder(qFolder, 'Deliverables');
         const delivItem     = getOrCreateSubfolder(delivFolder, itemName);
         const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
         const rejectedItem  = getOrCreateSubfolder(rejectedFolder, itemName);
-        rejectedItem.addFile(file);
-        delivItem.removeFile(file);
-      } catch(e) { Logger.log('Client reject move error: ' + e); }
+        fileUrls.forEach(url => {
+          try {
+            const fileId = url.match(/[-\w]{25,}/)[0];
+            const file   = DriveApp.getFileById(fileId);
+            rejectedItem.addFile(file);
+            delivItem.removeFile(file);
+          } catch(e) { Logger.log('Client reject move error for ' + url + ': ' + e); }
+        });
+      } catch(e) { Logger.log('Client reject folder error: ' + e); }
     }
     const currentRedo = Number(piRow[PI.REDO_COUNT] || 0);
     piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(currentRedo + 1);
@@ -429,9 +439,7 @@ function clientReviewItem(params) {
 }
 
 // ============================================================
-//  PROJECTS — AUTO-COMPLETE PROJECT
-//  If all items in a project are 'Delivered', set project
-//  status to 'Completed' and record completedAt.
+//  PROJECTS — AUTO-COMPLETE
 // ============================================================
 function autoCompleteProject(projectId) {
   const piSheet = getSheet('Project_Items');
@@ -460,12 +468,11 @@ function autoCompleteProject(projectId) {
 }
 
 // ============================================================
-//  PROJECTS — UPDATE INTERNAL NOTES ON AN ITEM
+//  PROJECTS — UPDATE INTERNAL NOTES
 // ============================================================
 function updateItemNotes(itemId, notes) {
   const piSheet = getSheet('Project_Items');
   if (!piSheet) return { success: false, error: 'Sheet not found.' };
-
   const piData = piSheet.getDataRange().getValues();
   for (let i = 1; i < piData.length; i++) {
     if (String(piData[i][PI.ITEM_ID]) === String(itemId)) {
@@ -478,8 +485,6 @@ function updateItemNotes(itemId, notes) {
 
 // ============================================================
 //  PROJECTS — GET DELIVERABLES FOLDER URL
-//  Returns the shareable URL of the Deliverables/ subfolder
-//  inside a quotation folder. Used to share with client.
 // ============================================================
 function getDeliverablesUrl(quotationId) {
   const qSheet = getSheet('Quotations');
@@ -500,8 +505,7 @@ function getDeliverablesUrl(quotationId) {
     const qFolder      = DriveApp.getFolderById(fid);
     const delivFolders = qFolder.getFoldersByName('Deliverables');
     if (!delivFolders.hasNext()) return { success: false, url: '' };
-    const url = delivFolders.next().getUrl();
-    return { success: true, url };
+    return { success: true, url: delivFolders.next().getUrl() };
   } catch(e) {
     Logger.log('getDeliverablesUrl error: ' + e);
     return { success: false, url: '' };
