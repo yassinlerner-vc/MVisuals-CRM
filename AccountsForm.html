@@ -4,31 +4,31 @@
   <base target="_top">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f5f6fa;
-      color: #1a1a2e;
-      font-size: 14px;
-    }
-
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
     .view { display: none; padding: 20px 24px 100px; }
     .view.active { display: block; }
-
     .topbar {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 24px; background: #fff;
-      border-bottom: 1px solid #e2e4ef;
+      padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef;
       position: sticky; top: 0; z-index: 10;
     }
     .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .topbar-right  { display: flex; gap: 8px; align-items: center; }
-
+    .topbar-right { display: flex; gap: 8px; align-items: center; }
+    .user-chip {
+      display: flex; align-items: center; gap: 7px;
+      background: #f0f2fa; border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px;
+    }
+    .user-avatar {
+      width: 22px; height: 22px; border-radius: 50%; background: #4361ee; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-chip-name { font-weight: 600; color: #1a1a2e; }
+    .user-chip-role { color: #888; font-size: 11px; }
     .btn {
       padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
       cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e;
-      transition: background 0.15s, opacity 0.15s;
-      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn:hover:not(:disabled) { background: #f0f2fa; }
     .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
@@ -36,32 +36,24 @@
     .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
     .btn-danger  { background: #fff; color: #c0392b; border-color: #c0392b; }
     .btn-danger:hover:not(:disabled)  { background: #fdecea; }
-    .btn-ghost {
-      background: none; border: none; color: #4361ee; font-weight: 600;
-      font-size: 13px; cursor: pointer; padding: 7px 4px;
-    }
+    .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
     .btn-ghost:hover { text-decoration: underline; }
-
     .spinner {
       width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4);
       border-top-color: #fff; border-radius: 50%;
       animation: spin 0.6s linear infinite; display: none; flex-shrink: 0;
     }
     .btn-primary .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
-    .btn-danger  .spinner { border-color: rgba(195,57,43,0.3);  border-top-color: #c0392b; }
+    .btn-danger  .spinner { border-color: rgba(195,57,43,0.3); border-top-color: #c0392b; }
     .btn.loading .spinner { display: inline-block; }
     .btn.loading .btn-label { opacity: 0.7; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .proc-bar {
-      position: fixed; top: 0; left: 0; right: 0; height: 3px;
-      background: #4361ee; z-index: 999;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform 0.3s ease;
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999;
+      transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
     }
     .proc-bar.active { transform: scaleX(0.85); }
     .proc-bar.done   { transform: scaleX(1); transition: transform 0.15s ease; }
-
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600;
@@ -70,145 +62,69 @@
     .toast-info    { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
     .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
     .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
-
-    .badge {
-      display: inline-block; padding: 3px 10px; border-radius: 20px;
-      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
     .badge-lead        { background: #fff3cd; color: #856404; }
     .badge-prospect    { background: #e8ecfd; color: #2f4bcc; }
     .badge-client      { background: #d1f2e1; color: #0f5132; }
     .badge-collaborate { background: #f3e8fd; color: #6b21a8; }
     .badge-archived    { background: #f0f2fa; color: #888; }
-
-    .list-toolbar {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px;
-    }
+    .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .list-count { font-size: 13px; color: #666; }
     .table-wrap { overflow-x: auto; }
-
-    table {
-      width: 100%; border-collapse: collapse; font-size: 13px;
-      background: #fff; border-radius: 8px; overflow: hidden;
-      border: 1px solid #e2e4ef;
-    }
-    thead th {
-      background: #4361ee; color: #fff; padding: 10px 12px;
-      text-align: left; font-weight: 600; font-size: 12px;
-      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
+    thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
     tbody tr:nth-child(odd)  { background: #fff; }
     tbody tr:nth-child(even) { background: #f8f9ff; }
     tbody tr:hover { background: #eef0fd; cursor: pointer; }
-    tbody td {
-      padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle;
-    }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
     .col-id     { width: 110px; font-weight: 700; color: #4361ee; }
     .col-status { width: 110px; }
     .col-date   { width: 110px; color: #666; }
     .col-acts   { width: 160px; text-align: right; white-space: nowrap; }
-
-    .btn-sm {
-      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
-      cursor: pointer; border: 1px solid #d0d3e0; background: #fff;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
+    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; }
     .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
     .btn-sm-primary:hover { background: #eef0fd; }
     .btn-sm-danger  { border-color: #c0392b; color: #c0392b; }
     .btn-sm-danger:hover  { background: #fdecea; }
-
-    h3 {
-      font-size: 13px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px;
-    }
-    .section {
-      background: #fff; border-radius: 8px; padding: 16px 18px;
-      margin-bottom: 14px; border: 1px solid #e2e4ef;
-    }
+    h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+    .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
-    label {
-      display: block; font-weight: 600; font-size: 12px;
-      text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px;
-    }
-    input, select, textarea {
-      width: 100%; padding: 7px 10px; font-size: 13px;
-      border: 1px solid #d0d3e0; border-radius: 5px;
-      background: #fff; color: #1a1a2e; font-family: inherit;
-      transition: border-color 0.2s;
-    }
+    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; transition: border-color 0.2s; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
     input[readonly], input:disabled { background: #f0f2fa; color: #666; cursor: default; }
     textarea { resize: vertical; min-height: 56px; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-
-    .checkbox-row {
-      display: flex; align-items: center; gap: 8px; padding-top: 4px;
-    }
-    .checkbox-row input[type="checkbox"] {
-      width: 16px; height: 16px; accent-color: #4361ee;
-      cursor: pointer; flex-shrink: 0;
-    }
-    .checkbox-row label {
-      margin: 0; font-size: 13px; font-weight: 600;
-      text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer;
-    }
-
-    .meta-row {
-      display: flex; gap: 20px; flex-wrap: wrap;
-      font-size: 12px; color: #888; margin-bottom: 14px;
-    }
-    .meta-row span { display: flex; gap: 4px; align-items: center; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0; }
+    .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
+    .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; margin-bottom: 14px; }
     .meta-row strong { color: #555; }
-
-    .form-actions {
-      display: flex; gap: 8px; align-items: center;
-      padding: 12px 24px; background: #fff;
-      border-top: 1px solid #e2e4ef;
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9;
-    }
+    .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
     .spacer { flex: 1; }
-
-    .overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.35); z-index: 100;
-      align-items: center; justify-content: center;
-    }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
     .overlay.open { display: flex; }
-    .dialog {
-      background: #fff; border-radius: 10px; padding: 24px 28px;
-      max-width: 360px; width: 90%;
-    }
+    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 360px; width: 90%; }
     .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
     .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
     .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
-
-    body.readonly-mode input:not([type="checkbox"]),
-    body.readonly-mode select,
-    body.readonly-mode textarea {
-      pointer-events: none; background: #f0f2fa; color: #555;
-    }
+    body.readonly-mode input:not([type="checkbox"]), body.readonly-mode select, body.readonly-mode textarea { pointer-events: none; background: #f0f2fa; color: #555; }
     body.readonly-mode input[type="checkbox"] { pointer-events: none; }
     body.readonly-mode .edit-only { display: none !important; }
-
-    .folder-link {
-      display: inline-flex; align-items: center; gap: 5px;
-      color: #4361ee; font-size: 12px; font-weight: 600;
-      text-decoration: none; padding: 5px 12px;
-      border: 1px solid #4361ee; border-radius: 5px;
-    }
+    .folder-link { display: inline-flex; align-items: center; gap: 5px; color: #4361ee; font-size: 12px; font-weight: 600; text-decoration: none; padding: 5px 12px; border: 1px solid #4361ee; border-radius: 5px; }
     .folder-link:hover { background: #eef0fd; }
     .hidden { display: none !important; }
+    .access-error { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; padding: 40px; }
+    .access-error-icon { font-size: 48px; margin-bottom: 16px; }
+    .access-error h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .access-error p  { font-size: 13px; color: #888; }
   </style>
 </head>
 <body>
-
 <div class="proc-bar" id="procBar"></div>
 <div class="toast"    id="toast"></div>
-
 <div class="topbar">
   <div class="topbar-title" id="topbarTitle">Accounts</div>
   <div class="topbar-right"  id="topbarRight"></div>
@@ -218,7 +134,8 @@
 <div class="view active" id="viewList">
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
-    <button class="btn btn-primary" onclick="showNew()">
+    <!-- New Account button: Admin and Lead only -->
+    <button class="btn btn-primary hidden" id="btnNewAccount" onclick="showNew()">
       <span class="btn-label">+ New Account</span>
     </button>
   </div>
@@ -237,10 +154,7 @@
         </tr>
       </thead>
       <tbody id="listBody">
-        <tr>
-          <td colspan="8"
-            style="text-align:center;padding:32px;color:#888;">Loading...</td>
-        </tr>
+        <tr><td colspan="8" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -248,21 +162,16 @@
 
 <!-- FORM VIEW -->
 <div class="view" id="viewForm">
-
   <div class="meta-row" id="metaRow" style="display:none;">
     <span><strong>ID:</strong> <span id="metaId"></span></span>
     <span><strong>Status:</strong> <span id="metaStatus"></span></span>
     <span><strong>Created by:</strong> <span id="metaCreatedBy"></span></span>
     <span><strong>Created:</strong> <span id="metaCreatedAt"></span></span>
   </div>
-
   <div class="section">
     <h3>Account Details</h3>
     <div class="row2">
-      <div class="field">
-        <label>Account Name</label>
-        <input type="text" id="accountName" placeholder="e.g. Acme Corporation">
-      </div>
+      <div class="field"><label>Account Name</label><input type="text" id="accountName" placeholder="e.g. Acme Corporation"></div>
       <div class="field">
         <label>Industry</label>
         <input list="industryList" id="industry" placeholder="Select or type...">
@@ -293,24 +202,22 @@
       </div>
     </div>
   </div>
-
   <div class="section">
     <h3>Notes</h3>
     <textarea id="notes" placeholder="Any additional notes..."></textarea>
   </div>
-
 </div>
 
 <!-- FORM ACTIONS -->
 <div class="form-actions hidden" id="formActions">
   <button class="btn btn-ghost" onclick="showList()">← Back</button>
   <div class="spacer"></div>
-  <a id="folderLink" class="folder-link hidden" href="#" target="_blank">
-    📁 Open Folder
-  </a>
+  <a id="folderLink" class="folder-link hidden" href="#" target="_blank">📁 Open Folder</a>
+  <!-- Archive: Admin only -->
   <button class="btn btn-danger hidden" id="btnDelete" onclick="askDelete()">
     <div class="spinner"></div><span class="btn-label">Archive</span>
   </button>
+  <!-- Edit: Admin and Lead -->
   <button class="btn hidden" id="btnEdit" onclick="enterEditMode()">
     <span class="btn-label">Edit</span>
   </button>
@@ -323,8 +230,7 @@
 <div class="overlay" id="overlayDelete">
   <div class="dialog">
     <h4>Archive Account</h4>
-    <p>This will set the account status to Archived and move its Drive folder
-       to Deleted/Archived. This cannot be undone from the UI.</p>
+    <p>This will set the account status to Archived and move its Drive folder to Deleted/Archived. This cannot be undone from the UI.</p>
     <div class="dialog-btns">
       <button class="btn" onclick="closeDialog('overlayDelete')">Cancel</button>
       <button class="btn btn-danger" id="btnDeleteConfirm" onclick="confirmDelete()">
@@ -342,6 +248,7 @@ let allAccounts = [];
 let currentMode = 'list';
 let currentId   = null;
 let currentData = null;
+let currentUser = null;  // { email, name, role }
 
 /* ══════════════════════════════
    PROCESSING / TOAST
@@ -360,12 +267,9 @@ function stopProcessing(btn) {
 let toastTimer = null;
 function showToast(msg, type, duration) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = 'toast toast-' + (type || 'info');
-  t.style.display = 'block';
+  t.textContent = msg; t.className = 'toast toast-' + (type || 'info'); t.style.display = 'block';
   if (toastTimer) clearTimeout(toastTimer);
-  if (duration !== 0)
-    toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3000);
+  if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3000);
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
@@ -373,22 +277,51 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
    INIT
 ══════════════════════════════ */
 function init() {
-  loadDropdown('sourceList',   'Account Sources');
-  loadDropdown('channelList',  'Account Channels');
-  loadDropdown('countryList',  'Countries');
-  loadDropdown('industryList', 'Industries');
-  google.script.run.withSuccessHandler(renderList).getAccounts();
+  showToast('Loading...', 'info', 0);
+  google.script.run
+    .withSuccessHandler(user => {
+      currentUser = user;
+      renderUserChip(user);
+      // Team role has read-only access to Accounts
+      // Lead and Admin can create/edit
+      if (user.role === 'Admin' || user.role === 'Lead') {
+        document.getElementById('btnNewAccount').classList.remove('hidden');
+      }
+      loadDropdown('sourceList',   'Account Sources');
+      loadDropdown('channelList',  'Account Channels');
+      loadDropdown('countryList',  'Countries');
+      loadDropdown('industryList', 'Industries');
+      google.script.run.withSuccessHandler(renderList).getAccounts();
+    })
+    .withFailureHandler(err => showAccessError(err.message))
+    .getCurrentUser();
+}
+
+function renderUserChip(user) {
+  const initials = (user.name || user.email).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('topbarRight').innerHTML = `
+    <div class="user-chip">
+      <div class="user-avatar">${escHtml(initials)}</div>
+      <span class="user-chip-name">${escHtml(user.name)}</span>
+      <span class="user-chip-role">${escHtml(user.role)}</span>
+    </div>`;
+}
+
+function showAccessError(msg) {
+  document.getElementById('viewList').innerHTML = `
+    <div class="access-error">
+      <div class="access-error-icon">🔒</div>
+      <h2>Access Denied</h2>
+      <p>${escHtml(msg)}</p>
+    </div>`;
+  hideToast();
 }
 
 function loadDropdown(datalistId, sheetName) {
   google.script.run
     .withSuccessHandler(options => {
       const dl = document.getElementById(datalistId);
-      (options || []).forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o;
-        dl.appendChild(opt);
-      });
+      (options || []).forEach(o => { const opt = document.createElement('option'); opt.value = o; dl.appendChild(opt); });
     })
     .getDropdownOptions(sheetName);
 }
@@ -398,16 +331,18 @@ function loadDropdown(datalistId, sheetName) {
 ══════════════════════════════ */
 function renderList(accounts) {
   allAccounts = accounts || [];
+  hideToast();
   document.getElementById('listCount').textContent =
     allAccounts.length + ' account' + (allAccounts.length !== 1 ? 's' : '');
 
   const tbody = document.getElementById('listBody');
   if (!allAccounts.length) {
-    tbody.innerHTML = `<tr><td colspan="8"
-      style="text-align:center;padding:32px;color:#888;">
-      No accounts yet. Create your first one!</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:#888;">No accounts yet.</td></tr>`;
     return;
   }
+
+  const canEdit    = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Lead');
+  const canArchive = currentUser && currentUser.role === 'Admin';
 
   tbody.innerHTML = allAccounts.map(acc => `
     <tr onclick="openAccount('${escHtml(acc.id)}')">
@@ -416,16 +351,11 @@ function renderList(accounts) {
       <td>${escHtml(acc.industry || '—')}</td>
       <td>${escHtml(acc.country  || '—')}</td>
       <td>${escHtml(acc.channel  || '—')}</td>
-      <td class="col-status">
-        <span class="badge badge-${(acc.status||'lead').toLowerCase()}">
-          ${escHtml(acc.status)}</span>
-      </td>
+      <td class="col-status"><span class="badge badge-${(acc.status||'lead').toLowerCase()}">${escHtml(acc.status)}</span></td>
       <td class="col-date">${acc.createdAt || '—'}</td>
       <td class="col-acts" onclick="event.stopPropagation()">
-        <button class="btn-sm btn-sm-primary"
-          onclick="openAccount('${escHtml(acc.id)}')">Open →</button>
-        <button class="btn-sm btn-sm-danger"
-          onclick="quickArchive('${escHtml(acc.id)}')">Archive</button>
+        <button class="btn-sm btn-sm-primary" onclick="openAccount('${escHtml(acc.id)}')">Open →</button>
+        ${canArchive ? `<button class="btn-sm btn-sm-danger" onclick="quickArchive('${escHtml(acc.id)}')">Archive</button>` : ''}
       </td>
     </tr>`).join('');
 }
@@ -437,6 +367,7 @@ function showList() {
   document.getElementById('formActions').classList.add('hidden');
   document.getElementById('metaRow').style.display   = 'none';
   document.body.classList.remove('readonly-mode');
+  renderUserChip(currentUser);
   google.script.run.withSuccessHandler(renderList).getAccounts();
 }
 
@@ -446,7 +377,6 @@ function showList() {
 function openAccount(accountId) {
   currentId   = accountId;
   currentMode = 'view';
-
   startProcessing(null, 'Loading account...');
   google.script.run
     .withSuccessHandler(data => {
@@ -457,17 +387,11 @@ function openAccount(accountId) {
       populateMeta(data);
       switchView('form');
       setReadOnly(true);
-      document.getElementById('topbarTitle').textContent =
-        data.id + ' — ' + data.name;
-      document.getElementById('topbarRight').innerHTML =
-        `<span class="badge badge-${(data.status||'').toLowerCase()}">
-          ${escHtml(data.status)}</span>`;
+      document.getElementById('topbarTitle').textContent = data.id + ' — ' + data.name;
+      renderUserChip(currentUser);
       showFormActions('view');
     })
-    .withFailureHandler(err => {
-      stopProcessing(null);
-      showToast('Error: ' + err.message, 'error');
-    })
+    .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
     .getAccountById(accountId);
 }
 
@@ -484,12 +408,9 @@ function populateMeta(data) {
 ══════════════════════════════ */
 function showNew() {
   currentMode = 'new'; currentId = null; currentData = null;
-  resetForm();
-  switchView('form');
-  setReadOnly(false);
+  resetForm(); switchView('form'); setReadOnly(false);
   document.getElementById('topbarTitle').textContent = 'New Account';
-  document.getElementById('topbarRight').innerHTML   = '';
-  document.getElementById('metaRow').style.display   = 'none';
+  renderUserChip(currentUser);
   document.getElementById('folderLink').classList.add('hidden');
   showFormActions('new');
 }
@@ -498,12 +419,12 @@ function enterEditMode() {
   currentMode = 'edit';
   setReadOnly(false);
   document.getElementById('topbarTitle').textContent = 'Edit — ' + currentId;
-  document.getElementById('topbarRight').innerHTML   = '';
+  renderUserChip(currentUser);
   showFormActions('edit');
 }
 
 /* ══════════════════════════════
-   FORM ACTIONS
+   FORM ACTIONS — role-gated
 ══════════════════════════════ */
 function showFormActions(mode) {
   const bar     = document.getElementById('formActions');
@@ -511,6 +432,7 @@ function showFormActions(mode) {
   const btnEdit = document.getElementById('btnEdit');
   const btnDel  = document.getElementById('btnDelete');
   const fl      = document.getElementById('folderLink');
+  const role    = currentUser ? currentUser.role : '';
 
   bar.classList.remove('hidden');
   [btnSave, btnEdit, btnDel].forEach(b => b.classList.add('hidden'));
@@ -520,21 +442,16 @@ function showFormActions(mode) {
     btnSave.classList.remove('hidden');
     fl.classList.add('hidden');
   } else if (mode === 'view') {
-    btnEdit.classList.remove('hidden');
-    btnDel.classList.remove('hidden');
-    if (currentData && currentData.folderUrl) {
-      fl.href = currentData.folderUrl;
-      fl.classList.remove('hidden');
-    } else {
-      fl.classList.add('hidden');
-    }
+    // Edit: Admin and Lead
+    if (role === 'Admin' || role === 'Lead') btnEdit.classList.remove('hidden');
+    // Archive: Admin only
+    if (role === 'Admin') btnDel.classList.remove('hidden');
+    if (currentData && currentData.folderUrl) { fl.href = currentData.folderUrl; fl.classList.remove('hidden'); }
+    else fl.classList.add('hidden');
   } else if (mode === 'edit') {
     btnSave.querySelector('.btn-label').textContent = 'Save Changes';
     btnSave.classList.remove('hidden');
-    if (currentData && currentData.folderUrl) {
-      fl.href = currentData.folderUrl;
-      fl.classList.remove('hidden');
-    }
+    if (currentData && currentData.folderUrl) { fl.href = currentData.folderUrl; fl.classList.remove('hidden'); }
   }
 }
 
@@ -545,28 +462,24 @@ function switchView(name) {
   document.getElementById('viewList').classList.toggle('active', name === 'list');
   document.getElementById('viewForm').classList.toggle('active', name === 'form');
 }
-function setReadOnly(on) {
-  document.body.classList.toggle('readonly-mode', on);
-}
+function setReadOnly(on) { document.body.classList.toggle('readonly-mode', on); }
 
 /* ══════════════════════════════
    POPULATE / RESET
 ══════════════════════════════ */
 function populateForm(acc) {
-  document.getElementById('accountName').value     = acc.name         || '';
-  document.getElementById('industry').value        = acc.industry     || '';
-  document.getElementById('source').value          = acc.source       || '';
-  document.getElementById('channel').value         = acc.channel      || '';
-  document.getElementById('country').value         = acc.country      || '';
-  document.getElementById('notes').value           = acc.notes        || '';
-  document.getElementById('isRegistered').checked  = !!acc.isRegistered;
+  document.getElementById('accountName').value    = acc.name         || '';
+  document.getElementById('industry').value       = acc.industry     || '';
+  document.getElementById('source').value         = acc.source       || '';
+  document.getElementById('channel').value        = acc.channel      || '';
+  document.getElementById('country').value        = acc.country      || '';
+  document.getElementById('notes').value          = acc.notes        || '';
+  document.getElementById('isRegistered').checked = !!acc.isRegistered;
 }
-
 function resetForm() {
-  ['accountName','industry','source','channel','notes']
-    .forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('country').value          = 'Egypt';
-  document.getElementById('isRegistered').checked   = false;
+  ['accountName','industry','source','channel','notes'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('country').value         = 'Egypt';
+  document.getElementById('isRegistered').checked  = false;
 }
 
 /* ══════════════════════════════
@@ -574,11 +487,10 @@ function resetForm() {
 ══════════════════════════════ */
 function saveForm() {
   if (!validateForm()) return;
-  const btn = document.getElementById('btnSave');
+  const btn  = document.getElementById('btnSave');
   if (btn.disabled) return;
-
   const data = {
-    id:           currentId,
+    id: currentId,
     name:         document.getElementById('accountName').value.trim(),
     source:       document.getElementById('source').value,
     channel:      document.getElementById('channel').value,
@@ -587,7 +499,6 @@ function saveForm() {
     isRegistered: document.getElementById('isRegistered').checked,
     notes:        document.getElementById('notes').value
   };
-
   if (currentMode === 'new') {
     startProcessing(btn, 'Creating account...');
     google.script.run
@@ -597,10 +508,7 @@ function saveForm() {
         showToast('Account ' + res.accountId + ' created!', 'success');
         setTimeout(showList, 1200);
       })
-      .withFailureHandler(err => {
-        stopProcessing(btn);
-        showToast('Error: ' + err.message, 'error');
-      })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
       .createAccount(data);
   } else {
     startProcessing(btn, 'Saving changes...');
@@ -611,27 +519,17 @@ function saveForm() {
         showToast('Account updated.', 'success');
         setTimeout(showList, 1200);
       })
-      .withFailureHandler(err => {
-        stopProcessing(btn);
-        showToast('Error: ' + err.message, 'error');
-      })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
       .editAccount(data);
   }
 }
 
 /* ══════════════════════════════
-   DELETE / ARCHIVE
+   ARCHIVE
 ══════════════════════════════ */
-function askDelete() {
-  document.getElementById('overlayDelete').classList.add('open');
-}
-function quickArchive(accountId) {
-  currentId = accountId;
-  document.getElementById('overlayDelete').classList.add('open');
-}
-function closeDialog(id) {
-  document.getElementById(id).classList.remove('open');
-}
+function askDelete() { document.getElementById('overlayDelete').classList.add('open'); }
+function quickArchive(accountId) { currentId = accountId; document.getElementById('overlayDelete').classList.add('open'); }
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
 function confirmDelete() {
   const btn = document.getElementById('btnDeleteConfirm');
   closeDialog('overlayDelete');
@@ -643,10 +541,7 @@ function confirmDelete() {
       showToast('Account archived.', 'success');
       setTimeout(showList, 1000);
     })
-    .withFailureHandler(err => {
-      stopProcessing(btn);
-      showToast('Error: ' + err.message, 'error');
-    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
     .deleteAccount(currentId);
 }
 
@@ -654,15 +549,9 @@ function confirmDelete() {
    VALIDATION
 ══════════════════════════════ */
 function validateForm() {
-  if (!document.getElementById('accountName').value.trim()) {
-    showToast('Please enter an Account Name.', 'error'); return false;
-  }
-  if (!document.getElementById('source').value.trim()) {
-    showToast('Please select a Source.', 'error'); return false;
-  }
-  if (!document.getElementById('channel').value.trim()) {
-    showToast('Please select a Channel.', 'error'); return false;
-  }
+  if (!document.getElementById('accountName').value.trim()) { showToast('Please enter an Account Name.', 'error'); return false; }
+  if (!document.getElementById('source').value.trim()) { showToast('Please select a Source.', 'error'); return false; }
+  if (!document.getElementById('channel').value.trim()) { showToast('Please select a Channel.', 'error'); return false; }
   return true;
 }
 
@@ -670,8 +559,7 @@ function validateForm() {
    HELPERS
 ══════════════════════════════ */
 function escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 init();
