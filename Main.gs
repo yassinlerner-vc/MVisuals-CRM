@@ -4,10 +4,21 @@
 const CLIENTS_FOLDER_ID  = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
 const LEADS_FOLDER_ID    = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
 const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
-// NOTE: Add your Projects root folder ID here when ready.
-// This is the top-level "Projects" folder in Drive (optional — quotation
-// folders currently live inside each Client's own Projects subfolder).
-// const PROJECTS_FOLDER_ID = 'YOUR_FOLDER_ID_HERE';
+
+// ============================================================
+//  COLUMN INDEXES — Users (0-based)
+//  Sheet: Users
+//  Cols:  Email | Name | Role | Status | CreatedBy | CreatedAt | Notes
+// ============================================================
+const U = {
+  EMAIL:      0,
+  NAME:       1,
+  ROLE:       2,
+  STATUS:     3,
+  CREATED_BY: 4,
+  CREATED_AT: 5,
+  NOTES:      6
+};
 
 // ============================================================
 //  COLUMN INDEXES — Accounts (0-based)
@@ -53,7 +64,7 @@ const Q = {
   TOTAL:             19,
   STATUS:            20,
   NOTES:             21,
-  FOLDER_URL:        22,  // ← Now stores the FOLDER url, not PDF url
+  FOLDER_URL:        22,
   CREATED_BY:        23,
   CREATED_AT:        24,
   LAST_UPDATED_BY:   25,
@@ -129,6 +140,7 @@ function onOpen() {
     .addItem('Accounts',    'openAccountsModule')
     .addItem('Quotations',  'openQuotationsModule')
     .addItem('Projects',    'openProjectsModule')
+    .addItem('Users',       'openUsersModule')
     .addToUi();
 }
 
@@ -145,10 +157,15 @@ function openQuotationsModule() {
 }
 
 function openProjectsModule() {
-  // ProjectsForm.html — to be built in next phase
   const html = HtmlService.createHtmlOutputFromFile('ProjectsForm')
     .setWidth(1100).setHeight(720);
   SpreadsheetApp.getUi().showModalDialog(html, 'Projects');
+}
+
+function openUsersModule() {
+  const html = HtmlService.createHtmlOutputFromFile('UsersForm')
+    .setWidth(960).setHeight(680);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Users');
 }
 
 // ============================================================
@@ -159,17 +176,15 @@ function getSheet(name) {
 }
 
 // ============================================================
-//  DRIVE HELPER — move a file to the global Archived folder
-//  (used for account archiving — quotation versioning uses
-//   the per-quotation Archived/ subfolder instead)
+//  DRIVE HELPER
 // ============================================================
 function moveToArchived(fileOrFolderUrl) {
   if (!fileOrFolderUrl) return;
   try {
-    const id          = fileOrFolderUrl.match(/[-\w]{25,}/)[0];
-    const item        = DriveApp.getFileById(id);   // works for both files and folders
+    const id           = fileOrFolderUrl.match(/[-\w]{25,}/)[0];
+    const item         = DriveApp.getFileById(id);
     const archivedRoot = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
-    const parents     = item.getParents();
+    const parents      = item.getParents();
     archivedRoot.addFile(item);
     while (parents.hasNext()) parents.next().removeFile(item);
   } catch(e) {
@@ -202,7 +217,7 @@ function writeLog(sheetName, module, recordId, recordLabel,
 }
 
 // ============================================================
-//  DROPDOWN OPTIONS — shared by all modules
+//  DROPDOWN OPTIONS
 // ============================================================
 function getDropdownOptions(sheetName) {
   try {
@@ -216,4 +231,17 @@ function getDropdownOptions(sheetName) {
     Logger.log('getDropdownOptions error: ' + e);
     return [];
   }
+}
+
+// ============================================================
+//  HELPER — extract plain URL from formula or raw string
+// ============================================================
+function extractUrl(cellValue) {
+  if (!cellValue) return '';
+  const str = String(cellValue);
+  if (str.toUpperCase().startsWith('=HYPERLINK')) {
+    const match = str.match(/\"(https?:\/\/[^\"]+)\"/);
+    return match ? match[1] : '';
+  }
+  return str;
 }
