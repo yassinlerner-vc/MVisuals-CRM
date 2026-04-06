@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f6fa;
+      color: #1a1a2e;
+      font-size: 14px;
+    }
+
+    .view { display: none; padding: 20px 24px 100px; }
+    .view.active { display: block; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; background: #fff;
+      border-bottom: 1px solid #e2e4ef;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .topbar-right { display: flex; gap: 8px; align-items: center; }
+    .user-chip {
+      display: flex; align-items: center; gap: 7px;
+      background: #f0f2fa; border-radius: 20px;
+      padding: 4px 12px 4px 8px; font-size: 12px;
+    }
+    .user-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #4361ee; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-chip-name { font-weight: 600; color: #1a1a2e; }
+    .user-chip-role { color: #888; font-size: 11px; }
+
+    .btn {
+      padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e;
+      transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover:not(:disabled) { background: #f0f2fa; }
+    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-danger  { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled)  { background: #fdecea; }
+    .btn-ghost {
+      background: none; border: none; color: #4361ee; font-weight: 600;
+      font-size: 13px; cursor: pointer; padding: 7px 4px;
+    }
+    .btn-ghost:hover { text-decoration: underline; }
+
+    .spinner {
+      width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.6s linear infinite; display: none; flex-shrink: 0;
+    }
+    .btn-primary .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
+    .btn-danger  .spinner { border-color: rgba(195,57,43,0.3); border-top-color: #c0392b; }
+    .btn.loading .spinner { display: inline-block; }
+    .btn.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .proc-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px;
+      background: #4361ee; z-index: 999;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .proc-bar.active { transform: scaleX(0.85); }
+    .proc-bar.done   { transform: scaleX(1); transition: transform 0.15s ease; }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      z-index: 998; display: none; white-space: nowrap; pointer-events: none;
+    }
+    .toast-info    { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
+    .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-admin    { background: #e8ecfd; color: #2f4bcc; }
+    .badge-team     { background: #d1f2e1; color: #0f5132; }
+    .badge-lead     { background: #fff3cd; color: #856404; }
+    .badge-active   { background: #d1f2e1; color: #0f5132; }
+    .badge-inactive { background: #f8d7da; color: #842029; }
+
+    .access-denied {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 300px; text-align: center; padding: 40px;
+    }
+    .access-denied-icon { font-size: 48px; margin-bottom: 16px; }
+    .access-denied h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+    .access-denied p  { font-size: 13px; color: #888; }
+
+    .list-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .list-count { font-size: 13px; color: #666; }
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      background: #fff; border-radius: 8px; overflow: hidden;
+      border: 1px solid #e2e4ef;
+    }
+    thead th {
+      background: #4361ee; color: #fff; padding: 10px 12px;
+      text-align: left; font-weight: 600; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+    }
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:nth-child(even) { background: #f8f9ff; }
+    tbody tr:hover { background: #eef0fd; cursor: pointer; }
+    tbody td {
+      padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle;
+    }
+    .col-email  { min-width: 200px; }
+    .col-role   { width: 100px; }
+    .col-status { width: 100px; }
+    .col-date   { width: 110px; color: #666; }
+    .col-acts   { width: 160px; text-align: right; white-space: nowrap; }
+
+    .btn-sm {
+      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid #d0d3e0; background: #fff;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
+    .btn-sm-primary:hover { background: #eef0fd; }
+    .btn-sm-danger  { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover  { background: #fdecea; }
+
+    .section {
+      background: #fff; border-radius: 8px; padding: 16px 18px;
+      margin-bottom: 14px; border: 1px solid #e2e4ef;
+    }
+    h3 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px;
+    }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label {
+      display: block; font-weight: 600; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px;
+    }
+    input, select, textarea {
+      width: 100%; padding: 7px 10px; font-size: 13px;
+      border: 1px solid #d0d3e0; border-radius: 5px;
+      background: #fff; color: #1a1a2e; font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
+    input:disabled, select:disabled { background: #f0f2fa; color: #666; cursor: default; }
+    textarea { resize: vertical; min-height: 56px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .meta-row {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      font-size: 12px; color: #888; margin-bottom: 14px;
+    }
+    .meta-row strong { color: #555; }
+
+    .form-actions {
+      display: flex; gap: 8px; align-items: center;
+      padding: 12px 24px; background: #fff;
+      border-top: 1px solid #e2e4ef;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9;
+    }
+    .spacer { flex: 1; }
+
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .dialog {
+      background: #fff; border-radius: 10px; padding: 24px 28px;
+      max-width: 360px; width: 90%;
+    }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="proc-bar" id="procBar"></div>
+<div class="toast"    id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-title" id="topbarTitle">Users</div>
+  <div class="topbar-right" id="topbarRight"></div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div id="accessDeniedMsg" class="hidden">
+    <div class="access-denied">
+      <div class="access-denied-icon">🔒</div>
+      <h2>Admin Access Required</h2>
+      <p>Only Admins can manage users.</p>
+    </div>
+  </div>
+  <div id="listContent">
+    <div class="list-toolbar">
+      <div class="list-count" id="listCount">Loading...</div>
+      <button class="btn btn-primary" onclick="showNew()">
+        <span class="btn-label">+ New User</span>
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table id="listTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th class="col-email">Email</th>
+            <th class="col-role">Role</th>
+            <th class="col-status">Status</th>
+            <th class="col-date">Created</th>
+            <th class="col-acts"></th>
+          </tr>
+        </thead>
+        <tbody id="listBody">
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FORM VIEW -->
+<div class="view" id="viewForm">
+  <div class="meta-row" id="metaRow" style="display:none;">
+    <span><strong>Email:</strong> <span id="metaEmail"></span></span>
+    <span><strong>Created by:</strong> <span id="metaCreatedBy"></span></span>
+    <span><strong>Created:</strong> <span id="metaCreatedAt"></span></span>
+  </div>
+  <div class="section">
+    <h3>User Details</h3>
+    <div class="row2">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="userName" placeholder="e.g. Sarah Ahmed">
+      </div>
+      <div class="field">
+        <label>Email (Google Account)</label>
+        <input type="email" id="userEmail" placeholder="e.g. sarah@agency.com">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Role</label>
+        <select id="userRole">
+          <option value="Admin">Admin</option>
+          <option value="Team">Team</option>
+          <option value="Lead">Lead</option>
+        </select>
+      </div>
+      <div class="field" id="statusField" style="display:none;">
+        <label>Status</label>
+        <select id="userStatus">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="userNotes" placeholder="Optional notes..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- FORM ACTIONS -->
+<div class="form-actions hidden" id="formActions">
+  <button class="btn btn-ghost" onclick="showList()">← Back</button>
+  <div class="spacer"></div>
+  <button class="btn btn-danger hidden" id="btnDeactivate" onclick="askDeactivate()">
+    <div class="spinner"></div><span class="btn-label">Deactivate</span>
+  </button>
+  <button class="btn hidden" id="btnEdit" onclick="enterEditMode()">
+    <span class="btn-label">Edit</span>
+  </button>
+  <button class="btn btn-primary hidden" id="btnSave" onclick="saveForm()">
+    <div class="spinner"></div><span class="btn-label">Save</span>
+  </button>
+</div>
+
+<!-- DEACTIVATE DIALOG -->
+<div class="overlay" id="overlayDeactivate">
+  <div class="dialog">
+    <h4>Deactivate User</h4>
+    <p>This will prevent the user from accessing the system. You can reactivate them by editing their status.</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayDeactivate')">Cancel</button>
+      <button class="btn btn-danger" id="btnDeactivateConfirm" onclick="confirmDeactivate()">
+        <div class="spinner"></div><span class="btn-label">Yes, Deactivate</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════
+   STATE
+══════════════════════════════ */
+let allUsers    = [];
+let currentMode = 'list';
+let currentEmail = null;
+let currentUser  = null;  // logged-in user
+let editTarget   = null;  // user being edited
+
+/* ══════════════════════════════
+   PROCESSING / TOAST
+══════════════════════════════ */
+function startProcessing(btn, msg) {
+  document.getElementById('procBar').className = 'proc-bar active';
+  showToast(msg || 'Processing...', 'info', 0);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+}
+function stopProcessing(btn) {
+  const bar = document.getElementById('procBar');
+  bar.className = 'proc-bar done';
+  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
+  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+}
+let toastTimer = null;
+function showToast(msg, type, duration) {
+  const t = document.getElementById('toast');
+  t.textContent   = msg;
+  t.className     = 'toast toast-' + (type || 'info');
+  t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration !== 0)
+    toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3000);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
+
+/* ══════════════════════════════
+   INIT
+══════════════════════════════ */
+function init() {
+  google.script.run
+    .withSuccessHandler(user => {
+      currentUser = user;
+      renderUserChip(user);
+      if (user.role !== 'Admin') {
+        document.getElementById('accessDeniedMsg').classList.remove('hidden');
+        document.getElementById('listContent').classList.add('hidden');
+        hideToast();
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(renderList)
+        .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+        .getUsers();
+    })
+    .withFailureHandler(err => {
+      showAccessError(err.message);
+    })
+    .getCurrentUser();
+}
+
+function renderUserChip(user) {
+  const initials = (user.name || user.email).split(' ')
+    .map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('topbarRight').innerHTML = `
+    <div class="user-chip">
+      <div class="user-avatar">${escHtml(initials)}</div>
+      <span class="user-chip-name">${escHtml(user.name)}</span>
+      <span class="user-chip-role">${escHtml(user.role)}</span>
+    </div>`;
+}
+
+function showAccessError(msg) {
+  document.getElementById('listCount').textContent = '';
+  document.getElementById('accessDeniedMsg').classList.remove('hidden');
+  document.getElementById('accessDeniedMsg').innerHTML = `
+    <div class="access-denied">
+      <div class="access-denied-icon">🔒</div>
+      <h2>Access Denied</h2>
+      <p>${escHtml(msg)}</p>
+    </div>`;
+  document.getElementById('listContent').classList.add('hidden');
+  hideToast();
+}
+
+/* ══════════════════════════════
+   LIST VIEW
+══════════════════════════════ */
+function renderList(users) {
+  allUsers = users || [];
+  hideToast();
+  document.getElementById('listCount').textContent =
+    allUsers.length + ' user' + (allUsers.length !== 1 ? 's' : '');
+
+  const tbody = document.getElementById('listBody');
+  if (!allUsers.length) {
+    tbody.innerHTML = `<tr><td colspan="6"
+      style="text-align:center;padding:32px;color:#888;">
+      No users yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = allUsers.map(u => `
+    <tr onclick="openUser('${escHtml(u.email)}')">
+      <td><strong>${escHtml(u.name)}</strong></td>
+      <td class="col-email" style="color:#666;">${escHtml(u.email)}</td>
+      <td class="col-role">
+        <span class="badge badge-${u.role.toLowerCase()}">${escHtml(u.role)}</span>
+      </td>
+      <td class="col-status">
+        <span class="badge badge-${u.status.toLowerCase()}">${escHtml(u.status)}</span>
+      </td>
+      <td class="col-date">${u.createdAt || '—'}</td>
+      <td class="col-acts" onclick="event.stopPropagation()">
+        <button class="btn-sm btn-sm-primary"
+          onclick="openUser('${escHtml(u.email)}')">Open →</button>
+        ${u.email !== currentUser.email ? `
+        <button class="btn-sm btn-sm-danger"
+          onclick="quickDeactivate('${escHtml(u.email)}')">Deactivate</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function showList() {
+  switchView('list');
+  document.getElementById('topbarTitle').textContent = 'Users';
+  document.getElementById('formActions').classList.add('hidden');
+  document.getElementById('metaRow').style.display = 'none';
+  google.script.run
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getUsers();
+}
+
+/* ══════════════════════════════
+   OPEN USER
+══════════════════════════════ */
+function openUser(email) {
+  const u = allUsers.find(x => x.email === email);
+  if (!u) return;
+  editTarget   = u;
+  currentEmail = email;
+  currentMode  = 'view';
+
+  document.getElementById('metaRow').style.display = 'flex';
+  document.getElementById('metaEmail').textContent     = u.email;
+  document.getElementById('metaCreatedBy').textContent = u.createdBy || '—';
+  document.getElementById('metaCreatedAt').textContent = u.createdAt || '—';
+
+  document.getElementById('userName').value  = u.name;
+  document.getElementById('userEmail').value = u.email;
+  document.getElementById('userRole').value  = u.role;
+  document.getElementById('userStatus').value = u.status;
+  document.getElementById('userNotes').value = u.notes || '';
+  document.getElementById('statusField').style.display = 'block';
+
+  setReadOnly(true);
+  switchView('form');
+  document.getElementById('topbarTitle').textContent = u.name;
+  showFormActions('view', u);
+}
+
+/* ══════════════════════════════
+   NEW / EDIT
+══════════════════════════════ */
+function showNew() {
+  currentMode = 'new'; currentEmail = null; editTarget = null;
+  document.getElementById('userName').value   = '';
+  document.getElementById('userEmail').value  = '';
+  document.getElementById('userRole').value   = 'Team';
+  document.getElementById('userNotes').value  = '';
+  document.getElementById('statusField').style.display = 'none';
+  document.getElementById('metaRow').style.display     = 'none';
+  setReadOnly(false);
+  switchView('form');
+  document.getElementById('topbarTitle').textContent = 'New User';
+  showFormActions('new');
+}
+
+function enterEditMode() {
+  currentMode = 'edit';
+  document.getElementById('statusField').style.display = 'block';
+  setReadOnly(false);
+  document.getElementById('topbarTitle').textContent = 'Edit — ' + editTarget.name;
+  showFormActions('edit', editTarget);
+}
+
+/* ══════════════════════════════
+   FORM ACTIONS
+══════════════════════════════ */
+function showFormActions(mode, user) {
+  const bar      = document.getElementById('formActions');
+  const btnSave  = document.getElementById('btnSave');
+  const btnEdit  = document.getElementById('btnEdit');
+  const btnDeact = document.getElementById('btnDeactivate');
+  bar.classList.remove('hidden');
+  [btnSave, btnEdit, btnDeact].forEach(b => b.classList.add('hidden'));
+
+  if (mode === 'new') {
+    btnSave.querySelector('.btn-label').textContent = 'Create User';
+    btnSave.classList.remove('hidden');
+  } else if (mode === 'view') {
+    btnEdit.classList.remove('hidden');
+    if (user && user.email !== currentUser.email && user.status === 'Active') {
+      btnDeact.classList.remove('hidden');
+    }
+  } else if (mode === 'edit') {
+    btnSave.querySelector('.btn-label').textContent = 'Save Changes';
+    btnSave.classList.remove('hidden');
+  }
+}
+
+/* ══════════════════════════════
+   VIEW HELPERS
+══════════════════════════════ */
+function switchView(name) {
+  document.getElementById('viewList').classList.toggle('active', name === 'list');
+  document.getElementById('viewForm').classList.toggle('active', name === 'form');
+}
+function setReadOnly(on) {
+  ['userName', 'userEmail', 'userRole', 'userStatus', 'userNotes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+      el.disabled = on;
+    }
+  });
+}
+
+/* ══════════════════════════════
+   SAVE
+══════════════════════════════ */
+function saveForm() {
+  const name  = document.getElementById('userName').value.trim();
+  const email = document.getElementById('userEmail').value.trim();
+  const role  = document.getElementById('userRole').value;
+  if (!name)  { showToast('Please enter a name.', 'error'); return; }
+  if (!email) { showToast('Please enter an email.', 'error'); return; }
+
+  const btn = document.getElementById('btnSave');
+  const data = {
+    name, email, role,
+    status: document.getElementById('userStatus').value || 'Active',
+    notes:  document.getElementById('userNotes').value
+  };
+
+  if (currentMode === 'new') {
+    startProcessing(btn, 'Creating user...');
+    google.script.run
+      .withSuccessHandler(res => {
+        stopProcessing(btn);
+        if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+        showToast('User created!', 'success');
+        setTimeout(showList, 1200);
+      })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+      .createUser(data);
+  } else {
+    startProcessing(btn, 'Saving...');
+    google.script.run
+      .withSuccessHandler(res => {
+        stopProcessing(btn);
+        if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+        showToast('User updated.', 'success');
+        setTimeout(showList, 1200);
+      })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+      .editUser(data);
+  }
+}
+
+/* ══════════════════════════════
+   DEACTIVATE
+══════════════════════════════ */
+function askDeactivate() {
+  document.getElementById('overlayDeactivate').classList.add('open');
+}
+function quickDeactivate(email) {
+  currentEmail = email;
+  document.getElementById('overlayDeactivate').classList.add('open');
+}
+function closeDialog(id) {
+  document.getElementById(id).classList.remove('open');
+}
+function confirmDeactivate() {
+  const btn = document.getElementById('btnDeactivateConfirm');
+  closeDialog('overlayDeactivate');
+  startProcessing(btn, 'Deactivating...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('User deactivated.', 'success');
+      setTimeout(showList, 1000);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .deactivateUser(currentEmail);
+}
+
+/* ══════════════════════════════
+   HELPERS
+══════════════════════════════ */
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+init();
+</script>
+</body>
+</html>
