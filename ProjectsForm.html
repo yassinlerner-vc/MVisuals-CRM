@@ -7,6 +7,8 @@
     body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
     .view { display: none; padding: 20px 24px 100px; }
     .view.active { display: block; }
+
+    /* ── Topbar ── */
     .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
     .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
     .topbar-right { display: flex; gap: 8px; align-items: center; }
@@ -14,6 +16,8 @@
     .user-avatar { width: 22px; height: 22px; border-radius: 50%; background: #4361ee; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .user-chip-name { font-weight: 600; color: #1a1a2e; }
     .user-chip-role { color: #888; font-size: 11px; }
+
+    /* ── Buttons ── */
     .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover:not(:disabled) { background: #f0f2fa; }
     .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
@@ -36,10 +40,15 @@
     .btn-sm-danger:hover  { background: #fdecea; }
     .btn-sm-warning { border-color: #c07000; color: #c07000; }
     .btn-sm-warning:hover { background: #fff8ee; }
+
+    /* ── Spinner ── */
     .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
+    .btn-danger .spinner, .btn-warning .spinner { border-color: rgba(0,0,0,0.2); border-top-color: currentColor; }
     .btn.loading .spinner { display: inline-block; }
     .btn.loading .btn-label { opacity: 0.7; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Progress bar / Toast ── */
     .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
     .proc-bar.active { transform: scaleX(0.85); }
     .proc-bar.done   { transform: scaleX(1); transition: transform 0.15s ease; }
@@ -47,16 +56,21 @@
     .toast-info    { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
     .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
     .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+
+    /* ── Badges ── */
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .badge-active         { background: #d1f2e1; color: #0f5132; }
-    .badge-completed      { background: #e8ecfd; color: #2f4bcc; }
-    .badge-pending        { background: #f5f6fa; color: #888; border: 1px solid #d0d3e0; }
-    .badge-uploaded       { background: #fff3cd; color: #856404; }
-    .badge-adminapproved  { background: #d1f2e1; color: #0f5132; }
-    .badge-adminrejected  { background: #f8d7da; color: #842029; }
-    .badge-clientapproved { background: #e8ecfd; color: #2f4bcc; }
-    .badge-clientrejected { background: #fdecea; color: #c0392b; }
-    .badge-delivered      { background: #1e8a4a; color: #fff; }
+    .badge-active            { background: #d1f2e1; color: #0f5132; }
+    .badge-inprogress        { background: #e8ecfd; color: #2f4bcc; }
+    .badge-completed         { background: #1e8a4a; color: #fff; }
+    .badge-needsassignment   { background: #fff3cd; color: #856404; }
+    .badge-pending           { background: #f5f6fa; color: #888; border: 1px solid #d0d3e0; }
+    .badge-uploaded          { background: #fff3cd; color: #856404; }
+    .badge-adminapproved     { background: #d1f2e1; color: #0f5132; }
+    .badge-adminrejected     { background: #f8d7da; color: #842029; }
+    .badge-clientrejected    { background: #fdecea; color: #c0392b; }
+    .badge-delivered         { background: #1e8a4a; color: #fff; }
+
+    /* ── List ── */
     .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .list-count { font-size: 13px; color: #666; }
     .table-wrap { overflow-x: auto; }
@@ -66,19 +80,33 @@
     tbody tr:nth-child(even) { background: #f8f9ff; }
     tbody tr:hover { background: #eef0fd; cursor: pointer; }
     tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
-    .col-id   { width: 90px; font-weight: 700; color: #4361ee; }
-    .col-status { width: 110px; }
-    .col-date { width: 110px; color: #666; }
-    .col-acts { width: 90px; text-align: right; }
+    .col-id     { width: 90px; font-weight: 700; color: #4361ee; }
+    .col-status { width: 150px; }
+    .col-date   { width: 110px; color: #666; }
+    .col-acts   { width: 90px; text-align: right; }
+
+    /* Assignment progress chip in list */
+    .assign-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: #fff3cd; color: #856404; border: 1px solid #f0d090; margin-left: 6px; }
+    .assign-chip.full { background: #d1f2e1; color: #0f5132; border-color: #a3cfbb; }
+
+    /* ── Filter tabs ── */
+    .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; transition: all 0.15s; }
+    .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
+
+    /* ── Project detail sections ── */
     .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
     h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
-    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 0; }
+    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .meta-cell { font-size: 12px; }
     .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 3px; }
     .meta-value { color: #1a1a2e; font-weight: 600; }
+
+    /* ── Item cards ── */
     .item-card { background: #fff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; transition: box-shadow 0.15s; }
     .item-card:hover { box-shadow: 0 2px 8px rgba(67,97,238,0.10); }
-    .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
     .item-name { font-weight: 700; font-size: 14px; color: #1a1a2e; }
     .item-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; margin-bottom: 10px; align-items: flex-start; }
     .meta-pill { background: #f0f2fa; border-radius: 5px; padding: 4px 10px; font-size: 12px; color: #444; line-height: 1.45; }
@@ -87,34 +115,32 @@
     .meta-pill.notes-pill { background: #fffbea; border: 1px solid #f0e0a0; flex: 1; min-width: 180px; }
     .meta-pill.notes-pill .pill-label { color: #a07000; }
     .meta-pill.notes-pill .pill-value { font-weight: 400; color: #5a4500; }
-    .item-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .file-link { font-size: 12px; color: #4361ee; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-    .file-link:hover { text-decoration: underline; }
-    .upload-area { width: 100%; margin-top: 8px; }
-    .upload-zone { border: 2px dashed #d0d3e0; border-radius: 6px; padding: 16px; text-align: center; background: #f8f9ff; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 12px; color: #888; position: relative; }
+    .item-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+
+    /* ── Upload zone ── */
+    .upload-area { width: 100%; margin-top: 10px; }
+    .upload-zone { border: 2px dashed #d0d3e0; border-radius: 6px; padding: 16px; text-align: center; background: #f8f9ff; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 12px; color: #888; }
     .upload-zone:hover, .upload-zone.drag-over { border-color: #4361ee; background: #eef0fd; color: #4361ee; }
     .upload-zone input[type="file"] { display: none; }
     .upload-zone-icon { font-size: 22px; margin-bottom: 6px; display: block; }
     .upload-zone-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
-    /* Quantity requirement hint */
-    .qty-requirement { font-size: 12px; font-weight: 600; color: #4361ee; margin-bottom: 8px; padding: 6px 10px; background: #eef0fd; border-radius: 5px; border-left: 3px solid #4361ee; }
-    .qty-requirement.met   { color: #0f5132; background: #d1f2e1; border-left-color: #1e8a4a; }
-    .qty-requirement.over  { color: #842029; background: #f8d7da; border-left-color: #c0392b; }
     .upload-trigger-btns { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
-    .upload-trigger-btn { padding: 5px 14px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #4361ee; background: #fff; color: #4361ee; transition: background 0.15s; }
+    .upload-trigger-btn { padding: 5px 14px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #4361ee; background: #fff; color: #4361ee; }
     .upload-trigger-btn:hover { background: #eef0fd; }
+    .qty-requirement { font-size: 12px; font-weight: 600; color: #4361ee; margin-bottom: 8px; padding: 6px 10px; background: #eef0fd; border-radius: 5px; border-left: 3px solid #4361ee; }
+    .qty-requirement.met  { color: #0f5132; background: #d1f2e1; border-left-color: #1e8a4a; }
+    .qty-requirement.over { color: #842029; background: #f8d7da; border-left-color: #c0392b; }
     .file-queue { margin-top: 10px; border: 1px solid #e2e4ef; border-radius: 6px; overflow: hidden; display: none; }
     .file-queue.has-files { display: block; }
     .file-queue-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f0f2fa; font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
-    .file-queue-clear { background: none; border: none; color: #c0392b; font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; }
-    .file-queue-clear:hover { text-decoration: underline; }
+    .file-queue-clear { background: none; border: none; color: #c0392b; font-size: 11px; font-weight: 600; cursor: pointer; }
     .file-queue-list { max-height: 160px; overflow-y: auto; }
     .file-queue-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 12px; border-bottom: 1px solid #f0f2fa; }
     .file-queue-item:last-child { border-bottom: none; }
     .file-queue-name { color: #1a1a2e; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .file-queue-size { color: #888; font-size: 11px; margin-left: 8px; flex-shrink: 0; }
-    .file-queue-remove { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 13px; padding: 0 0 0 8px; flex-shrink: 0; }
-    .upload-submit-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+    .file-queue-remove { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 13px; padding: 0 0 0 8px; }
+    .upload-submit-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
     .upload-count-label { font-size: 12px; color: #1e8a4a; font-weight: 600; }
     .upload-progress-wrap { margin-top: 8px; display: none; }
     .upload-progress-wrap.active { display: block; }
@@ -124,28 +150,75 @@
     .progress-bar-wrap { background: #e8eaf0; border-radius: 4px; height: 6px; margin-top: 8px; overflow: hidden; }
     .progress-bar-fill { height: 100%; background: #1e8a4a; border-radius: 4px; transition: width 0.4s ease; }
     .progress-label { font-size: 11px; color: #888; margin-top: 4px; text-align: right; }
+
+    /* ── Form actions ── */
     .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
     .spacer { flex: 1; }
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
-    .overlay.open { display: flex; }
-    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 420px; width: 92%; }
-    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-    .dialog p  { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
-    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
-    .dialog label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 4px; }
-    textarea.dialog-notes { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; font-family: inherit; resize: vertical; min-height: 64px; margin-bottom: 16px; }
-    textarea.dialog-notes:focus { outline: none; border-color: #4361ee; }
-    .hidden { display: none !important; }
     .deliverables-btn { display: inline-flex; align-items: center; gap: 6px; color: #1e8a4a; font-size: 13px; font-weight: 600; text-decoration: none; padding: 6px 14px; border: 1px solid #1e8a4a; border-radius: 5px; }
     .deliverables-btn:hover { background: #edfaf3; }
-    .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; transition: all 0.15s; }
-    .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
-    .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
+
+    /* ── REVIEW / GALLERY DIALOG ── */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px; }
+    .overlay.open { display: flex; }
+
+    .review-dialog {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 760px;
+      margin: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .review-dialog-header {
+      padding: 16px 20px; border-bottom: 1px solid #e2e4ef;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .review-dialog-header h4 { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+    .review-dialog-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; padding: 0 4px; line-height: 1; }
+    .review-dialog-close:hover { color: #1a1a2e; }
+
+    /* Gallery */
+    .gallery-wrap { padding: 16px 20px; background: #f5f6fa; border-bottom: 1px solid #e2e4ef; min-height: 80px; }
+    .gallery-loading { text-align: center; color: #888; font-size: 13px; padding: 20px; }
+    .gallery-empty   { text-align: center; color: #aaa; font-size: 13px; padding: 20px; }
+
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .gallery-item { background: #fff; border: 1px solid #e2e4ef; border-radius: 6px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s; }
+    .gallery-item:hover { box-shadow: 0 2px 10px rgba(67,97,238,0.18); border-color: #4361ee; }
+    .gallery-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #f0f2fa; }
+    .gallery-thumb-placeholder { width: 100%; aspect-ratio: 4/3; background: #f0f2fa; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #c0c0c0; }
+    .gallery-item-info { padding: 6px 8px; }
+    .gallery-item-name { font-size: 11px; color: #555; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gallery-item-type { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+    .gallery-item-open { display: block; font-size: 11px; color: #4361ee; font-weight: 600; text-decoration: none; margin-top: 3px; }
+    .gallery-item-open:hover { text-decoration: underline; }
+
+    /* Video item styling */
+    .gallery-item.is-video .gallery-thumb-placeholder { background: #1a1a2e; color: #fff; flex-direction: column; gap: 6px; font-size: 28px; }
+    .gallery-item.is-video .gallery-item-name { color: #1a1a2e; }
+
+    /* Lightbox */
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 300; align-items: center; justify-content: center; }
+    .lightbox.open { display: flex; }
+    .lightbox-img { max-width: 90vw; max-height: 88vh; object-fit: contain; border-radius: 4px; box-shadow: 0 4px 32px rgba(0,0,0,0.5); }
+    .lightbox-close { position: fixed; top: 16px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 24px; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+    .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+    .lightbox-caption { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 20px; white-space: nowrap; }
+
+    /* Review footer */
+    .review-dialog-footer { padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .review-notes-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 4px; }
+    textarea.review-notes { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; font-family: inherit; resize: vertical; min-height: 56px; }
+    textarea.review-notes:focus { outline: none; border-color: #4361ee; }
+    .review-btn-row { display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+    .review-file-count { font-size: 12px; color: #888; flex: 1; }
+
+    /* File links for non-image/non-video */
+    .file-link { font-size: 12px; color: #4361ee; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .file-link:hover { text-decoration: underline; }
     .existing-files-list { margin-bottom: 8px; }
     .existing-file-item { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 0; }
     .existing-file-item a { color: #4361ee; font-weight: 600; text-decoration: none; }
     .existing-file-item a:hover { text-decoration: underline; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -164,9 +237,10 @@
     <div class="list-count" id="listCount">Loading...</div>
   </div>
   <div class="filter-tabs" id="filterTabs">
-    <button class="filter-tab active" data-filter="all"       onclick="setFilter('all')">All</button>
-    <button class="filter-tab"        data-filter="Active"    onclick="setFilter('Active')">Active</button>
-    <button class="filter-tab"        data-filter="Completed" onclick="setFilter('Completed')">Completed</button>
+    <button class="filter-tab active" data-filter="all"              onclick="setFilter('all')">All</button>
+    <button class="filter-tab"        data-filter="Needs Assignment" onclick="setFilter('Needs Assignment')">🔴 Needs Assignment</button>
+    <button class="filter-tab"        data-filter="In Progress"      onclick="setFilter('In Progress')">In Progress</button>
+    <button class="filter-tab"        data-filter="Completed"        onclick="setFilter('Completed')">Completed</button>
   </div>
   <div class="table-wrap">
     <table id="listTable">
@@ -204,19 +278,48 @@
   </a>
 </div>
 
-<!-- ═══ REVIEW DIALOG ═══ -->
+<!-- ═══ REVIEW / GALLERY DIALOG ═══ -->
 <div class="overlay" id="overlayReview">
-  <div class="dialog">
-    <h4 id="reviewTitle">Review Item</h4>
-    <p  id="reviewDesc"></p>
-    <label>Internal Notes (optional)</label>
-    <textarea class="dialog-notes" id="reviewNotes" placeholder="Add a note for the team..."></textarea>
-    <div class="dialog-btns">
-      <button class="btn" onclick="closeDialog('overlayReview')">Cancel</button>
-      <button class="btn btn-danger"  id="btnReviewReject"  onclick="doReview('reject')"><div class="spinner"></div><span class="btn-label">Reject</span></button>
-      <button class="btn btn-success" id="btnReviewApprove" onclick="doReview('approve')"><div class="spinner"></div><span class="btn-label">Approve</span></button>
+  <div class="review-dialog">
+    <div class="review-dialog-header">
+      <h4 id="reviewTitle">Review Item</h4>
+      <button class="review-dialog-close" onclick="closeReview()">×</button>
+    </div>
+
+    <!-- Gallery / previews -->
+    <div class="gallery-wrap" id="galleryWrap">
+      <div class="gallery-loading" id="galleryLoading">Loading previews…</div>
+      <div class="gallery-grid hidden" id="galleryGrid"></div>
+      <div class="gallery-empty hidden" id="galleryEmpty">No files to preview.</div>
+    </div>
+
+    <!-- Notes + action buttons -->
+    <div class="review-dialog-footer">
+      <div>
+        <div class="review-notes-label">Internal Notes (optional)</div>
+        <textarea class="review-notes" id="reviewNotes" placeholder="Add a note for the team…"></textarea>
+      </div>
+      <div class="review-btn-row">
+        <span class="review-file-count" id="reviewFileCount"></span>
+        <button class="btn" onclick="closeReview()">Cancel</button>
+        <button class="btn btn-danger  hidden" id="btnReviewReject"
+                onclick="doReview('reject')">
+          <div class="spinner"></div><span class="btn-label">Reject</span>
+        </button>
+        <button class="btn btn-success hidden" id="btnReviewApprove"
+                onclick="doReview('approve')">
+          <div class="spinner"></div><span class="btn-label">Approve</span>
+        </button>
+      </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ LIGHTBOX ═══ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <div class="lightbox-caption" id="lightboxCaption"></div>
 </div>
 
 <script>
@@ -230,8 +333,8 @@ let currentFolderUrl = '';
 let currentQuotationId = '';
 let activeFilter     = 'all';
 let reviewItemId     = null;
-let reviewMode       = null;
-let currentUser      = null;  // { email, name, role }
+let reviewMode       = null;   // 'admin' | 'admin-reject' | 'client' | 'client-reject'
+let currentUser      = null;
 
 // Per-item file queues: itemId → File[]
 const fileQueues = {};
@@ -241,7 +344,7 @@ const fileQueues = {};
 ══════════════════════════════ */
 function startProcessing(btn, msg) {
   document.getElementById('procBar').className = 'proc-bar active';
-  showToast(msg || 'Loading...', 'info', 0);
+  showToast(msg || 'Loading…', 'info', 0);
   if (btn) { btn.classList.add('loading'); btn.disabled = true; }
 }
 function stopProcessing(btn) {
@@ -263,7 +366,7 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
    INIT
 ══════════════════════════════ */
 function init() {
-  showToast('Loading...', 'info', 0);
+  showToast('Loading…', 'info', 0);
   google.script.run
     .withSuccessHandler(user => {
       currentUser = user;
@@ -302,27 +405,52 @@ function showAccessError(msg) {
 ══════════════════════════════ */
 function setFilter(f) {
   activeFilter = f;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+  document.querySelectorAll('.filter-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.filter === f));
   renderList(allProjects);
 }
 
 function renderList(projects) {
   allProjects = projects || [];
   hideToast();
-  const filtered = activeFilter === 'all' ? allProjects : allProjects.filter(p => p.status === activeFilter);
-  document.getElementById('listCount').textContent = filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+
+  const filtered = activeFilter === 'all'
+    ? allProjects
+    : allProjects.filter(p => p.displayStatus === activeFilter);
+
+  document.getElementById('listCount').textContent =
+    filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+
   const tbody = document.getElementById('listBody');
-  if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>`; return; }
-  tbody.innerHTML = filtered.map(p => `
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const dsKey = (p.displayStatus || '').toLowerCase().replace(/\s/g, '');
+    const isFull = p.totalQty > 0 && p.assignedQty >= p.totalQty;
+    const showChip = p.displayStatus === 'Needs Assignment' || p.displayStatus === 'In Progress';
+    const chipHtml = showChip
+      ? `<span class="assign-chip ${isFull ? 'full' : ''}">${p.assignedQty}/${p.totalQty} assigned</span>`
+      : '';
+
+    return `
     <tr onclick="openProject('${esc(p.projectId)}')">
       <td class="col-id">${esc(p.quotationId)}</td>
       <td><strong>${esc(p.accountName)}</strong></td>
-      <td>${esc(p.projectName)}</td>
+      <td>${esc(p.projectName)}${chipHtml}</td>
       <td class="col-date">${p.dueDate || '—'}</td>
       <td class="col-date">${p.deliveryDeadline || '—'}</td>
-      <td class="col-status"><span class="badge badge-${(p.status||'active').toLowerCase()}">${esc(p.status)}</span></td>
-      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
-    </tr>`).join('');
+      <td class="col-status">
+        <span class="badge badge-${dsKey}">${esc(p.displayStatus)}</span>
+      </td>
+      <td class="col-acts">
+        <button class="btn-sm btn-sm-primary"
+          onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 function showList() {
@@ -330,6 +458,7 @@ function showList() {
   document.getElementById('topbarTitle').textContent = 'Projects';
   renderUserChip(currentUser);
   document.getElementById('formActions').classList.add('hidden');
+  document.getElementById('deliverablesLink').classList.add('hidden');
   google.script.run
     .withSuccessHandler(renderList)
     .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
@@ -344,7 +473,7 @@ function openProject(projectId) {
   if (!p) return;
   currentProject = p;
   Object.keys(fileQueues).forEach(k => delete fileQueues[k]);
-  startProcessing(null, 'Loading project...');
+  startProcessing(null, 'Loading project…');
   google.script.run
     .withSuccessHandler(result => {
       stopProcessing(null); hideToast();
@@ -366,7 +495,9 @@ function openProject(projectId) {
           .getDeliverablesUrl(currentQuotationId);
       }
     })
-    .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
+    .withFailureHandler(err => {
+      stopProcessing(null); showToast('Error: ' + err.message, 'error');
+    })
     .getProjectItems(projectId);
 }
 
@@ -374,6 +505,7 @@ function openProject(projectId) {
    RENDER PROJECT DETAIL
 ══════════════════════════════ */
 function renderProjectDetail(p) {
+  const dsKey = (p.displayStatus || '').toLowerCase().replace(/\s/g, '');
   document.getElementById('projectSummary').innerHTML = `
     <h3>Project Overview</h3>
     <div class="meta-grid">
@@ -382,7 +514,9 @@ function renderProjectDetail(p) {
       <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
       <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate || '—'}</div></div>
       <div class="meta-cell"><div class="meta-label">Delivery Deadline</div><div class="meta-value">${p.deliveryDeadline || '—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${(p.status||'').toLowerCase()}">${esc(p.status)}</span></div></div>
+      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value">
+        <span class="badge badge-${dsKey}">${esc(p.displayStatus)}</span>
+      </div></div>
       ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
     </div>`;
   renderProgress();
@@ -390,9 +524,9 @@ function renderProjectDetail(p) {
 }
 
 function renderProgress() {
-  const total = currentItems.length;
+  const total     = currentItems.length;
   const delivered = currentItems.filter(i => i.deliveryStatus === 'Delivered').length;
-  const pct = total ? Math.round((delivered / total) * 100) : 0;
+  const pct       = total ? Math.round((delivered / total) * 100) : 0;
   document.getElementById('projectProgress').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <span style="font-size:12px;font-weight:700;color:#4361ee;text-transform:uppercase;letter-spacing:0.05em;">Delivery Progress</span>
@@ -404,81 +538,99 @@ function renderProgress() {
 
 function renderItems() {
   const container = document.getElementById('projectItems');
-  if (!currentItems.length) { container.innerHTML = `<div class="section" style="color:#888;text-align:center;padding:32px;">No items found for this project.</div>`; return; }
+  if (!currentItems.length) {
+    container.innerHTML = `<div class="section" style="color:#888;text-align:center;padding:32px;">No items found for this project.</div>`;
+    return;
+  }
   container.innerHTML = currentItems.map(item => buildItemCard(item)).join('');
-  currentItems.forEach(item => { if (canUploadItem(item.deliveryStatus)) wireUploadZone(item.itemId); });
+  currentItems.forEach(item => {
+    if (canUploadItem(item.deliveryStatus)) wireUploadZone(item.itemId);
+  });
 }
 
 function canUploadItem(status) {
-  // Team can upload; Admin can also upload
   return ['Pending', 'Admin Rejected', 'Client Rejected'].includes(status);
 }
 
 /* ══════════════════════════════
-   BUILD ITEM CARD — role-aware
-   Team:  sees upload zone only
-   Admin: sees review buttons only (no upload zone)
+   BUILD ITEM CARD
 ══════════════════════════════ */
 function buildItemCard(item) {
-  const statusKey   = (item.deliveryStatus || 'Pending').toLowerCase().replace(/\s/g,'');
+  const statusKey   = (item.deliveryStatus || 'Pending').toLowerCase().replace(/\s/g, '');
   const statusLabel = item.deliveryStatus || 'Pending';
   const isAdmin     = currentUser && currentUser.role === 'Admin';
   const isTeam      = currentUser && currentUser.role === 'Team';
 
-  // Role-specific action gates
-  const canUpload      = canUploadItem(item.deliveryStatus) && (isTeam || isAdmin);
-  const canAdminReview = item.deliveryStatus === 'Uploaded' && isAdmin;
-  const canClientReview= item.deliveryStatus === 'Admin Approved' && isAdmin;
+  const canUpload       = canUploadItem(item.deliveryStatus) && (isTeam || isAdmin);
+  const canAdminReview  = item.deliveryStatus === 'Uploaded' && isAdmin;
+  const canClientReview = item.deliveryStatus === 'Admin Approved' && isAdmin;
 
-  // ── Meta pills ──
-  let metaPills = `
-    <div class="meta-pill">
-      <span class="pill-label">Qty</span>
-      <span class="pill-value">${esc(String(item.quantity || '—'))}</span>
-    </div>`;
+  // Meta pills
+  let metaPills = `<div class="meta-pill"><span class="pill-label">Qty</span><span class="pill-value">${esc(String(item.quantity || '—'))}</span></div>`;
   if (item.dueDate) metaPills += `<div class="meta-pill"><span class="pill-label">Due</span><span class="pill-value">${esc(item.dueDate)}</span></div>`;
   if (item.redoCount > 0) metaPills += `<div class="meta-pill" style="background:#fff8ee;border:1px solid #f0d090;"><span class="pill-label" style="color:#a07000;">Redos</span><span class="pill-value" style="color:#7a4500;">↩ ${item.redoCount}</span></div>`;
   if (item.description) metaPills += `<div class="meta-pill" style="flex:1;min-width:160px;"><span class="pill-label">Description</span><span class="pill-value" style="font-weight:400;color:#444;">${esc(item.description)}</span></div>`;
   if (item.notes) metaPills += `<div class="meta-pill notes-pill" style="flex:1;min-width:160px;"><span class="pill-label">Notes</span><span class="pill-value">${esc(item.notes)}</span></div>`;
 
-  // ── Existing uploaded files ──
+  // Existing uploaded files — only show raw links in non-reviewable states
   let existingFilesHtml = '';
-  if (item.uploadedFileUrl && !['Admin Rejected','Client Rejected'].includes(item.deliveryStatus)) {
+  const showRawLinks = item.uploadedFileUrl
+    && !['Admin Rejected', 'Client Rejected'].includes(item.deliveryStatus)
+    && !canAdminReview && !canClientReview;
+  if (showRawLinks) {
     const urls = item.uploadedFileUrl.split('\n').map(s => s.trim()).filter(Boolean);
     if (urls.length === 1) {
       existingFilesHtml = `<a class="file-link" href="${esc(urls[0])}" target="_blank">📄 View Uploaded File ↗</a>`;
     } else if (urls.length > 1) {
-      existingFilesHtml = `
-        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Uploaded Files (${urls.length})</div>
-        <div class="existing-files-list">
-          ${urls.map((u, i) => `<div class="existing-file-item"><span style="color:#888;margin-right:4px;">📄</span><a href="${esc(u)}" target="_blank">File ${i + 1}</a></div>`).join('')}
-        </div>`;
+      existingFilesHtml = `<span style="font-size:12px;color:#666;font-weight:600;">📄 ${urls.length} files uploaded</span>`;
     }
   }
 
-  // ── Upload area (Team + Admin on uploadable statuses) ──
+  // Review buttons — these open the gallery dialog
+  const adminReviewHtml = canAdminReview ? `
+    <button class="btn-sm btn-sm-success" onclick="openReview('${esc(item.itemId)}','admin')">
+      🖼 Review &amp; Approve
+    </button>
+    <button class="btn-sm btn-sm-danger" onclick="openReview('${esc(item.itemId)}','admin-reject')">
+      ✗ Reject
+    </button>` : '';
+
+  const clientReviewHtml = canClientReview ? `
+    <button class="btn-sm btn-sm-primary" onclick="openReview('${esc(item.itemId)}','client')">
+      ✓ Client Approve
+    </button>
+    <button class="btn-sm btn-sm-warning" onclick="openReview('${esc(item.itemId)}','client-reject')">
+      ✗ Client Reject
+    </button>` : '';
+
+  // Upload area
   const uploadAreaHtml = canUpload ? `
     <div class="upload-area" id="uploadArea-${esc(item.itemId)}">
-      <!-- Quantity requirement indicator -->
       <div class="qty-requirement" id="qtyReq-${esc(item.itemId)}">
         📋 ${item.quantity} file${item.quantity !== 1 ? 's' : ''} required for this item
       </div>
-
       <div class="upload-zone" id="zone-${esc(item.itemId)}"
            ondragover="onDragOver(event,'${esc(item.itemId)}')"
            ondragleave="onDragLeave(event,'${esc(item.itemId)}')"
            ondrop="onDrop(event,'${esc(item.itemId)}')">
-        <input type="file" id="fileInput-${esc(item.itemId)}" multiple onchange="onFilesSelected('${esc(item.itemId)}', this.files)">
-        <input type="file" id="dirInput-${esc(item.itemId)}"  webkitdirectory mozdirectory onchange="onFilesSelected('${esc(item.itemId)}', this.files)">
+        <input type="file" id="fileInput-${esc(item.itemId)}" multiple
+               onchange="onFilesSelected('${esc(item.itemId)}', this.files)">
+        <input type="file" id="dirInput-${esc(item.itemId)}" webkitdirectory mozdirectory
+               onchange="onFilesSelected('${esc(item.itemId)}', this.files)">
         <span class="upload-zone-icon">📂</span>
         <div>Drag &amp; drop files or a folder here</div>
         <div class="upload-zone-hint">Supports multiple files at once</div>
         <div class="upload-trigger-btns">
-          <button class="upload-trigger-btn" onclick="event.stopPropagation();document.getElementById('fileInput-${esc(item.itemId)}').click()">📄 Select Files</button>
-          <button class="upload-trigger-btn" onclick="event.stopPropagation();document.getElementById('dirInput-${esc(item.itemId)}').click()">📁 Select Folder</button>
+          <button class="upload-trigger-btn"
+            onclick="event.stopPropagation();document.getElementById('fileInput-${esc(item.itemId)}').click()">
+            📄 Select Files
+          </button>
+          <button class="upload-trigger-btn"
+            onclick="event.stopPropagation();document.getElementById('dirInput-${esc(item.itemId)}').click()">
+            📁 Select Folder
+          </button>
         </div>
       </div>
-
       <div class="file-queue" id="queue-${esc(item.itemId)}">
         <div class="file-queue-header">
           <span id="queueLabel-${esc(item.itemId)}">0 files queued</span>
@@ -486,12 +638,12 @@ function buildItemCard(item) {
         </div>
         <div class="file-queue-list" id="queueList-${esc(item.itemId)}"></div>
       </div>
-
       <div class="upload-progress-wrap" id="uploadProgress-${esc(item.itemId)}">
-        <div class="upload-progress-bar-bg"><div class="upload-progress-bar-fill" id="uploadProgressFill-${esc(item.itemId)}" style="width:0%;"></div></div>
+        <div class="upload-progress-bar-bg">
+          <div class="upload-progress-bar-fill" id="uploadProgressFill-${esc(item.itemId)}" style="width:0%;"></div>
+        </div>
         <div class="upload-progress-label" id="uploadProgressLabel-${esc(item.itemId)}"></div>
       </div>
-
       <div class="upload-submit-row">
         <button class="btn btn-primary" id="uploadBtn-${esc(item.itemId)}" disabled
                 onclick="submitUpload('${esc(item.itemId)}', ${Number(item.quantity)})">
@@ -502,19 +654,10 @@ function buildItemCard(item) {
       </div>
     </div>` : '';
 
-  // ── Review buttons (Admin only) ──
-  const adminReviewHtml = canAdminReview ? `
-    <button class="btn-sm btn-sm-success" onclick="openReview('${esc(item.itemId)}','admin')">✓ Admin Approve</button>
-    <button class="btn-sm btn-sm-danger"  onclick="openReview('${esc(item.itemId)}','admin-reject')">✗ Admin Reject</button>` : '';
-
-  const clientReviewHtml = canClientReview ? `
-    <button class="btn-sm btn-sm-primary" onclick="openReview('${esc(item.itemId)}','client')">✓ Client Approve</button>
-    <button class="btn-sm btn-sm-warning" onclick="openReview('${esc(item.itemId)}','client-reject')">✗ Client Reject</button>` : '';
-
   const internalNotesHtml = item.internalNotes ? `
     <div style="margin-top:10px;">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#888;margin-bottom:4px;">Internal Notes</div>
-      <div style="font-size:12px;color:#555;">${esc(item.internalNotes)}</div>
+      <div style="font-size:12px;color:#555;padding:6px 10px;background:#f8f9ff;border-radius:4px;border-left:3px solid #4361ee;">${esc(item.internalNotes)}</div>
     </div>` : '';
 
   return `
@@ -535,15 +678,181 @@ function buildItemCard(item) {
 }
 
 /* ══════════════════════════════
+   REVIEW / GALLERY DIALOG
+══════════════════════════════ */
+function openReview(itemId, mode) {
+  reviewItemId = itemId;
+  reviewMode   = mode;
+
+  const item     = currentItems.find(i => i.itemId === itemId);
+  const isReject = mode === 'admin-reject' || mode === 'client-reject';
+  const isAdmin  = mode === 'admin' || mode === 'admin-reject';
+
+  // Dialog title
+  let title = '';
+  if (mode === 'admin')         title = '🖼 Admin Review — ' + (item ? item.itemName : '');
+  if (mode === 'admin-reject')  title = '✗ Reject Item — ' + (item ? item.itemName : '');
+  if (mode === 'client')        title = '✓ Client Approval — ' + (item ? item.itemName : '');
+  if (mode === 'client-reject') title = '✗ Client Reject — ' + (item ? item.itemName : '');
+  document.getElementById('reviewTitle').textContent = title;
+
+  // Notes
+  document.getElementById('reviewNotes').value = item ? (item.internalNotes || '') : '';
+
+  // Buttons
+  const btnApprove = document.getElementById('btnReviewApprove');
+  const btnReject  = document.getElementById('btnReviewReject');
+  if (isReject) {
+    btnApprove.classList.add('hidden');
+    btnReject.classList.remove('hidden');
+    btnReject.querySelector('.btn-label').textContent = 'Confirm Rejection';
+  } else {
+    btnReject.classList.add('hidden');
+    btnApprove.classList.remove('hidden');
+    btnApprove.querySelector('.btn-label').textContent =
+      isAdmin ? 'Admin Approve' : 'Mark as Delivered';
+  }
+
+  // Show dialog, start loading gallery
+  document.getElementById('overlayReview').classList.add('open');
+  loadGallery(itemId);
+}
+
+function loadGallery(itemId) {
+  const grid    = document.getElementById('galleryGrid');
+  const loading = document.getElementById('galleryLoading');
+  const empty   = document.getElementById('galleryEmpty');
+  const count   = document.getElementById('reviewFileCount');
+
+  grid.classList.add('hidden');
+  empty.classList.add('hidden');
+  loading.classList.remove('hidden');
+  count.textContent = '';
+
+  google.script.run
+    .withSuccessHandler(previews => {
+      loading.classList.add('hidden');
+
+      if (!previews || !previews.length) {
+        empty.classList.remove('hidden');
+        count.textContent = 'No files uploaded yet.';
+        return;
+      }
+
+      count.textContent = previews.length + ' file' + (previews.length !== 1 ? 's' : '') + ' uploaded';
+
+      grid.innerHTML = previews.map((f, i) => {
+        if (f.isImage) {
+          return `
+            <div class="gallery-item" onclick="openLightbox('${esc(f.thumbUrl)}','${esc(f.name)}')">
+              <img class="gallery-thumb" src="${esc(f.thumbUrl)}" alt="${esc(f.name)}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="gallery-thumb-placeholder" style="display:none;">🖼</div>
+              <div class="gallery-item-info">
+                <div class="gallery-item-name" title="${esc(f.name)}">${esc(f.name)}</div>
+                <div class="gallery-item-type">Image</div>
+                <a class="gallery-item-open" href="${esc(f.viewUrl)}" target="_blank"
+                   onclick="event.stopPropagation()">Open in Drive ↗</a>
+              </div>
+            </div>`;
+        } else if (f.isVideo) {
+          return `
+            <div class="gallery-item is-video">
+              <div class="gallery-thumb-placeholder">
+                <span style="font-size:36px;">▶</span>
+                <span style="font-size:11px;color:#aaa;">VIDEO</span>
+              </div>
+              <div class="gallery-item-info">
+                <div class="gallery-item-name" title="${esc(f.name)}">${esc(f.name)}</div>
+                <div class="gallery-item-type">Video</div>
+                <a class="gallery-item-open" href="${esc(f.viewUrl)}" target="_blank">▶ Open &amp; Watch ↗</a>
+              </div>
+            </div>`;
+        } else {
+          return `
+            <div class="gallery-item">
+              <div class="gallery-thumb-placeholder">📄</div>
+              <div class="gallery-item-info">
+                <div class="gallery-item-name" title="${esc(f.name)}">${esc(f.name)}</div>
+                <div class="gallery-item-type">${esc(f.mimeType.split('/').pop() || 'File')}</div>
+                <a class="gallery-item-open" href="${esc(f.viewUrl)}" target="_blank">Open in Drive ↗</a>
+              </div>
+            </div>`;
+        }
+      }).join('');
+
+      grid.classList.remove('hidden');
+    })
+    .withFailureHandler(err => {
+      loading.classList.add('hidden');
+      empty.classList.remove('hidden');
+      empty.textContent = 'Could not load previews: ' + err.message;
+    })
+    .getItemFilePreviews(itemId);
+}
+
+function closeReview() {
+  document.getElementById('overlayReview').classList.remove('open');
+  reviewItemId = null;
+  reviewMode   = null;
+}
+
+function doReview(action) {
+  const isReject = reviewMode === 'admin-reject' || reviewMode === 'client-reject';
+  const isAdmin  = reviewMode === 'admin' || reviewMode === 'admin-reject';
+  const notes    = document.getElementById('reviewNotes').value;
+  const btn      = isReject
+    ? document.getElementById('btnReviewReject')
+    : document.getElementById('btnReviewApprove');
+
+  closeReview();
+  startProcessing(btn, isReject ? 'Rejecting…' : 'Approving…');
+
+  const fn = isAdmin ? 'reviewProjectItem' : 'clientReviewItem';
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Action failed.', 'error'); return; }
+      showToast(
+        isReject
+          ? 'Item rejected.'
+          : (isAdmin ? 'Item approved by admin.' : 'Item marked as delivered.'),
+        isReject ? 'error' : 'success'
+      );
+      refreshItems();
+    })
+    .withFailureHandler(err => {
+      stopProcessing(btn);
+      showToast('Error: ' + err.message, 'error');
+    })
+    [fn]({ itemId: reviewItemId, action: isReject ? 'reject' : 'approve', internalNotes: notes });
+}
+
+/* ══════════════════════════════
+   LIGHTBOX (for image full-size view)
+══════════════════════════════ */
+function openLightbox(thumbUrl, name) {
+  document.getElementById('lightboxImg').src     = thumbUrl;
+  document.getElementById('lightboxCaption').textContent = name;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightboxImg').src = '';
+}
+
+/* ══════════════════════════════
    UPLOAD ZONE WIRING
 ══════════════════════════════ */
 function wireUploadZone(itemId) { /* drag events handled inline */ }
 
-/* ══════════════════════════════
-   FILE QUEUE MANAGEMENT
-══════════════════════════════ */
-function onDragOver(e, itemId) { e.preventDefault(); document.getElementById('zone-' + itemId).classList.add('drag-over'); }
-function onDragLeave(e, itemId) { document.getElementById('zone-' + itemId).classList.remove('drag-over'); }
+function onDragOver(e, itemId) {
+  e.preventDefault();
+  document.getElementById('zone-' + itemId).classList.add('drag-over');
+}
+function onDragLeave(e, itemId) {
+  document.getElementById('zone-' + itemId).classList.remove('drag-over');
+}
 function onDrop(e, itemId) {
   e.preventDefault();
   document.getElementById('zone-' + itemId).classList.remove('drag-over');
@@ -553,25 +862,40 @@ function onDrop(e, itemId) {
     for (let i = 0; i < items.length; i++) {
       const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
       if (entry) filePromises.push(traverseEntry(entry));
-      else if (items[i].kind === 'file') { const f = items[i].getAsFile(); if (f) filePromises.push(Promise.resolve([f])); }
+      else if (items[i].kind === 'file') {
+        const f = items[i].getAsFile();
+        if (f) filePromises.push(Promise.resolve([f]));
+      }
     }
-    Promise.all(filePromises).then(arrays => { registerFiles(itemId, [].concat(...arrays).filter(Boolean)); });
-  } else { registerFiles(itemId, Array.from(e.dataTransfer.files)); }
+    Promise.all(filePromises).then(arrays => {
+      registerFiles(itemId, [].concat(...arrays).filter(Boolean));
+    });
+  } else {
+    registerFiles(itemId, Array.from(e.dataTransfer.files));
+  }
 }
 
 function traverseEntry(entry) {
   return new Promise(resolve => {
-    if (entry.isFile) { entry.file(f => resolve([f]), () => resolve([])); }
-    else if (entry.isDirectory) {
-      const reader = entry.createReader(); const results = [];
+    if (entry.isFile) {
+      entry.file(f => resolve([f]), () => resolve([]));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const results = [];
       function readBatch() {
         reader.readEntries(entries => {
-          if (!entries.length) { Promise.all(results).then(arrays => resolve([].concat(...arrays))); return; }
-          entries.forEach(e => results.push(traverseEntry(e))); readBatch();
+          if (!entries.length) {
+            Promise.all(results).then(arrays => resolve([].concat(...arrays)));
+            return;
+          }
+          entries.forEach(e => results.push(traverseEntry(e)));
+          readBatch();
         }, () => resolve([]));
       }
       readBatch();
-    } else { resolve([]); }
+    } else {
+      resolve([]);
+    }
   });
 }
 
@@ -594,59 +918,59 @@ function registerFiles(itemId, newFiles) {
 
 function refreshQueueUI(itemId) {
   const queue   = fileQueues[itemId] || [];
-  const queueEl = document.getElementById('queue-'       + itemId);
-  const listEl  = document.getElementById('queueList-'   + itemId);
-  const labelEl = document.getElementById('queueLabel-'  + itemId);
+  const queueEl = document.getElementById('queue-'            + itemId);
+  const listEl  = document.getElementById('queueList-'        + itemId);
+  const labelEl = document.getElementById('queueLabel-'       + itemId);
   const countEl = document.getElementById('uploadCountLabel-' + itemId);
-  const btnEl   = document.getElementById('uploadBtn-'   + itemId);
-  const reqEl   = document.getElementById('qtyReq-'      + itemId);
-
+  const btnEl   = document.getElementById('uploadBtn-'        + itemId);
+  const reqEl   = document.getElementById('qtyReq-'           + itemId);
   if (!queueEl) return;
 
-  // Find item quantity from currentItems
-  const item = currentItems.find(i => i.itemId === itemId);
+  const item     = currentItems.find(i => i.itemId === itemId);
   const required = item ? Number(item.quantity) : 0;
 
   if (!queue.length) {
     queueEl.classList.remove('has-files');
     if (btnEl) btnEl.disabled = true;
     if (countEl) countEl.textContent = '';
-    if (reqEl) { reqEl.className = 'qty-requirement'; reqEl.textContent = `📋 ${required} file${required !== 1 ? 's' : ''} required for this item`; }
+    if (reqEl) {
+      reqEl.className = 'qty-requirement';
+      reqEl.textContent = `📋 ${required} file${required !== 1 ? 's' : ''} required`;
+    }
     return;
   }
 
   queueEl.classList.add('has-files');
   labelEl.textContent = queue.length + ' file' + (queue.length !== 1 ? 's' : '') + ' queued';
 
-  // Update quantity indicator
   if (reqEl) {
     if (queue.length === required) {
       reqEl.className = 'qty-requirement met';
       reqEl.textContent = `✓ ${queue.length} / ${required} files — ready to upload`;
     } else if (queue.length > required) {
       reqEl.className = 'qty-requirement over';
-      reqEl.textContent = `⚠ ${queue.length} files queued but only ${required} required — please remove ${queue.length - required}`;
+      reqEl.textContent = `⚠ ${queue.length} queued but ${required} required — remove ${queue.length - required}`;
     } else {
       reqEl.className = 'qty-requirement';
-      reqEl.textContent = `📋 ${queue.length} / ${required} files queued`;
+      reqEl.textContent = `📋 ${queue.length} / ${required} files queued — need ${required - queue.length} more`;
     }
   }
 
-  // Enable upload only when count matches required
-  if (btnEl) {
-    btnEl.disabled = (queue.length !== required);
-  }
+  if (btnEl) btnEl.disabled = (queue.length !== required);
   if (countEl) {
     countEl.textContent = queue.length === required
       ? `${queue.length} file${queue.length !== 1 ? 's' : ''} ready`
-      : (queue.length > required ? `Too many files (need exactly ${required})` : `Need ${required - queue.length} more`);
+      : (queue.length > required
+          ? `Too many (need exactly ${required})`
+          : `Need ${required - queue.length} more`);
   }
 
   listEl.innerHTML = queue.map((f, i) => `
     <div class="file-queue-item">
       <span class="file-queue-name" title="${esc(f.name)}">📄 ${esc(f.name)}</span>
       <span class="file-queue-size">${formatBytes(f.size)}</span>
-      <button class="file-queue-remove" onclick="removeFromQueue('${esc(itemId)}', ${i})" title="Remove">✕</button>
+      <button class="file-queue-remove"
+        onclick="removeFromQueue('${esc(itemId)}', ${i})" title="Remove">✕</button>
     </div>`).join('');
 }
 
@@ -659,13 +983,11 @@ function clearQueue(itemId) { fileQueues[itemId] = []; refreshQueueUI(itemId); }
 
 /* ══════════════════════════════
    UPLOAD EXECUTION
-   Quantity check enforced before any upload begins.
 ══════════════════════════════ */
 function submitUpload(itemId, requiredQty) {
   const queue = fileQueues[itemId];
   if (!queue || !queue.length) return;
 
-  // Quantity enforcement
   if (queue.length !== requiredQty) {
     showToast(
       queue.length > requiredQty
@@ -684,7 +1006,6 @@ function submitUpload(itemId, requiredQty) {
   btn.disabled = true; btn.classList.add('loading');
   progressWrap.classList.add('active');
   progressFill.style.width = '0%';
-  progressLbl.textContent  = 'Preparing…';
 
   const total = queue.length;
   let done = 0, failed = 0;
@@ -695,11 +1016,11 @@ function submitUpload(itemId, requiredQty) {
       btn.classList.remove('loading');
       progressFill.style.width = '100%';
       if (failed === 0) {
-        progressLbl.textContent = '✓ All ' + total + ' file' + (total > 1 ? 's' : '') + ' uploaded successfully!';
+        progressLbl.textContent = '✓ All ' + total + ' file' + (total > 1 ? 's' : '') + ' uploaded!';
         showToast('Uploaded ' + total + ' file' + (total > 1 ? 's' : '') + ' successfully!', 'success');
       } else {
         progressLbl.textContent = (done - failed) + ' of ' + total + ' uploaded. ' + failed + ' failed.';
-        showToast(failed + ' file(s) failed. ' + (done - failed) + ' succeeded.', 'error');
+        showToast(failed + ' file(s) failed.', 'error');
       }
       fileQueues[itemId] = [];
       refreshQueueUI(itemId);
@@ -711,16 +1032,24 @@ function submitUpload(itemId, requiredQty) {
       }, 2000);
       return;
     }
+
     const file = filesToUpload[index];
     progressLbl.textContent = 'Uploading ' + (index + 1) + ' / ' + total + ': ' + file.name;
     progressFill.style.width = Math.round((index / total) * 100) + '%';
+
     const reader = new FileReader();
     reader.onload = function(e) {
       const base64 = e.target.result.split(',')[1];
       google.script.run
         .withSuccessHandler(res => { done++; if (!res.success) failed++; uploadNext(index + 1); })
         .withFailureHandler(() => { done++; failed++; uploadNext(index + 1); })
-        .uploadProjectItemFile({ itemId, projectId: currentProject.projectId, fileName: file.name, mimeType: file.type || 'application/octet-stream', base64Data: base64 });
+        .uploadProjectItemFile({
+          itemId,
+          projectId:  currentProject.projectId,
+          fileName:   file.name,
+          mimeType:   file.type || 'application/octet-stream',
+          base64Data: base64
+        });
     };
     reader.onerror = () => { done++; failed++; uploadNext(index + 1); };
     reader.readAsDataURL(file);
@@ -731,63 +1060,19 @@ function submitUpload(itemId, requiredQty) {
 }
 
 /* ══════════════════════════════
-   REVIEW DIALOG (Admin only)
+   REFRESH ITEMS
 ══════════════════════════════ */
-function openReview(itemId, mode) {
-  reviewItemId = itemId; reviewMode = mode;
-  const item    = currentItems.find(i => i.itemId === itemId);
-  const isReject = mode === 'admin-reject' || mode === 'client-reject';
-  const isAdmin  = mode === 'admin' || mode === 'admin-reject';
-  document.getElementById('reviewTitle').textContent = isReject ? 'Reject Item' : (isAdmin ? 'Admin Approve Item' : 'Client Approve Item');
-  document.getElementById('reviewDesc').textContent  = '"' + (item ? item.itemName : '') + '" — ' +
-    (isReject ? 'The files will be moved to the Rejected folder. The team will need to re-upload.'
-              : 'The files will be ' + (isAdmin ? 'copied to Deliverables for client review.' : 'marked as Delivered.'));
-  document.getElementById('reviewNotes').value = item ? (item.internalNotes || '') : '';
-  const btnApprove = document.getElementById('btnReviewApprove');
-  const btnReject  = document.getElementById('btnReviewReject');
-  if (isReject) {
-    btnApprove.classList.add('hidden'); btnReject.classList.remove('hidden');
-    btnReject.querySelector('.btn-label').textContent = 'Confirm Rejection';
-  } else {
-    btnReject.classList.add('hidden'); btnApprove.classList.remove('hidden');
-    btnApprove.querySelector('.btn-label').textContent = isAdmin ? 'Admin Approve' : 'Mark Delivered';
-  }
-  document.getElementById('overlayReview').classList.add('open');
-}
-
-function doReview(action) {
-  const isReject = reviewMode === 'admin-reject' || reviewMode === 'client-reject';
-  const isAdmin  = reviewMode === 'admin' || reviewMode === 'admin-reject';
-  const notes    = document.getElementById('reviewNotes').value;
-  const btn = isReject ? document.getElementById('btnReviewReject') : document.getElementById('btnReviewApprove');
-  closeDialog('overlayReview');
-  startProcessing(btn, isReject ? 'Rejecting…' : 'Approving…');
-  const fn = isAdmin ? 'reviewProjectItem' : 'clientReviewItem';
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      if (!res.success) { showToast(res.error || 'Action failed.', 'error'); return; }
-      showToast(isReject ? 'Item rejected.' : (isAdmin ? 'Item approved by admin.' : 'Item marked as delivered.'), isReject ? 'error' : 'success');
-      refreshItems();
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    [fn]({ itemId: reviewItemId, action: isReject ? 'reject' : 'approve', internalNotes: notes });
-}
-
 function refreshItems() {
   google.script.run
     .withSuccessHandler(result => {
-      currentItems = result.items || []; currentFolderUrl = result.folderUrl || ''; currentQuotationId = result.quotationId || '';
-      renderProgress(); renderItems();
+      currentItems       = result.items || [];
+      currentFolderUrl   = result.folderUrl || '';
+      currentQuotationId = result.quotationId || '';
+      renderProgress();
+      renderItems();
+      // Refresh project list in background so status chips update
       google.script.run
-        .withSuccessHandler(projects => {
-          allProjects = projects || [];
-          const updated = allProjects.find(p => p.projectId === currentProject.projectId);
-          if (updated) {
-            currentProject = updated;
-            renderUserChip(currentUser);
-          }
-        })
+        .withSuccessHandler(projects => { allProjects = projects || []; })
         .getProjects();
     })
     .withFailureHandler(err => showToast('Refresh error: ' + err.message, 'error'))
@@ -801,13 +1086,19 @@ function switchView(name) {
   document.getElementById('viewList')   .classList.toggle('active', name === 'list');
   document.getElementById('viewProject').classList.toggle('active', name === 'project');
 }
-function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
 
 /* ══════════════════════════════
    HELPERS
 ══════════════════════════════ */
-function formatBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
-function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 init();
 </script>
