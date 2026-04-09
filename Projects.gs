@@ -9,13 +9,11 @@ function getProjects() {
     if (data.length < 2) return [];
     const tz = Session.getScriptTimeZone();
 
-    // Safe date formatter — never throws
     function fmtDate(val) {
       if (!val) return '';
       try { return Utilities.formatDate(new Date(val), tz, 'yyyy-MM-dd'); } catch(e) { return ''; }
     }
 
-    // Assignment summary — always safe, returns {} if anything goes wrong
     let assignmentSummary = {};
     try { assignmentSummary = getAssignmentSummaryByProject(); } catch(e) {
       Logger.log('getProjects: assignmentSummary failed: ' + e);
@@ -36,7 +34,6 @@ function getProjects() {
             ? 'In Progress' : 'Needs Assignment';
         }
 
-        const createdAt = fmtDate(row[P.CREATED_AT]);
         projects.push({
           projectId,
           quotationId:      String(row[P.QUOTATION_ID]   || ''),
@@ -49,7 +46,7 @@ function getProjects() {
           status,
           displayStatus,
           internalNotes:    String(row[P.INTERNAL_NOTES] || ''),
-          createdAt,
+          createdAt:        fmtDate(row[P.CREATED_AT]),
           completedAt:      fmtDate(row[P.COMPLETED_AT]),
           totalQty:         summary.totalQty,
           assignedQty:      summary.assignedQty
@@ -76,7 +73,6 @@ function getProjects() {
 
 // ============================================================
 //  PROJECTS — GET ASSIGNMENT SUMMARY PER PROJECT
-//  Returns { projectId: { totalQty, assignedQty } }
 // ============================================================
 function getAssignmentSummaryByProject() {
   const summary = {};
@@ -84,8 +80,6 @@ function getAssignmentSummaryByProject() {
   try {
     const piSheet = getSheet('Project_Items');
     if (!piSheet) return summary;
-
-    // Total qty per project from Project_Items
     const piData = piSheet.getDataRange().getValues();
     if (piData.length > 1) {
       piData.slice(1).forEach(row => {
@@ -95,12 +89,9 @@ function getAssignmentSummaryByProject() {
         summary[pid].totalQty += Number(row[PI.QUANTITY] || 0);
       });
     }
-  } catch(e) {
-    Logger.log('getAssignmentSummaryByProject PI error: ' + e);
-  }
+  } catch(e) { Logger.log('getAssignmentSummaryByProject PI error: ' + e); }
 
   try {
-    // Assigned qty per project from Assignments sheet (may not exist yet)
     const aSheet = getSheet('Assignments');
     if (aSheet && aSheet.getLastRow() > 1) {
       const aData = aSheet.getDataRange().getValues();
@@ -111,9 +102,7 @@ function getAssignmentSummaryByProject() {
         summary[pid].assignedQty += Number(row[AS.QUANTITY_ASSIGNED] || 0);
       });
     }
-  } catch(e) {
-    Logger.log('getAssignmentSummaryByProject AS error: ' + e);
-  }
+  } catch(e) { Logger.log('getAssignmentSummaryByProject AS error: ' + e); }
 
   return summary;
 }
@@ -178,9 +167,34 @@ function getProjectItems(projectId) {
 }
 
 // ============================================================
+//  HELPER — resolve quotation folder (throws with clear message)
+// ============================================================
+function resolveQFolder_(quotationId) {
+  const qSheet = getSheet('Quotations');
+  if (!qSheet) throw new Error('Quotations sheet not found.');
+  const qData = qSheet.getDataRange().getValues();
+  let folderUrl = '';
+  for (let i = 1; i < qData.length; i++) {
+    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
+      folderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
+      break;
+    }
+  }
+  if (!folderUrl) throw new Error(
+    'Folder URL missing for quotation ' + quotationId +
+    '. Check the Quotations sheet FOLDER_URL column.');
+  const match = folderUrl.match(/[-\w]{25,}/);
+  if (!match) throw new Error('Could not extract folder ID from: ' + folderUrl);
+  try {
+    return DriveApp.getFolderById(match[0]);
+  } catch(e) {
+    throw new Error('Cannot open Drive folder for ' + quotationId + ': ' + e.message);
+  }
+}
+
+// ============================================================
 //  PROJECTS — GET FILE PREVIEWS FOR AN ITEM
-//  Returns array of { fileId, name, mimeType, thumbUrl, viewUrl, isImage, isVideo }
-//  Called by the review dialog to show inline previews
+//  Returns array of { fileId, name, mimeType, thumbUrl, viewUrl, isImage, isVideo, url }
 // ============================================================
 function getItemFilePreviews(itemId) {
   const piSheet = getSheet('Project_Items');
@@ -209,15 +223,12 @@ function getItemFilePreviews(itemId) {
       const file   = DriveApp.getFileById(fileId);
       const mime   = file.getMimeType() || '';
       const name   = file.getName();
-
       const isImage = mime.startsWith('image/');
       const isVideo = mime.startsWith('video/');
-
-      // Drive thumbnail URL — works for images and videos (shows first frame for video)
       const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w600';
       const viewUrl  = 'https://drive.google.com/file/d/' + fileId + '/view';
-
-      previews.push({ fileId, name, mimeType: mime, thumbUrl, viewUrl, isImage, isVideo });
+      // Include original url so we can pass it back for selective operations
+      previews.push({ fileId, name, mimeType: mime, thumbUrl, viewUrl, isImage, isVideo, url });
     } catch(e) {
       Logger.log('getItemFilePreviews error for url ' + url + ': ' + e);
     }
@@ -228,22 +239,16 @@ function getItemFilePreviews(itemId) {
 
 // ============================================================
 //  PROJECTS — UPLOAD FILE TO ITEM
-//
-//  File naming: [MemberID]-[ItemNameSanitized]-[Sequence].[ext]
-//  All uploads land in Uploads/[ItemName]/ inside the quotation folder.
 // ============================================================
 function uploadProjectItemFile(params) {
-  // params: { itemId, projectId, fileName, mimeType, base64Data }
   const piSheet = getSheet('Project_Items');
-  const qSheet  = getSheet('Quotations');
   const uSheet  = getSheet('Users');
 
   if (!piSheet) return { success: false, error: 'Project_Items sheet not found.' };
 
   const user = Session.getActiveUser().getEmail();
-  const now  = new Date();
 
-  // ── Get uploader's MemberID ───────────────────────────────
+  // Get uploader's MemberID
   let memberId = 'M000';
   if (uSheet) {
     const uData = uSheet.getDataRange().getValues();
@@ -255,7 +260,7 @@ function uploadProjectItemFile(params) {
     }
   }
 
-  // ── Find the Project_Item row ─────────────────────────────
+  // Find Project_Item row
   const piData = piSheet.getDataRange().getValues();
   let piRowIndex = -1, piRow = null;
   for (let i = 1; i < piData.length; i++) {
@@ -271,26 +276,15 @@ function uploadProjectItemFile(params) {
   const quotationId   = String(piRow[PI.QUOTATION_ID]);
   const currentStatus = String(piRow[PI.DELIVERY_STATUS] || 'Pending');
 
-  // ── Resolve the quotation folder ──────────────────────────
+  // Resolve folders
   let uploadsItemFolder = null;
   let qFolder           = null;
   try {
-    const qData = qSheet.getDataRange().getValues();
-    let folderUrl = '';
-    for (let i = 1; i < qData.length; i++) {
-      if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-        folderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-        break;
-      }
-    }
-    if (!folderUrl) return { success: false, error: 'Quotation folder not found.' };
-
-    const fid           = folderUrl.match(/[-\w]{25,}/)[0];
-    qFolder             = DriveApp.getFolderById(fid);
+    qFolder             = resolveQFolder_(quotationId);
     const uploadsFolder = getOrCreateSubfolder(qFolder, 'Uploads');
     uploadsItemFolder   = getOrCreateSubfolder(uploadsFolder, itemName);
 
-    // ── If re-uploading after rejection, clear old files ─────
+    // If re-uploading after rejection, move old files to Rejected
     const prevUrls = String(piRow[PI.UPLOADED_FILE_URL] || '')
       .split('\n').map(s => s.trim()).filter(Boolean);
     const isRejectedReupload = prevUrls.length > 0
@@ -311,15 +305,11 @@ function uploadProjectItemFile(params) {
       });
       piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
     }
-
   } catch(e) {
-    Logger.log('Upload folder resolve error: ' + e);
     return { success: false, error: 'Could not access upload folder: ' + e.message };
   }
 
-  // ── Build structured file name ────────────────────────────
-  // Format: [MemberID]-[ItemName]-[Sequence].[ext]
-  // Sequence = count of existing files in this item's upload folder + 1
+  // Sequence number based on existing files in folder
   let sequence = 1;
   try {
     const existingFiles = uploadsItemFolder.getFiles();
@@ -328,14 +318,13 @@ function uploadProjectItemFile(params) {
     sequence = count + 1;
   } catch(e) { Logger.log('Sequence count error: ' + e); }
 
-  const ext          = params.fileName.includes('.')
-    ? params.fileName.split('.').pop().toLowerCase()
-    : '';
+  const ext           = params.fileName.includes('.')
+    ? params.fileName.split('.').pop().toLowerCase() : '';
   const sanitizedItem = itemName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
   const seqStr        = String(sequence).padStart(2, '0');
   const newFileName   = memberId + '-' + sanitizedItem + '-' + seqStr + (ext ? '.' + ext : '');
 
-  // ── Decode and save the file ──────────────────────────────
+  // Save the file
   let fileUrl = '';
   try {
     const bytes   = Utilities.base64Decode(params.base64Data);
@@ -343,11 +332,10 @@ function uploadProjectItemFile(params) {
     const newFile = uploadsItemFolder.createFile(blob);
     fileUrl       = newFile.getUrl();
   } catch(e) {
-    Logger.log('File save error: ' + e);
     return { success: false, error: 'Could not save file: ' + e.message };
   }
 
-  // ── Append URL to stored list ─────────────────────────────
+  // Append URL to stored list
   const currentUrlsRaw = String(
     piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).getValue() || ''
   ).trim();
@@ -357,7 +345,6 @@ function uploadProjectItemFile(params) {
   piSheet.getRange(piRowIndex, PI.DELIVERY_STATUS   + 1).setValue('Uploaded');
   piSheet.getRange(piRowIndex, PI.ASSIGNED_TO       + 1).setValue(user);
 
-  // Increment redo count only on first file of a rejected re-upload
   const prevCount = Number(piRow[PI.REDO_COUNT] || 0);
   if (currentStatus === 'Admin Rejected' || currentStatus === 'Client Rejected') {
     if (!currentUrlsRaw) {
@@ -375,16 +362,20 @@ function uploadProjectItemFile(params) {
 }
 
 // ============================================================
-//  PROJECTS — ADMIN REVIEW ITEM (per-item)
+//  PROJECTS — ADMIN REVIEW ITEM
+//
+//  APPROVE: Copy selected files from Uploads/[item]/ → Deliverables/[item]/
+//           Files remain in Uploads (original stays put, copy goes to Deliverables)
+//
+//  REJECT:  Move ALL files from Uploads/[item]/ → Rejected/[item]/
+//           Clear uploadedFileUrl, increment redoCount
 // ============================================================
 function reviewProjectItem(params) {
+  // params: { itemId, action, internalNotes, selectedFileIds?: string[] }
   const piSheet = getSheet('Project_Items');
-  const qSheet  = getSheet('Quotations');
-
   if (!piSheet) return { success: false, error: 'Project_Items sheet not found.' };
 
   const user = Session.getActiveUser().getEmail();
-  const now  = new Date();
 
   const piData = piSheet.getDataRange().getValues();
   let piRowIndex = -1, piRow = null;
@@ -400,64 +391,79 @@ function reviewProjectItem(params) {
   const itemName    = String(piRow[PI.ITEM_NAME]);
   const quotationId = String(piRow[PI.QUOTATION_ID]);
   const fileUrlsRaw = String(piRow[PI.UPLOADED_FILE_URL] || '');
-  const fileUrls    = fileUrlsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+  const allFileUrls = fileUrlsRaw.split('\n').map(s => s.trim()).filter(Boolean);
   const oldStatus   = String(piRow[PI.DELIVERY_STATUS]);
 
-  if (!fileUrls.length) return { success: false, error: 'No uploaded files to review.' };
+  if (!allFileUrls.length) return { success: false, error: 'No uploaded files to review.' };
 
-  let qFolder = null;
+  // Resolve quotation folder — surfaces real error to UI
+  let qFolder;
   try {
-    const qData = qSheet.getDataRange().getValues();
-    let folderUrl = '';
-    for (let i = 1; i < qData.length; i++) {
-      if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-        folderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-        break;
-      }
-    }
-    if (folderUrl) {
-      qFolder = DriveApp.getFolderById(folderUrl.match(/[-\w]{25,}/)[0]);
-    }
-  } catch(e) { Logger.log('Folder resolve error: ' + e); }
+    qFolder = resolveQFolder_(quotationId);
+  } catch(e) {
+    return { success: false, error: 'Drive folder error: ' + e.message };
+  }
 
   let newStatus = oldStatus;
 
+  // ── APPROVE ──────────────────────────────────────────────
   if (params.action === 'approve') {
-    if (qFolder) {
-      try {
-        const delivFolder = getOrCreateSubfolder(qFolder, 'Deliverables');
-        const delivItem   = getOrCreateSubfolder(delivFolder, itemName);
-        fileUrls.forEach(url => {
-          try {
-            const fileId = url.match(/[-\w]{25,}/)[0];
-            const file   = DriveApp.getFileById(fileId);
-            file.makeCopy(file.getName(), delivItem);
-          } catch(e) { Logger.log('Deliverables copy error for ' + url + ': ' + e); }
-        });
-      } catch(e) { Logger.log('Deliverables folder error: ' + e); }
+    const selectedIds = Array.isArray(params.selectedFileIds) && params.selectedFileIds.length
+      ? new Set(params.selectedFileIds)
+      : null; // null = copy all
+
+    try {
+      const delivFolder = getOrCreateSubfolder(qFolder, 'Deliverables');
+      const delivItem   = getOrCreateSubfolder(delivFolder, itemName);
+
+      let copiedCount = 0;
+      allFileUrls.forEach(url => {
+        try {
+          const match = url.match(/[-\w]{25,}/);
+          if (!match) return;
+          if (selectedIds && !selectedIds.has(match[0])) return;
+          const file = DriveApp.getFileById(match[0]);
+          file.makeCopy(file.getName(), delivItem);
+          copiedCount++;
+        } catch(e) {
+          Logger.log('Deliverables copy error for ' + url + ': ' + e);
+        }
+      });
+
+      if (copiedCount === 0) {
+        return { success: false, error: 'No files could be copied to Deliverables. Check Drive permissions or file IDs.' };
+      }
+    } catch(e) {
+      return { success: false, error: 'Deliverables folder error: ' + e.message };
     }
     newStatus = 'Admin Approved';
 
+  // ── REJECT ───────────────────────────────────────────────
   } else if (params.action === 'reject') {
-    if (qFolder) {
-      try {
-        const uploadsFolder  = getOrCreateSubfolder(qFolder, 'Uploads');
-        const uploadsItem    = getOrCreateSubfolder(uploadsFolder, itemName);
-        const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
-        const rejectedItem   = getOrCreateSubfolder(rejectedFolder, itemName);
-        fileUrls.forEach(url => {
-          try {
-            const fileId = url.match(/[-\w]{25,}/)[0];
-            const file   = DriveApp.getFileById(fileId);
-            rejectedItem.addFile(file);
-            uploadsItem.removeFile(file);
-          } catch(e) { Logger.log('Reject move error for ' + url + ': ' + e); }
-        });
-      } catch(e) { Logger.log('Reject folder error: ' + e); }
+    try {
+      const uploadsFolder  = getOrCreateSubfolder(qFolder, 'Uploads');
+      const uploadsItem    = getOrCreateSubfolder(uploadsFolder, itemName);
+      const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
+      const rejectedItem   = getOrCreateSubfolder(rejectedFolder, itemName);
+
+      allFileUrls.forEach(url => {
+        try {
+          const match = url.match(/[-\w]{25,}/);
+          if (!match) return;
+          const file = DriveApp.getFileById(match[0]);
+          rejectedItem.addFile(file);
+          uploadsItem.removeFile(file);
+        } catch(e) {
+          Logger.log('Reject move error for ' + url + ': ' + e);
+        }
+      });
+    } catch(e) {
+      return { success: false, error: 'Rejected folder error: ' + e.message };
     }
+
     newStatus = 'Admin Rejected';
-    const currentRedo = Number(piRow[PI.REDO_COUNT] || 0);
-    piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(currentRedo + 1);
+    piSheet.getRange(piRowIndex, PI.REDO_COUNT        + 1)
+      .setValue(Number(piRow[PI.REDO_COUNT] || 0) + 1);
     piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
   }
 
@@ -470,19 +476,22 @@ function reviewProjectItem(params) {
     quotationId + ' — ' + itemName,
     '', String(piRow[PI.ACCOUNT_NAME]),
     'DeliveryStatus', oldStatus, newStatus,
-    (params.action === 'approve' ? 'Admin approved' : 'Admin rejected') + ' by ' + user
-    + ' (' + fileUrls.length + ' file(s))');
+    (params.action === 'approve' ? 'Admin approved' : 'Admin rejected') +
+    ' by ' + user + ' (' + allFileUrls.length + ' file(s))');
 
   return { success: true, newStatus };
 }
 
 // ============================================================
 //  PROJECTS — CLIENT REVIEW ITEM
+//
+//  APPROVE: Status → Delivered (files stay in Deliverables/[item]/)
+//
+//  REJECT:  Move files from Deliverables/[item]/ → Deliverables/Archived/[item]/
+//           Clear uploadedFileUrl, increment redoCount
 // ============================================================
 function clientReviewItem(params) {
   const piSheet = getSheet('Project_Items');
-  const qSheet  = getSheet('Quotations');
-
   if (!piSheet) return { success: false, error: 'Project_Items sheet not found.' };
 
   const user = Session.getActiveUser().getEmail();
@@ -509,48 +518,43 @@ function clientReviewItem(params) {
   const fileUrlsRaw = String(piRow[PI.UPLOADED_FILE_URL] || '');
   const fileUrls    = fileUrlsRaw.split('\n').map(s => s.trim()).filter(Boolean);
 
-  let qFolder = null;
-  try {
-    const qData = qSheet.getDataRange().getValues();
-    let folderUrl = '';
-    for (let i = 1; i < qData.length; i++) {
-      if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-        folderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-        break;
-      }
-    }
-    if (folderUrl) {
-      qFolder = DriveApp.getFolderById(folderUrl.match(/[-\w]{25,}/)[0]);
-    }
-  } catch(e) { Logger.log('Folder resolve error: ' + e); }
-
   let newStatus = oldStatus;
 
+  // ── CLIENT APPROVE ────────────────────────────────────────
   if (params.action === 'approve') {
     newStatus = 'Delivered';
     piSheet.getRange(piRowIndex, PI.COMPLETED_AT + 1).setValue(now);
     autoCompleteProject(String(piRow[PI.PROJECT_ID]));
 
+  // ── CLIENT REJECT ─────────────────────────────────────────
+  // Files move: Deliverables/[item]/ → Deliverables/Archived/[item]/
   } else if (params.action === 'reject') {
-    newStatus = 'Client Rejected';
-    if (qFolder && fileUrls.length) {
+    if (fileUrls.length) {
       try {
-        const delivFolder   = getOrCreateSubfolder(qFolder, 'Deliverables');
-        const delivItem     = getOrCreateSubfolder(delivFolder, itemName);
-        const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
-        const rejectedItem  = getOrCreateSubfolder(rejectedFolder, itemName);
+        const qFolder        = resolveQFolder_(quotationId);
+        const delivFolder    = getOrCreateSubfolder(qFolder, 'Deliverables');
+        const delivItem      = getOrCreateSubfolder(delivFolder, itemName);
+        const archivedFolder = getOrCreateSubfolder(delivFolder, 'Archived');
+        const archivedItem   = getOrCreateSubfolder(archivedFolder, itemName);
+
         fileUrls.forEach(url => {
           try {
-            const fileId = url.match(/[-\w]{25,}/)[0];
-            const file   = DriveApp.getFileById(fileId);
-            rejectedItem.addFile(file);
+            const match = url.match(/[-\w]{25,}/);
+            if (!match) return;
+            const file = DriveApp.getFileById(match[0]);
+            archivedItem.addFile(file);
             delivItem.removeFile(file);
-          } catch(e) { Logger.log('Client reject move error for ' + url + ': ' + e); }
+          } catch(e) {
+            Logger.log('Client reject move error for ' + url + ': ' + e);
+          }
         });
-      } catch(e) { Logger.log('Client reject folder error: ' + e); }
+      } catch(e) {
+        return { success: false, error: 'Drive folder error on client reject: ' + e.message };
+      }
     }
-    const currentRedo = Number(piRow[PI.REDO_COUNT] || 0);
-    piSheet.getRange(piRowIndex, PI.REDO_COUNT + 1).setValue(currentRedo + 1);
+    newStatus = 'Client Rejected';
+    piSheet.getRange(piRowIndex, PI.REDO_COUNT        + 1)
+      .setValue(Number(piRow[PI.REDO_COUNT] || 0) + 1);
     piSheet.getRange(piRowIndex, PI.UPLOADED_FILE_URL + 1).setValue('');
   }
 
@@ -617,22 +621,8 @@ function updateItemNotes(itemId, notes) {
 //  PROJECTS — GET DELIVERABLES FOLDER URL
 // ============================================================
 function getDeliverablesUrl(quotationId) {
-  const qSheet = getSheet('Quotations');
-  if (!qSheet) return { success: false, url: '' };
-
-  const qData = qSheet.getDataRange().getValues();
-  let folderUrl = '';
-  for (let i = 1; i < qData.length; i++) {
-    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-      folderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-      break;
-    }
-  }
-  if (!folderUrl) return { success: false, url: '' };
-
   try {
-    const fid          = folderUrl.match(/[-\w]{25,}/)[0];
-    const qFolder      = DriveApp.getFolderById(fid);
+    const qFolder      = resolveQFolder_(quotationId);
     const delivFolders = qFolder.getFoldersByName('Deliverables');
     if (!delivFolders.hasNext()) return { success: false, url: '' };
     return { success: true, url: delivFolders.next().getUrl() };
