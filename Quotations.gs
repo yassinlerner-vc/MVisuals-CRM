@@ -637,14 +637,24 @@ function deleteQuotation(quotationId) {
 }
 
 // ============================================================
-//  QUOTATIONS — CONFIRM
+//  QUOTATIONS — CONFIRM  (replace the existing confirmQuotation function)
 //
-//  Drive behaviour:
-//    • Moves qFolder from account's Pipeline/ → account's Projects/
-//    • Creates Uploads/, Rejected/, Deliverables/ inside qFolder
-//    • Creates per-item subfolders inside Uploads/ and Rejected/
-//    • Creates Projects + Project_Items sheet rows
-//    • Promotes account Lead → Client (moves account folder Leads→Clients root)
+//  Drive folder structure created upfront on confirmation:
+//
+//    Q-XXXX - Project Name/
+//      Archived/                     ← version PDFs (already exists from creation)
+//      Uploads/
+//        [Item 1 Name]/
+//        [Item 2 Name]/
+//      Rejected/
+//        [Item 1 Name]/
+//        [Item 2 Name]/
+//      Deliverables/
+//        Archived/
+//          [Item 1 Name]/
+//          [Item 2 Name]/
+//        [Item 1 Name]/
+//        [Item 2 Name]/
 // ============================================================
 function confirmQuotation(quotationId) {
   const ss            = SpreadsheetApp.getActive();
@@ -665,7 +675,7 @@ function confirmQuotation(quotationId) {
       qRowIndex = i + 1; qRow = qData[i]; break;
     }
   }
-  if (!qRow)                       return { success: false, error: 'Quotation not found.' };
+  if (!qRow)                          return { success: false, error: 'Quotation not found.' };
   if (qRow[Q.STATUS] === 'Confirmed') return { success: false, error: 'Already confirmed.' };
 
   const accountId   = qRow[Q.ACCOUNT_ID];
@@ -692,7 +702,7 @@ function confirmQuotation(quotationId) {
   for (let i = 1; i < iData.length; i++) {
     if (String(iData[i][QI.QUOTATION_ID]) === String(quotationId)
      && iData[i][QI.STATUS] === 'Active') {
-      iSheet.getRange(i + 1, QI.STATUS + 1).setValue('Approved');
+      iSheet.getRange(i + 1, QI.STATUS          + 1).setValue('Approved');
       iSheet.getRange(i + 1, QI.LAST_UPDATED_BY + 1).setValue(user);
       iSheet.getRange(i + 1, QI.LAST_UPDATED_AT + 1).setValue(now);
     }
@@ -702,11 +712,12 @@ function confirmQuotation(quotationId) {
     String(r[QI.QUOTATION_ID]) === String(quotationId) && r[QI.STATUS] === 'Approved'
   );
 
-  // ── Drive: move qFolder Pipeline → Projects, build subfolders ──
+  // ── Drive: move qFolder Pipeline → Projects ───────────────
+  // Then pre-create ALL workflow subfolders with per-item subdirs
   const qFolder = getQuotationFolder(folderUrl);
   if (qFolder) {
     try {
-      // Resolve account folder
+      // Resolve account folder and move qFolder
       const accounts2 = accountsSheet.getDataRange().getValues();
       let accountFolderUrl = '';
       for (let i = 1; i < accounts2.length; i++) {
@@ -723,51 +734,70 @@ function confirmQuotation(quotationId) {
         const accountFolder  = DriveApp.getFolderById(accFid);
         const projectsFolder = getOrCreateSubfolder(accountFolder, 'Projects');
         const pipelineFolder = getOrCreateSubfolder(accountFolder, 'Pipeline');
-
-        // Move: Pipeline → Projects
         projectsFolder.addFolder(qFolder);
         pipelineFolder.removeFolder(qFolder);
       }
 
-      // Build workflow subfolders inside qFolder
-      const uploadsFolder  = getOrCreateSubfolder(qFolder, 'Uploads');
-      const rejectedFolder = getOrCreateSubfolder(qFolder, 'Rejected');
-      getOrCreateSubfolder(qFolder, 'Deliverables');
+      // ── Pre-create all workflow folders with item subfolders ──
+      //
+      //  Uploads/[item]/
+      //  Rejected/[item]/
+      //  Deliverables/[item]/
+      //  Deliverables/Archived/[item]/
 
-      // Per-item subfolders in Uploads/ and Rejected/
+      const uploadsFolder    = getOrCreateSubfolder(qFolder, 'Uploads');
+      const rejectedFolder   = getOrCreateSubfolder(qFolder, 'Rejected');
+      const delivFolder      = getOrCreateSubfolder(qFolder, 'Deliverables');
+      const delivArchFolder  = getOrCreateSubfolder(delivFolder, 'Archived');
+
       approvedItems.forEach(item => {
         const itemName = String(item[QI.ITEM_NAME] || 'Unnamed Item');
-        getOrCreateSubfolder(uploadsFolder,  itemName);
-        getOrCreateSubfolder(rejectedFolder, itemName);
+        getOrCreateSubfolder(uploadsFolder,   itemName);
+        getOrCreateSubfolder(rejectedFolder,  itemName);
+        getOrCreateSubfolder(delivFolder,     itemName);
+        getOrCreateSubfolder(delivArchFolder, itemName);
       });
 
     } catch(e) { Logger.log('Confirm folder error: ' + e); }
   }
 
   // ── Update quotation status ───────────────────────────────
-  qSheet.getRange(qRowIndex, Q.STATUS + 1).setValue('Confirmed');
+  qSheet.getRange(qRowIndex, Q.STATUS          + 1).setValue('Confirmed');
   qSheet.getRange(qRowIndex, Q.LAST_UPDATED_BY + 1).setValue(user);
   qSheet.getRange(qRowIndex, Q.LAST_UPDATED_AT + 1).setValue(now);
 
   // ── Create Projects row ───────────────────────────────────
-  const projectId = Utilities.getUuid();
-  pSheet.appendRow([
-    projectId, quotationId, accountId, accountName,
-    projectName, projectDesc, deliveryDdl, dueDate,
-    'Active', '', now, ''
+const projectId = Utilities.getUuid();
+pSheet.appendRow([
+ projectId, quotationId, accountId, accountName,
+ projectName, projectDesc, deliveryDdl, dueDate,
+'Needs Assignment', '', now, '',   // cols 0-11 (Status = Needs Assignment)
+  qRow[Q.TOTAL],                     // col 12 Total Amount
+  qRow[Q.CURRENCY],                  // col 13 Currency
+  0,                                 // col 14 Total Commission (set on confirm)
+  0                                  // col 15 Remaining Amount (set on confirm)
   ]);
 
   // ── Create Project_Items rows ─────────────────────────────
+  //  New column layout (16 cols, no REDO_COUNT, no UPLOADED_FILE_URL):
+  //  Item ID | Project ID | Quotation ID | Account Name | Project Name |
+  //  Project Description | Item Name | Quantity | Description | Notes |
+  //  Delivery Status | Assigned To | Internal Notes | Due Date |
+  //  Completed At | Created At
   approvedItems.forEach(item => {
     piSheet.appendRow([
-      Utilities.getUuid(), projectId, quotationId,
-      accountName, projectName, projectDesc,
-      item[QI.ITEM_NAME], item[QI.QUANTITY],
-      item[QI.DESCRIPTION], item[QI.NOTES],
-      'Pending', '', 0, '', '', dueDate, '', now
-    ]);
+      Utilities.getUuid(),          // Item ID
+      projectId,                    // Project ID
+      quotationId,                  // Quotation ID
+      accountName,                  // Account Name
+      projectName,                  // Project Name
+      projectDesc,                  // Project Description
+      item[QI.ITEM_NAME],           // Item Name
+      item[QI.QUANTITY],            // Quantity
+      item[QI.DESCRIPTION],         // Description
+      item[QI.NOTES],               // Notes
+  ]);
   });
-
   // ── Logs ─────────────────────────────────────────────────
   writeLog('Quotations_Log', 'Quotations', quotationId,
     quotationId + ' — ' + projectName, accountId, accountName,
