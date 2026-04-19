@@ -128,6 +128,8 @@
     .meta-pill { background: #f0f2fa; border-radius: 5px; padding: 4px 10px; font-size: 12px; }
     .meta-pill .pill-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 1px; }
     .meta-pill .pill-value { font-weight: 600; color: #1a1a2e; }
+    .item-desc-text { font-size: 12px; color: #555; margin-top: 8px; line-height: 1.5; }
+    .item-notes-text { font-size: 12px; color: #888; margin-top: 6px; font-style: italic; line-height: 1.5; }
 
     .commission-banner { background: #e8ecfd; border: 1px solid #c5cdf9; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
     .commission-banner-label { font-size: 12px; color: #2f4bcc; font-weight: 600; }
@@ -163,7 +165,7 @@
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
   </div>
-  <div class="filter-tabs">
+  <div class="filter-tabs hidden">
     <button class="filter-tab active" data-filter="all"              onclick="setFilter('all')">All</button>
     <button class="filter-tab"        data-filter="Needs Assignment" onclick="setFilter('Needs Assignment')">🟡 Needs Assignment</button>
     <button class="filter-tab"        data-filter="Assigned"         onclick="setFilter('Assigned')">🔵 Assigned</button>
@@ -292,9 +294,9 @@
 let allProjects    = [];
 let activeFilter   = 'all';
 let currentUser    = null;
-let currentDetail  = null;   // { project, items, assignments, commissions, teamMembers }
-let draftAssignments = [];   // working state for assignment UI [{itemName, assignedToEmail, assignedToName, quantity}]
-let assignPhase    = 'assign'; // 'assign' | 'commission'
+let currentDetail  = null;
+let draftAssignments = [];
+let assignPhase    = 'assign';
 
 /* ══════════════════════════════════════════════════════
    PROCESSING / TOAST
@@ -373,8 +375,8 @@ function setFilter(f) {
     t.classList.toggle('active', t.dataset.filter === f));
   renderList(allProjects);
 }
-
 function renderList(projects) {
+  document.querySelector('.filter-tabs').classList.remove('hidden');
   allProjects = projects || [];
   hideToast();
   const filtered = activeFilter === 'all'
@@ -402,7 +404,7 @@ function renderList(projects) {
 }
 
 /* ══════════════════════════════════════════════════════
-   LIST — TEAM
+   LIST — TEAM (restricted columns)
 ══════════════════════════════════════════════════════ */
 function renderTeamList(projects) {
   allProjects = projects || [];
@@ -411,20 +413,26 @@ function renderTeamList(projects) {
   document.querySelector('.filter-tabs').classList.add('hidden');
   document.getElementById('listCount').textContent =
     allProjects.length + ' project' + (allProjects.length !== 1 ? 's' : '');
+
+  // Rewrite table headers — team sees fewer columns
+  document.querySelector('#listTable thead tr').innerHTML = `
+    <th>Client</th>
+    <th>Project</th>
+    <th class="col-date">Due Date</th>
+    <th class="col-status">Status</th>
+    <th class="col-acts"></th>`;
+
   const tbody = document.getElementById('listBody');
   if (!allProjects.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects assigned to you yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#888;">No projects assigned to you yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = allProjects.map(p => {
     const sk = statusKey(p.status);
-    const itemSummary = (p.myItems||[]).map(i => i.itemName + ' ×' + i.quantity).join(', ');
     return `<tr onclick="openProject('${esc(p.projectId)}')">
-      <td class="col-id">${esc(p.quotationId)}</td>
       <td><strong>${esc(p.accountName)}</strong></td>
       <td>${esc(p.projectName)}</td>
       <td class="col-date">${p.dueDate||'—'}</td>
-      <td class="col-date">${p.deliveryDeadline||'—'}</td>
       <td class="col-status"><span class="badge badge-${sk}">${esc(p.status)}</span></td>
       <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
     </tr>`;
@@ -445,7 +453,9 @@ function openProject(projectId) {
       renderProjectDetail(detail);
       switchView('project');
       document.getElementById('topbarTitle').textContent =
-        detail.project.quotationId + ' — ' + detail.project.projectName;
+        currentUser.role === 'Admin'
+          ? detail.project.quotationId + ' — ' + detail.project.projectName
+          : detail.project.projectName;
       renderUserChip(currentUser);
     })
     .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
@@ -456,24 +466,7 @@ function renderProjectDetail(detail) {
   const p  = detail.project;
   const sk = statusKey(p.status);
 
-  // Overview
-  document.getElementById('projectSummary').innerHTML = `
-    <h3>Project Overview</h3>
-    <div class="meta-grid">
-      <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
-      <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
-      ${p.status !== 'Needs Assignment' ? `
-      <div class="meta-cell"><div class="meta-label">Total Commission</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalCommission)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Gross Profit</div><div class="meta-value">${esc(p.currency)} ${fmt(p.remainingAmount)}</div></div>` : ''}
-      ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
-    </div>`;
-
-  // Hide all phases
+  // Hide all phases first
   ['phaseAssign','phaseCommission','phaseTeam','phaseReadOnly'].forEach(id =>
     document.getElementById(id).classList.add('hidden'));
 
@@ -483,20 +476,46 @@ function renderProjectDetail(detail) {
     document.getElementById(id).classList.add('hidden'));
 
   if (currentUser.role === 'Admin') {
+    // ── Admin overview: full details ──────────────────────
+    document.getElementById('projectSummary').innerHTML = `
+      <h3>Project Overview</h3>
+      <div class="meta-grid">
+        <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
+        <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
+        <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
+        <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
+        ${p.status !== 'Needs Assignment' ? `
+        <div class="meta-cell"><div class="meta-label">Total Commission</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalCommission)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Gross Profit</div><div class="meta-value">${esc(p.currency)} ${fmt(p.remainingAmount)}</div></div>` : ''}
+        ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
+      </div>`;
+
     if (p.status === 'Needs Assignment') {
-      // Assignment phase
       assignPhase = 'assign';
       document.getElementById('phaseAssign').classList.remove('hidden');
       renderAssignPhase(detail);
       document.getElementById('btnConfirmAssign').classList.remove('hidden');
     } else {
-      // Already assigned — show read-only summary + re-assign button
       document.getElementById('phaseReadOnly').classList.remove('hidden');
       renderReadOnlySummary(detail);
       document.getElementById('btnReAssign').classList.remove('hidden');
     }
+
   } else {
-    // Team read-only view
+    // ── Team overview: restricted details only ─────────────
+    document.getElementById('projectSummary').innerHTML = `
+      <h3>Project Overview</h3>
+      <div class="meta-grid">
+        <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
+        <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
+        <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
+        ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
+      </div>`;
+
     document.getElementById('phaseTeam').classList.remove('hidden');
     renderTeamView(detail);
     // No action buttons for team
@@ -508,14 +527,10 @@ function renderProjectDetail(detail) {
 ══════════════════════════════════════════════════════ */
 function renderAssignPhase(detail) {
   const members = detail.teamMembers || [];
-
-  // Populate quick-assign dropdown
   const qs = document.getElementById('quickAssignSelect');
   qs.innerHTML = members.map(m =>
     `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
   ).join('');
-
-  // Render item cards
   renderItemAssignCards(detail.items, members);
   updateAssignProgress(detail.items);
 }
@@ -535,13 +550,10 @@ function renderItemAssignCards(items, members) {
 function rebuildItemCard(card, item, members) {
   const itemName = item.itemName;
   const totalQty = item.quantity;
-
-  // Current draft assignments for this item
   const myDraft = draftAssignments.filter(a => a.itemName === itemName);
   const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
   const remaining   = Math.max(0, totalQty - assignedQty);
 
-  // Build pills
   let pillsHtml = myDraft.map((a,idx) => `
     <span class="assign-pill ${a.assignedToEmail === '__admin__' ? 'assign-pill-admin' : ''}">
       ${esc(a.assignedToName)}: ${a.quantity}
@@ -551,7 +563,6 @@ function rebuildItemCard(card, item, members) {
     pillsHtml += `<span class="assign-pill assign-pill-unassigned">Unassigned: ${remaining}</span>`;
   }
 
-  // Members dropdown options
   const opts = (members||[]).map(m =>
     `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
   ).join('');
@@ -580,26 +591,18 @@ function rebuildItemCard(card, item, members) {
 function addDraftAssignment(itemName) {
   const item = currentDetail.items.find(i => i.itemName === itemName);
   const members = currentDetail.teamMembers;
-
   const qtyEl = document.getElementById('qty_' + itemName);
   const selEl = document.getElementById('person_' + itemName);
   if (!qtyEl || !selEl) return;
-
   const qty = parseInt(qtyEl.value, 10);
   const email = selEl.value;
   const name = selEl.options[selEl.selectedIndex].dataset.name || email;
-
   if (!qty || qty < 1) { showToast('Enter a valid quantity.', 'error'); return; }
-
-  // Check doesn't exceed remaining
   const myDraft = draftAssignments.filter(a => a.itemName === itemName);
   const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
   const remaining = item.quantity - assignedQty;
   if (qty > remaining) { showToast('Quantity exceeds remaining (' + remaining + ').', 'error'); return; }
-
   draftAssignments.push({ itemName, assignedToEmail: email, assignedToName: name, quantity: qty });
-
-  // Rebuild this card
   const card = document.querySelector('[data-item-name="' + itemName + '"]');
   if (card) rebuildItemCard(card, item, members);
   updateAssignProgress(currentDetail.items);
@@ -608,7 +611,6 @@ function addDraftAssignment(itemName) {
 function removeDraftAssignment(itemName, idx) {
   const item    = currentDetail.items.find(i => i.itemName === itemName);
   const members = currentDetail.teamMembers;
-  // idx is index among this item's draft assignments
   let counter = 0;
   draftAssignments = draftAssignments.filter(a => {
     if (a.itemName !== itemName) return true;
@@ -624,21 +626,14 @@ function quickAssignAll() {
   const email = qs.value;
   const name  = qs.options[qs.selectedIndex] ? qs.options[qs.selectedIndex].text.split(' (')[0] : email;
   const members = currentDetail.teamMembers;
-
   currentDetail.items.forEach(item => {
     const myDraft = draftAssignments.filter(a => a.itemName === item.itemName);
     const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
     const remaining = item.quantity - assignedQty;
     if (remaining > 0) {
-      draftAssignments.push({
-        itemName: item.itemName,
-        assignedToEmail: email,
-        assignedToName: name,
-        quantity: remaining
-      });
+      draftAssignments.push({ itemName: item.itemName, assignedToEmail: email, assignedToName: name, quantity: remaining });
     }
   });
-
   renderItemAssignCards(currentDetail.items, members);
   updateAssignProgress(currentDetail.items);
 }
@@ -660,14 +655,12 @@ function updateAssignProgress(items) {
    CONFIRM ASSIGN STEP → move to commission phase
 ══════════════════════════════════════════════════════ */
 function confirmAssignStep() {
-  // Save assignments to sheet first
   const btn = document.getElementById('btnConfirmAssign');
   startProcessing(btn, 'Saving assignments…');
   google.script.run
     .withSuccessHandler(res => {
       stopProcessing(btn);
       if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
-      // Move to commission phase — reload detail to get fresh assignments
       google.script.run
         .withSuccessHandler(detail => {
           hideToast();
@@ -690,11 +683,9 @@ function confirmAssignStep() {
    COMMISSION PHASE — ADMIN
 ══════════════════════════════════════════════════════ */
 function renderCommissionPhase(detail) {
-  const p       = detail.project;
-  const items   = detail.items;
-  const active  = (detail.assignments || []).filter(a => a.status !== 'Superseded');
+  const p      = detail.project;
+  const active = (detail.assignments || []).filter(a => a.status !== 'Superseded');
 
-  // Group assigned work by person
   const byPerson = {};
   active.forEach(a => {
     if (!byPerson[a.assignedToEmail]) {
@@ -703,11 +694,9 @@ function renderCommissionPhase(detail) {
     byPerson[a.assignedToEmail].items.push({ itemName: a.itemName, quantity: a.quantity });
   });
 
-  // Determine role per person
   const memberRoles = {};
   (detail.teamMembers || []).forEach(m => { memberRoles[m.email] = m.role; });
 
-  // Pre-fill from existing commissions if re-entering
   const existingComm = {};
   (detail.commissions || []).forEach(c => {
     if (c.personEmail) existingComm[c.personEmail] = { pct: c.commissionPct, amt: c.commissionAmt };
@@ -740,15 +729,12 @@ function recalcCommissions() {
   const p = currentDetail.project;
   const total = p.totalAmount;
   let sumCommissions = 0;
-
   document.querySelectorAll('#commissionBody tr').forEach(row => {
     const pct = parseFloat(row.querySelector('.comm-pct').value) || 0;
     const amt = total * pct / 100;
     sumCommissions += amt;
-    row.querySelector('.comm-amt-cell').textContent =
-      esc(p.currency) + ' ' + fmt(amt);
+    row.querySelector('.comm-amt-cell').textContent = esc(p.currency) + ' ' + fmt(amt);
   });
-
   const grossProfit = total - sumCommissions;
   const foot = document.getElementById('commissionFoot');
   foot.innerHTML = `
@@ -776,26 +762,17 @@ function askConfirmAll() {
 function doConfirmAll() {
   const btn = document.getElementById('btnConfirmAllDo');
   closeDialog('overlayConfirmAll');
-
   const p     = currentDetail.project;
   const total = p.totalAmount;
   let sumCommissions = 0;
   const commissions = [];
-
   document.querySelectorAll('#commissionBody tr').forEach(row => {
     const pct   = parseFloat(row.querySelector('.comm-pct').value) || 0;
     const amt   = total * pct / 100;
     sumCommissions += amt;
-    commissions.push({
-      email:   row.dataset.email,
-      name:    row.dataset.name,
-      role:    row.dataset.role,
-      percent: pct,
-      amount:  amt
-    });
+    commissions.push({ email: row.dataset.email, name: row.dataset.name, role: row.dataset.role, percent: pct, amount: amt });
   });
   const grossProfit = total - sumCommissions;
-
   startProcessing(btn, 'Confirming & notifying…');
   google.script.run
     .withSuccessHandler(res => {
@@ -814,21 +791,17 @@ function doConfirmAll() {
 function renderReadOnlySummary(detail) {
   const p      = detail.project;
   const active = (detail.assignments || []).filter(a => a.status !== 'Superseded');
-
-  // Group by person
   const byPerson = {};
   active.forEach(a => {
     if (!byPerson[a.assignedToEmail]) byPerson[a.assignedToEmail] = { name: a.assignedToName, items: [] };
     byPerson[a.assignedToEmail].items.push(a.itemName + ' ×' + a.quantity);
   });
-
   document.getElementById('readOnlyAssignments').innerHTML = Object.entries(byPerson).map(([email, v]) => `
     <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;">
       <strong style="min-width:140px;">${esc(v.name)}</strong>
       <span style="color:#555;">${v.items.map(esc).join(' · ')}</span>
     </div>`).join('') || '<p style="color:#888;font-size:13px;">No assignments found.</p>';
 
-  // Commission table
   const comms = detail.commissions || [];
   document.getElementById('readOnlyCommissions').innerHTML = comms.length ? `
     <table style="width:100%;font-size:13px;border-collapse:collapse;">
@@ -843,7 +816,7 @@ function renderReadOnlySummary(detail) {
 }
 
 /* ══════════════════════════════════════════════════════
-   RE-ASSIGN (Admin re-opens assignment on assigned project)
+   RE-ASSIGN
 ══════════════════════════════════════════════════════ */
 function enterReAssignMode() {
   assignPhase = 'assign';
@@ -858,7 +831,7 @@ function enterReAssignMode() {
 }
 
 /* ══════════════════════════════════════════════════════
-   TEAM VIEW (read-only)
+   TEAM VIEW (read-only, restricted)
 ══════════════════════════════════════════════════════ */
 function renderTeamView(detail) {
   const p      = detail.project;
@@ -878,22 +851,38 @@ function renderTeamView(detail) {
     banner.innerHTML = '';
   }
 
-  // Item cards
+  // Item cards — show Name, Quantity, Description, Notes
   const container = document.getElementById('teamItemCards');
   if (!active.length) {
     container.innerHTML = '<p class="empty-state">No items assigned to you.</p>';
     return;
   }
-  container.innerHTML = active.map(a => `
-    <div class="item-card">
-      <div class="item-header"><div class="item-name">${esc(a.itemName)}</div></div>
-      <div class="item-meta">
-        <div class="meta-pill">
-          <span class="pill-label">Qty</span>
-          <span class="pill-value">${a.quantity}</span>
+
+  // Build a lookup for item descriptions/notes from detail.items
+  const itemMeta = {};
+  (detail.items || []).forEach(i => { itemMeta[i.itemName] = i; });
+
+  container.innerHTML = active.map(a => {
+    const meta = itemMeta[a.itemName] || {};
+    const descHtml = meta.description
+      ? `<div class="item-desc-text">${esc(meta.description)}</div>` : '';
+    const notesHtml = meta.notes
+      ? `<div class="item-notes-text">Notes: ${esc(meta.notes)}</div>` : '';
+    return `
+      <div class="item-card">
+        <div class="item-header">
+          <div class="item-name">${esc(a.itemName)}</div>
         </div>
-      </div>
-    </div>`).join('');
+        <div class="item-meta">
+          <div class="meta-pill">
+            <span class="pill-label">Qty</span>
+            <span class="pill-value">${a.quantity}</span>
+          </div>
+        </div>
+        ${descHtml}
+        ${notesHtml}
+      </div>`;
+  }).join('');
 }
 
 /* ══════════════════════════════════════════════════════
