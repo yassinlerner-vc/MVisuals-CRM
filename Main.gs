@@ -7,8 +7,6 @@ const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
 
 // ============================================================
 //  COLUMN INDEXES — Users (0-based)
-//  Sheet: Users
-//  Cols:  Email | Name | Role | Status | CreatedBy | CreatedAt | Notes | MemberID
 // ============================================================
 const U = {
   EMAIL:      0,
@@ -92,6 +90,13 @@ const QI = {
 
 // ============================================================
 //  COLUMN INDEXES — Projects (0-based)
+//
+//  Sheet headers (row 1):
+//  Project ID | Quotation ID | Account ID | Account Name |
+//  Project Name | Project Description | Delivery Deadline |
+//  Due Date | Status | Internal Notes | Created At |
+//  Completed At | Total Amount | Currency |
+//  Total Commission | Remaining Amount
 // ============================================================
 const P = {
   PROJECT_ID:        0,
@@ -105,36 +110,35 @@ const P = {
   STATUS:            8,
   INTERNAL_NOTES:    9,
   CREATED_AT:        10,
-  COMPLETED_AT:      11
+  COMPLETED_AT:      11,
+  TOTAL_AMOUNT:      12,
+  CURRENCY:          13,
+  TOTAL_COMMISSION:  14,
+  REMAINING_AMOUNT:  15
 };
 
 // ============================================================
 //  COLUMN INDEXES — Project_Items (0-based)
 //
-//  Sheet headers (paste into row 1):
-//  Item ID | Project ID | Quotation ID | Account Name | Project Name |
-//  Project Description | Item Name | Quantity | Description | Notes |
-//  Delivery Status | Assigned To | Internal Notes | Due Date |
-//  Completed At | Created At
+//  Sheet headers (row 1):
+//  Item ID | Project ID | Quotation ID | Account Name |
+//  Project Name | Project Description | Item Name |
+//  Quantity | Description | Notes | Created At
 // ============================================================
 const PI = {
-  ITEM_ID:           0,
-  PROJECT_ID:        1,
-  QUOTATION_ID:      2,
-  ACCOUNT_NAME:      3,
-  PROJECT_NAME:      4,
-  PROJECT_DESC:      5,
-  ITEM_NAME:         6,
-  QUANTITY:          7,
-  DESCRIPTION:       8,
-  NOTES:             9,
-  DELIVERY_STATUS:   10,
-  ASSIGNED_TO:       11,
-  INTERNAL_NOTES:    12,
-  DUE_DATE:          13,
-  COMPLETED_AT:      14,
-  CREATED_AT:        15
+  ITEM_ID:     0,
+  PROJECT_ID:  1,
+  QUOTATION_ID:2,
+  ACCOUNT_NAME:3,
+  PROJECT_NAME:4,
+  PROJECT_DESC:5,
+  ITEM_NAME:   6,
+  QUANTITY:    7,
+  DESCRIPTION: 8,
+  NOTES:       9,
+  CREATED_AT:  10
 };
+
 // ============================================================
 //  MENU
 // ============================================================
