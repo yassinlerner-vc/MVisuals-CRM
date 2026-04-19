@@ -1,5 +1,7 @@
 // ============================================================
 //  PROJECTS — LIST
+//  Admins see all projects. Team members call getMyProjects()
+//  in Assignments.gs instead.
 // ============================================================
 function getProjects() {
   try {
@@ -19,22 +21,20 @@ function getProjects() {
       const row = data[i];
       if (!row[P.PROJECT_ID]) continue;
       try {
-        const projectId    = String(row[P.PROJECT_ID]);
-        const status       = String(row[P.STATUS] || 'Active');
-        const displayStatus = status; // Pending / Active / Completed — set by assignment flow later
-
         projects.push({
-          projectId,
-          quotationId:      String(row[P.QUOTATION_ID]   || ''),
-          accountId:        String(row[P.ACCOUNT_ID]     || ''),
-          accountName:      String(row[P.ACCOUNT_NAME]   || ''),
-          projectName:      String(row[P.PROJECT_NAME]   || ''),
-          projectDesc:      String(row[P.PROJECT_DESC]   || ''),
+          projectId:        String(row[P.PROJECT_ID]),
+          quotationId:      String(row[P.QUOTATION_ID]      || ''),
+          accountId:        String(row[P.ACCOUNT_ID]        || ''),
+          accountName:      String(row[P.ACCOUNT_NAME]      || ''),
+          projectName:      String(row[P.PROJECT_NAME]      || ''),
+          projectDesc:      String(row[P.PROJECT_DESC]      || ''),
           deliveryDeadline: fmtDate(row[P.DELIVERY_DEADLINE]),
           dueDate:          fmtDate(row[P.DUE_DATE]),
-          status,
-          displayStatus,
-          internalNotes:    String(row[P.INTERNAL_NOTES] || ''),
+          status:           String(row[P.STATUS]            || 'Needs Assignment'),
+          totalAmount:      Number(row[P.TOTAL_AMOUNT]      || 0),
+          currency:         String(row[P.CURRENCY]          || 'EGP'),
+          totalCommission:  Number(row[P.TOTAL_COMMISSION]  || 0),
+          remainingAmount:  Number(row[P.REMAINING_AMOUNT]  || 0),
           createdAt:        fmtDate(row[P.CREATED_AT]),
           completedAt:      fmtDate(row[P.COMPLETED_AT])
         });
@@ -43,10 +43,10 @@ function getProjects() {
       }
     }
 
-    const order = { 'Active': 0, 'Pending': 1, 'Completed': 2 };
+    const order = { 'Needs Assignment': 0, 'Assigned': 1, 'Delivered': 2 };
     projects.sort((a, b) => {
-      const ao = order[a.displayStatus] !== undefined ? order[a.displayStatus] : 0;
-      const bo = order[b.displayStatus] !== undefined ? order[b.displayStatus] : 0;
+      const ao = order[a.status] !== undefined ? order[a.status] : 1;
+      const bo = order[b.status] !== undefined ? order[b.status] : 1;
       if (ao !== bo) return ao - bo;
       return b.createdAt.localeCompare(a.createdAt);
     });
@@ -59,7 +59,7 @@ function getProjects() {
 }
 
 // ============================================================
-//  PROJECTS — GET ITEMS FOR A PROJECT
+//  PROJECTS — GET ITEMS (lightweight, for non-assignment views)
 // ============================================================
 function getProjectItems(projectId) {
   const piSheet = getSheet('Project_Items');
@@ -76,9 +76,8 @@ function getProjectItems(projectId) {
       quotationId: String(row[PI.QUOTATION_ID]),
       itemName:    String(row[PI.ITEM_NAME]),
       quantity:    Number(row[PI.QUANTITY] || 0),
-      description: String(row[PI.DESCRIPTION]   || ''),
-      notes:       String(row[PI.NOTES]          || ''),
-      internalNotes: String(row[PI.INTERNAL_NOTES] || ''),
+      description: String(row[PI.DESCRIPTION] || ''),
+      notes:       String(row[PI.NOTES]        || ''),
       createdAt:   row[PI.CREATED_AT]
         ? Utilities.formatDate(new Date(row[PI.CREATED_AT]), tz, 'yyyy-MM-dd') : ''
     }));
