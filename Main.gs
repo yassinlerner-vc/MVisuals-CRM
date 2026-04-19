@@ -18,7 +18,7 @@ const U = {
   CREATED_BY: 4,
   CREATED_AT: 5,
   NOTES:      6,
-  MEMBER_ID:  7   // NEW — e.g. M001, M002. Add this column to your Users sheet header.
+  MEMBER_ID:  7
 };
 
 // ============================================================
@@ -110,6 +110,12 @@ const P = {
 
 // ============================================================
 //  COLUMN INDEXES — Project_Items (0-based)
+//
+//  Sheet headers (paste into row 1):
+//  Item ID | Project ID | Quotation ID | Account Name | Project Name |
+//  Project Description | Item Name | Quantity | Description | Notes |
+//  Delivery Status | Assigned To | Internal Notes | Due Date |
+//  Completed At | Created At
 // ============================================================
 const PI = {
   ITEM_ID:           0,
@@ -124,43 +130,11 @@ const PI = {
   NOTES:             9,
   DELIVERY_STATUS:   10,
   ASSIGNED_TO:       11,
-  REDO_COUNT:        12,
-  UPLOADED_FILE_URL: 13,
-  INTERNAL_NOTES:    14,
-  DUE_DATE:          15,
-  COMPLETED_AT:      16,
-  CREATED_AT:        17
+  INTERNAL_NOTES:    12,
+  DUE_DATE:          13,
+  COMPLETED_AT:      14,
+  CREATED_AT:        15
 };
-
-// ============================================================
-//  COLUMN INDEXES — Assignments (0-based)
-//  Sheet: Assignments
-//  Created in Phase 2. Defined here for reference.
-// ============================================================
-const AS = {
-  ASSIGNMENT_ID:      0,
-  QUOTATION_ID:       1,
-  PROJECT_ID:         2,
-  PROJECT_ITEM_ID:    3,
-  ITEM_NAME:          4,
-  ACCOUNT_NAME:       5,
-  PROJECT_NAME:       6,
-  ASSIGNED_TO:        7,   // email
-  ASSIGNED_TO_NAME:   8,   // display name
-  QUANTITY_ASSIGNED:  9,
-  QUANTITY_DELIVERED: 10,
-  DELIVERY_STATUS:    11,  // Pending|Uploaded|Admin Approved|Admin Rejected|Client Approved|Client Rejected|Delivered
-  UPLOADED_FILE_URLS: 12,  // newline-separated
-  COMMISSION_MODE:    13,  // 'PerItem' | 'Manual'
-  COMMISSION_PCT:     14,  // numeric, e.g. 15 means 15%
-  COMMISSION_AMOUNT:  15,  // calculated EGP amount
-  REDO_COUNT:         16,
-  INTERNAL_NOTES:     17,
-  ASSIGNED_BY:        18,
-  ASSIGNED_AT:        19,
-  LAST_UPDATED_AT:    20
-};
-
 // ============================================================
 //  MENU
 // ============================================================
