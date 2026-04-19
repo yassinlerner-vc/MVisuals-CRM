@@ -13,7 +13,7 @@
     .topbar-right { display: flex; gap: 8px; align-items: center; }
     .user-chip { display: flex; align-items: center; gap: 7px; background: #f0f2fa; border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px; }
     .user-avatar { width: 22px; height: 22px; border-radius: 50%; background: #4361ee; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .user-chip-name { font-weight: 600; color: #1a1a2e; }
+    .user-chip-name { font-weight: 600; }
     .user-chip-role { color: #888; font-size: 11px; }
 
     .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
@@ -21,10 +21,20 @@
     .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
     .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
     .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-success { background: #1e8a4a; color: #fff; border-color: #1e8a4a; }
+    .btn-success:hover:not(:disabled) { background: #166b39; }
     .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
     .btn-ghost:hover { text-decoration: underline; }
+    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
+    .btn-sm-primary:hover { background: #eef0fd; }
+    .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover { background: #fdecea; }
+    .btn-link { background: none; border: none; color: #4361ee; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0; text-decoration: underline; }
 
     .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
+    .btn-success .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
+    .btn-primary .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
     .btn.loading .spinner { display: inline-block; }
     .btn.loading .btn-label { opacity: 0.7; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -39,9 +49,9 @@
     .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
 
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .badge-active      { background: #fff3cd; color: #856404; }
-    .badge-pending     { background: #e8ecfd; color: #2f4bcc; }
-    .badge-completed   { background: #1e8a4a; color: #fff; }
+    .badge-needs-assignment { background: #fff3cd; color: #856404; }
+    .badge-assigned  { background: #e8ecfd; color: #2f4bcc; }
+    .badge-delivered { background: #d1f2e1; color: #0f5132; }
 
     .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; transition: all 0.15s; }
@@ -51,16 +61,16 @@
     .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .list-count { font-size: 13px; color: #666; }
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
-    thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    tbody tr:nth-child(odd)  { background: #fff; }
-    tbody tr:nth-child(even) { background: #f8f9ff; }
-    tbody tr:hover { background: #eef0fd; cursor: pointer; }
-    tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
-    .col-id     { width: 90px; font-weight: 700; color: #4361ee; }
-    .col-status { width: 130px; }
-    .col-date   { width: 110px; color: #666; }
-    .col-acts   { width: 90px; text-align: right; }
+    table.main-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
+    table.main-table thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    table.main-table tbody tr:nth-child(odd)  { background: #fff; }
+    table.main-table tbody tr:nth-child(even) { background: #f8f9ff; }
+    table.main-table tbody tr:hover { background: #eef0fd; cursor: pointer; }
+    table.main-table tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
+    .col-id { width: 90px; font-weight: 700; color: #4361ee; }
+    .col-status { width: 150px; }
+    .col-date { width: 110px; color: #666; }
+    .col-acts { width: 90px; text-align: right; }
 
     .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
     h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
@@ -70,22 +80,72 @@
     .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 3px; }
     .meta-value { color: #1a1a2e; font-weight: 600; }
 
+    /* ── Assignment section ── */
+    .assign-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .assign-toolbar label { font-size: 12px; font-weight: 600; color: #555; white-space: nowrap; }
+    .assign-toolbar select { padding: 5px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; }
+    .assign-progress { font-size: 12px; color: #666; margin-left: auto; }
+    .assign-progress strong { color: #1a1a2e; }
+
+    .item-assign-card { border: 1px solid #e2e4ef; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .item-assign-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: #f8f9ff; flex-wrap: wrap; gap: 8px; }
+    .item-assign-name { font-weight: 700; font-size: 14px; }
+    .item-assign-qty { font-size: 12px; color: #666; }
+    .item-assign-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .assign-pill { background: #e8ecfd; color: #2f4bcc; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+    .assign-pill-unassigned { background: #fff3cd; color: #856404; }
+    .assign-pill-admin { background: #f0f2fa; color: #555; }
+    .pill-remove { background: none; border: none; cursor: pointer; color: inherit; font-size: 13px; line-height: 1; padding: 0 0 0 2px; opacity: 0.7; }
+    .pill-remove:hover { opacity: 1; }
+
+    .item-assign-body { padding: 10px 14px; background: #fff; border-top: 1px solid #e2e4ef; }
+    .inline-assign-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .inline-assign-row select { flex: 1; min-width: 160px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+    .inline-assign-row input { width: 80px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+    .inline-assign-row label { font-size: 12px; color: #888; white-space: nowrap; }
+
+    /* ── Commission section ── */
+    .commission-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .commission-table thead th { background: #f0f2fa; color: #555; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .commission-table tbody td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
+    .commission-table tfoot td { padding: 8px 10px; border-top: 2px solid #e2e4ef; font-weight: 700; font-size: 13px; }
+    .commission-table .col-person { min-width: 140px; }
+    .commission-table .col-work   { color: #555; font-size: 12px; }
+    .commission-table .col-pct    { width: 100px; }
+    .commission-table .col-amt    { width: 130px; text-align: right; font-weight: 600; }
+    .pct-input-wrap { display: flex; align-items: center; border: 1px solid #d0d3e0; border-radius: 5px; overflow: hidden; width: 90px; }
+    .pct-input-wrap input { border: none; padding: 5px 7px; font-size: 13px; width: 100%; }
+    .pct-input-wrap input:focus { outline: none; }
+    .pct-input-wrap span { padding: 0 7px; color: #888; background: #f0f2fa; border-left: 1px solid #d0d3e0; font-size: 13px; align-self: stretch; display: flex; align-items: center; }
+    .gross-profit-row td { background: #f8fff8; color: #0f5132; }
+    .total-commission-row td { background: #f8f9ff; }
+
+    /* ── Team (read-only) item cards ── */
     .item-card { background: #fff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
     .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
-    .item-name { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+    .item-name { font-weight: 700; font-size: 14px; }
     .item-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; align-items: flex-start; }
-    .meta-pill { background: #f0f2fa; border-radius: 5px; padding: 4px 10px; font-size: 12px; color: #444; line-height: 1.45; }
+    .meta-pill { background: #f0f2fa; border-radius: 5px; padding: 4px 10px; font-size: 12px; }
     .meta-pill .pill-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 1px; }
     .meta-pill .pill-value { font-weight: 600; color: #1a1a2e; }
-    .meta-pill.notes-pill { background: #fffbea; border: 1px solid #f0e0a0; flex: 1; min-width: 180px; }
-    .meta-pill.notes-pill .pill-label { color: #a07000; }
-    .meta-pill.notes-pill .pill-value { font-weight: 400; color: #5a4500; }
 
-    .empty-items { text-align: center; padding: 32px; color: #888; font-size: 13px; }
+    .commission-banner { background: #e8ecfd; border: 1px solid #c5cdf9; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .commission-banner-label { font-size: 12px; color: #2f4bcc; font-weight: 600; }
+    .commission-banner-amount { font-size: 18px; font-weight: 700; color: #2f4bcc; }
 
     .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
     .spacer { flex: 1; }
     .hidden { display: none !important; }
+
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 400px; width: 92%; }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+    input, select { font-family: inherit; color: #1a1a2e; }
+    .empty-state { text-align: center; padding: 40px; color: #888; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -103,14 +163,14 @@
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
   </div>
-  <div class="filter-tabs" id="filterTabs">
-    <button class="filter-tab active" data-filter="all"       onclick="setFilter('all')">All</button>
-    <button class="filter-tab"        data-filter="Active"    onclick="setFilter('Active')">🟡 Needs Assignment</button>
-    <button class="filter-tab"        data-filter="Pending"   onclick="setFilter('Pending')">In Progress</button>
-    <button class="filter-tab"        data-filter="Completed" onclick="setFilter('Completed')">Completed</button>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all"              onclick="setFilter('all')">All</button>
+    <button class="filter-tab"        data-filter="Needs Assignment" onclick="setFilter('Needs Assignment')">🟡 Needs Assignment</button>
+    <button class="filter-tab"        data-filter="Assigned"         onclick="setFilter('Assigned')">🔵 Assigned</button>
+    <button class="filter-tab"        data-filter="Delivered"        onclick="setFilter('Delivered')">✅ Delivered</button>
   </div>
   <div class="table-wrap">
-    <table id="listTable">
+    <table class="main-table" id="listTable">
       <thead>
         <tr>
           <th class="col-id">Quotation</th>
@@ -131,29 +191,114 @@
 
 <!-- ═══ PROJECT DETAIL VIEW ═══ -->
 <div class="view" id="viewProject">
+
+  <!-- Project overview -->
   <div class="section" id="projectSummary"></div>
-  <div id="projectItems"></div>
+
+  <!-- ADMIN: Assignment phase -->
+  <div id="phaseAssign" class="hidden">
+    <div class="section">
+      <h3>Assign Items</h3>
+
+      <!-- Quick-assign toolbar -->
+      <div class="assign-toolbar">
+        <label>Assign all unassigned to:</label>
+        <select id="quickAssignSelect"></select>
+        <button class="btn-sm btn-sm-primary" onclick="quickAssignAll()">Apply</button>
+        <span class="assign-progress" id="assignProgress"></span>
+      </div>
+
+      <div id="itemAssignCards"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN: Commission phase (shown after assignment confirmed, or if already assigned) -->
+  <div id="phaseCommission" class="hidden">
+    <div class="section">
+      <h3>Set Commissions</h3>
+      <table class="commission-table" id="commissionTable">
+        <thead>
+          <tr>
+            <th class="col-person">Person</th>
+            <th class="col-work">Assigned Work</th>
+            <th class="col-pct">Commission %</th>
+            <th class="col-amt">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="commissionBody"></tbody>
+        <tfoot id="commissionFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- TEAM: Read-only assignment view -->
+  <div id="phaseTeam" class="hidden">
+    <div id="teamCommissionBanner"></div>
+    <div class="section">
+      <h3>Your Assigned Items</h3>
+      <div id="teamItemCards"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN read-only summary (after assigned, before editing) -->
+  <div id="phaseReadOnly" class="hidden">
+    <div class="section">
+      <h3>Assignments</h3>
+      <div id="readOnlyAssignments"></div>
+    </div>
+    <div class="section">
+      <h3>Commissions</h3>
+      <div id="readOnlyCommissions"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══ FORM ACTIONS ═══ -->
 <div class="form-actions hidden" id="formActions">
   <button class="btn btn-ghost" onclick="showList()">← Back</button>
   <div class="spacer"></div>
+  <!-- Admin assignment flow -->
+  <button class="btn btn-primary hidden" id="btnConfirmAssign" onclick="confirmAssignStep()">
+    <div class="spinner"></div><span class="btn-label">Confirm Assignments →</span>
+  </button>
+  <button class="btn btn-success hidden" id="btnConfirmAll" onclick="askConfirmAll()">
+    <div class="spinner"></div><span class="btn-label">Confirm &amp; Notify Team</span>
+  </button>
+  <!-- Re-assign button (shown when already Assigned) -->
+  <button class="btn hidden" id="btnReAssign" onclick="enterReAssignMode()">
+    <span class="btn-label">Re-assign</span>
+  </button>
+</div>
+
+<!-- Confirm & Notify dialog -->
+<div class="overlay" id="overlayConfirmAll">
+  <div class="dialog">
+    <h4>Confirm &amp; Notify Team</h4>
+    <p>This will save all assignments and commissions, update the project status to Assigned, and send email notifications to the assigned team members. Continue?</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayConfirmAll')">Cancel</button>
+      <button class="btn btn-success" id="btnConfirmAllDo" onclick="doConfirmAll()">
+        <div class="spinner"></div><span class="btn-label">Yes, Confirm &amp; Notify</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
-/* ══════════════════════════════
+/* ══════════════════════════════════════════════════════
    STATE
-══════════════════════════════ */
+══════════════════════════════════════════════════════ */
 let allProjects    = [];
-let currentProject = null;
-let currentItems   = [];
 let activeFilter   = 'all';
 let currentUser    = null;
+let currentDetail  = null;   // { project, items, assignments, commissions, teamMembers }
+let draftAssignments = [];   // working state for assignment UI [{itemName, assignedToEmail, assignedToName, quantity}]
+let assignPhase    = 'assign'; // 'assign' | 'commission'
 
-/* ══════════════════════════════
+/* ══════════════════════════════════════════════════════
    PROCESSING / TOAST
-══════════════════════════════ */
+══════════════════════════════════════════════════════ */
 function startProcessing(btn, msg) {
   document.getElementById('procBar').className = 'proc-bar active';
   showToast(msg || 'Loading…', 'info', 0);
@@ -168,32 +313,39 @@ function stopProcessing(btn) {
 let toastTimer = null;
 function showToast(msg, type, duration) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast toast-' + (type || 'info'); t.style.display = 'block';
+  t.textContent = msg; t.className = 'toast toast-' + (type||'info'); t.style.display = 'block';
   if (toastTimer) clearTimeout(toastTimer);
   if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3500);
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
-/* ══════════════════════════════
+/* ══════════════════════════════════════════════════════
    INIT
-══════════════════════════════ */
+══════════════════════════════════════════════════════ */
 function init() {
   showToast('Loading…', 'info', 0);
   google.script.run
     .withSuccessHandler(user => {
       currentUser = user;
       renderUserChip(user);
-      google.script.run
-        .withSuccessHandler(renderList)
-        .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
-        .getProjects();
+      if (user.role === 'Admin') {
+        google.script.run
+          .withSuccessHandler(renderList)
+          .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
+          .getProjects();
+      } else {
+        google.script.run
+          .withSuccessHandler(renderTeamList)
+          .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
+          .getMyProjects();
+      }
     })
     .withFailureHandler(err => showAccessError(err.message))
     .getCurrentUser();
 }
 
 function renderUserChip(user) {
-  const initials = (user.name || user.email).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const initials = (user.name||user.email).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('topbarRight').innerHTML = `
     <div class="user-chip">
       <div class="user-avatar">${esc(initials)}</div>
@@ -204,17 +356,17 @@ function renderUserChip(user) {
 
 function showAccessError(msg) {
   document.getElementById('viewList').innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;padding:40px;">
+    <div class="empty-state">
       <div style="font-size:48px;margin-bottom:16px;">🔒</div>
       <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Access Denied</h2>
-      <p style="font-size:13px;color:#888;">${esc(msg)}</p>
+      <p>${esc(msg)}</p>
     </div>`;
   hideToast();
 }
 
-/* ══════════════════════════════
-   LIST VIEW
-══════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   LIST — ADMIN
+══════════════════════════════════════════════════════ */
 function setFilter(f) {
   activeFilter = f;
   document.querySelectorAll('.filter-tab').forEach(t =>
@@ -225,148 +377,558 @@ function setFilter(f) {
 function renderList(projects) {
   allProjects = projects || [];
   hideToast();
-
   const filtered = activeFilter === 'all'
     ? allProjects
-    : allProjects.filter(p => p.displayStatus === activeFilter);
-
+    : allProjects.filter(p => p.status === activeFilter);
   document.getElementById('listCount').textContent =
     filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
-
   const tbody = document.getElementById('listBody');
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>`;
     return;
   }
-
   tbody.innerHTML = filtered.map(p => {
-    const dsKey = (p.displayStatus || '').toLowerCase();
-    return `
-    <tr onclick="openProject('${esc(p.projectId)}')">
+    const sk = statusKey(p.status);
+    return `<tr onclick="openProject('${esc(p.projectId)}')">
       <td class="col-id">${esc(p.quotationId)}</td>
       <td><strong>${esc(p.accountName)}</strong></td>
       <td>${esc(p.projectName)}</td>
-      <td class="col-date">${p.dueDate || '—'}</td>
-      <td class="col-date">${p.deliveryDeadline || '—'}</td>
-      <td class="col-status"><span class="badge badge-${dsKey}">${esc(p.displayStatus)}</span></td>
-      <td class="col-acts">
-        <button class="btn-sm btn-sm-primary"
-          onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button>
-      </td>
+      <td class="col-date">${p.dueDate||'—'}</td>
+      <td class="col-date">${p.deliveryDeadline||'—'}</td>
+      <td class="col-status"><span class="badge badge-${sk}">${esc(p.status)}</span></td>
+      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
     </tr>`;
   }).join('');
 }
 
-function showList() {
-  switchView('list');
-  document.getElementById('topbarTitle').textContent = 'Projects';
-  renderUserChip(currentUser);
-  document.getElementById('formActions').classList.add('hidden');
-  google.script.run
-    .withSuccessHandler(renderList)
-    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
-    .getProjects();
+/* ══════════════════════════════════════════════════════
+   LIST — TEAM
+══════════════════════════════════════════════════════ */
+function renderTeamList(projects) {
+  allProjects = projects || [];
+  hideToast();
+  // Hide admin filter tabs
+  document.querySelector('.filter-tabs').classList.add('hidden');
+  document.getElementById('listCount').textContent =
+    allProjects.length + ' project' + (allProjects.length !== 1 ? 's' : '');
+  const tbody = document.getElementById('listBody');
+  if (!allProjects.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects assigned to you yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allProjects.map(p => {
+    const sk = statusKey(p.status);
+    const itemSummary = (p.myItems||[]).map(i => i.itemName + ' ×' + i.quantity).join(', ');
+    return `<tr onclick="openProject('${esc(p.projectId)}')">
+      <td class="col-id">${esc(p.quotationId)}</td>
+      <td><strong>${esc(p.accountName)}</strong></td>
+      <td>${esc(p.projectName)}</td>
+      <td class="col-date">${p.dueDate||'—'}</td>
+      <td class="col-date">${p.deliveryDeadline||'—'}</td>
+      <td class="col-status"><span class="badge badge-${sk}">${esc(p.status)}</span></td>
+      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
+    </tr>`;
+  }).join('');
 }
 
-/* ══════════════════════════════
-   PROJECT DETAIL
-══════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   OPEN PROJECT
+══════════════════════════════════════════════════════ */
 function openProject(projectId) {
-  const p = allProjects.find(x => x.projectId === projectId);
-  if (!p) return;
-  currentProject = p;
   startProcessing(null, 'Loading project…');
   google.script.run
-    .withSuccessHandler(result => {
+    .withSuccessHandler(detail => {
       stopProcessing(null); hideToast();
-      currentItems = result.items || [];
-      renderProjectDetail(p);
+      if (!detail) { showToast('Could not load project.', 'error'); return; }
+      currentDetail = detail;
+      draftAssignments = JSON.parse(JSON.stringify(detail.assignments || []));
+      renderProjectDetail(detail);
       switchView('project');
-      document.getElementById('formActions').classList.remove('hidden');
-      document.getElementById('topbarTitle').textContent = p.quotationId + ' — ' + p.projectName;
+      document.getElementById('topbarTitle').textContent =
+        detail.project.quotationId + ' — ' + detail.project.projectName;
       renderUserChip(currentUser);
     })
     .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
-    .getProjectItems(projectId);
+    .getProjectDetail(projectId);
 }
 
-function renderProjectDetail(p) {
-  const dsKey = (p.displayStatus || '').toLowerCase();
+function renderProjectDetail(detail) {
+  const p  = detail.project;
+  const sk = statusKey(p.status);
+
+  // Overview
   document.getElementById('projectSummary').innerHTML = `
     <h3>Project Overview</h3>
     <div class="meta-grid">
       <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
       <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
       <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate || '—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Delivery Deadline</div><div class="meta-value">${p.deliveryDeadline || '—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value">
-        <span class="badge badge-${dsKey}">${esc(p.displayStatus)}</span>
-      </div></div>
+      <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
+      <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
+      ${p.status !== 'Needs Assignment' ? `
+      <div class="meta-cell"><div class="meta-label">Total Commission</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalCommission)}</div></div>
+      <div class="meta-cell"><div class="meta-label">Gross Profit</div><div class="meta-value">${esc(p.currency)} ${fmt(p.remainingAmount)}</div></div>` : ''}
       ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
     </div>`;
-  renderItems();
+
+  // Hide all phases
+  ['phaseAssign','phaseCommission','phaseTeam','phaseReadOnly'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+
+  const bar = document.getElementById('formActions');
+  bar.classList.remove('hidden');
+  ['btnConfirmAssign','btnConfirmAll','btnReAssign'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+
+  if (currentUser.role === 'Admin') {
+    if (p.status === 'Needs Assignment') {
+      // Assignment phase
+      assignPhase = 'assign';
+      document.getElementById('phaseAssign').classList.remove('hidden');
+      renderAssignPhase(detail);
+      document.getElementById('btnConfirmAssign').classList.remove('hidden');
+    } else {
+      // Already assigned — show read-only summary + re-assign button
+      document.getElementById('phaseReadOnly').classList.remove('hidden');
+      renderReadOnlySummary(detail);
+      document.getElementById('btnReAssign').classList.remove('hidden');
+    }
+  } else {
+    // Team read-only view
+    document.getElementById('phaseTeam').classList.remove('hidden');
+    renderTeamView(detail);
+    // No action buttons for team
+  }
 }
 
-function renderItems() {
-  const container = document.getElementById('projectItems');
-  if (!currentItems.length) {
-    container.innerHTML = `<div class="section"><p class="empty-items">No items found for this project.</p></div>`;
-    return;
+/* ══════════════════════════════════════════════════════
+   ASSIGN PHASE — ADMIN
+══════════════════════════════════════════════════════ */
+function renderAssignPhase(detail) {
+  const members = detail.teamMembers || [];
+
+  // Populate quick-assign dropdown
+  const qs = document.getElementById('quickAssignSelect');
+  qs.innerHTML = members.map(m =>
+    `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
+  ).join('');
+
+  // Render item cards
+  renderItemAssignCards(detail.items, members);
+  updateAssignProgress(detail.items);
+}
+
+function renderItemAssignCards(items, members) {
+  const container = document.getElementById('itemAssignCards');
+  container.innerHTML = '';
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'item-assign-card';
+    card.dataset.itemName = item.itemName;
+    container.appendChild(card);
+    rebuildItemCard(card, item, members);
+  });
+}
+
+function rebuildItemCard(card, item, members) {
+  const itemName = item.itemName;
+  const totalQty = item.quantity;
+
+  // Current draft assignments for this item
+  const myDraft = draftAssignments.filter(a => a.itemName === itemName);
+  const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
+  const remaining   = Math.max(0, totalQty - assignedQty);
+
+  // Build pills
+  let pillsHtml = myDraft.map((a,idx) => `
+    <span class="assign-pill ${a.assignedToEmail === '__admin__' ? 'assign-pill-admin' : ''}">
+      ${esc(a.assignedToName)}: ${a.quantity}
+      <button class="pill-remove" onclick="removeDraftAssignment('${esc(itemName)}',${idx})" title="Remove">×</button>
+    </span>`).join('');
+  if (remaining > 0) {
+    pillsHtml += `<span class="assign-pill assign-pill-unassigned">Unassigned: ${remaining}</span>`;
   }
 
-  container.innerHTML = `
-    <div class="section">
-      <h3>Project Items</h3>
-      ${currentItems.map(item => buildItemCard(item)).join('')}
-    </div>`;
-}
+  // Members dropdown options
+  const opts = (members||[]).map(m =>
+    `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
+  ).join('');
 
-function buildItemCard(item) {
-  let pills = `
-    <div class="meta-pill">
-      <span class="pill-label">Qty</span>
-      <span class="pill-value">${esc(String(item.quantity || '—'))}</span>
-    </div>`;
-
-  if (item.description) pills += `
-    <div class="meta-pill" style="flex:1;min-width:160px;">
-      <span class="pill-label">Description</span>
-      <span class="pill-value" style="font-weight:400;color:#444;">${esc(item.description)}</span>
-    </div>`;
-
-  if (item.notes) pills += `
-    <div class="meta-pill notes-pill" style="flex:1;min-width:160px;">
-      <span class="pill-label">Notes</span>
-      <span class="pill-value">${esc(item.notes)}</span>
-    </div>`;
-
-  return `
-    <div class="item-card">
-      <div class="item-header">
-        <div class="item-name">${esc(item.itemName)}</div>
+  card.innerHTML = `
+    <div class="item-assign-header">
+      <div>
+        <div class="item-assign-name">${esc(itemName)}</div>
+        <div class="item-assign-qty">Total: ${totalQty}</div>
+        ${item.description ? `<div style="font-size:11px;color:#888;margin-top:2px;">${esc(item.description)}</div>` : ''}
       </div>
-      <div class="item-meta">${pills}</div>
-    </div>`;
+      <div class="item-assign-pills">${pillsHtml}</div>
+    </div>
+    ${remaining > 0 ? `
+    <div class="item-assign-body">
+      <div class="inline-assign-row">
+        <label>Assign</label>
+        <input type="number" id="qty_${esc(itemName)}" value="${remaining}" min="1" max="${remaining}" style="width:70px;">
+        <label>to</label>
+        <select id="person_${esc(itemName)}">${opts}</select>
+        <button class="btn-sm btn-sm-primary" onclick="addDraftAssignment('${esc(itemName)}')">+ Add</button>
+      </div>
+    </div>` : ''}`;
 }
 
-/* ══════════════════════════════
-   VIEW HELPERS
-══════════════════════════════ */
+function addDraftAssignment(itemName) {
+  const item = currentDetail.items.find(i => i.itemName === itemName);
+  const members = currentDetail.teamMembers;
+
+  const qtyEl = document.getElementById('qty_' + itemName);
+  const selEl = document.getElementById('person_' + itemName);
+  if (!qtyEl || !selEl) return;
+
+  const qty = parseInt(qtyEl.value, 10);
+  const email = selEl.value;
+  const name = selEl.options[selEl.selectedIndex].dataset.name || email;
+
+  if (!qty || qty < 1) { showToast('Enter a valid quantity.', 'error'); return; }
+
+  // Check doesn't exceed remaining
+  const myDraft = draftAssignments.filter(a => a.itemName === itemName);
+  const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
+  const remaining = item.quantity - assignedQty;
+  if (qty > remaining) { showToast('Quantity exceeds remaining (' + remaining + ').', 'error'); return; }
+
+  draftAssignments.push({ itemName, assignedToEmail: email, assignedToName: name, quantity: qty });
+
+  // Rebuild this card
+  const card = document.querySelector('[data-item-name="' + itemName + '"]');
+  if (card) rebuildItemCard(card, item, members);
+  updateAssignProgress(currentDetail.items);
+}
+
+function removeDraftAssignment(itemName, idx) {
+  const item    = currentDetail.items.find(i => i.itemName === itemName);
+  const members = currentDetail.teamMembers;
+  // idx is index among this item's draft assignments
+  let counter = 0;
+  draftAssignments = draftAssignments.filter(a => {
+    if (a.itemName !== itemName) return true;
+    return counter++ !== idx;
+  });
+  const card = document.querySelector('[data-item-name="' + itemName + '"]');
+  if (card) rebuildItemCard(card, item, members);
+  updateAssignProgress(currentDetail.items);
+}
+
+function quickAssignAll() {
+  const qs = document.getElementById('quickAssignSelect');
+  const email = qs.value;
+  const name  = qs.options[qs.selectedIndex] ? qs.options[qs.selectedIndex].text.split(' (')[0] : email;
+  const members = currentDetail.teamMembers;
+
+  currentDetail.items.forEach(item => {
+    const myDraft = draftAssignments.filter(a => a.itemName === item.itemName);
+    const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
+    const remaining = item.quantity - assignedQty;
+    if (remaining > 0) {
+      draftAssignments.push({
+        itemName: item.itemName,
+        assignedToEmail: email,
+        assignedToName: name,
+        quantity: remaining
+      });
+    }
+  });
+
+  renderItemAssignCards(currentDetail.items, members);
+  updateAssignProgress(currentDetail.items);
+}
+
+function updateAssignProgress(items) {
+  let total = 0, assigned = 0;
+  items.forEach(item => {
+    total += item.quantity;
+    const myDraft = draftAssignments.filter(a => a.itemName === item.itemName);
+    assigned += myDraft.reduce((s,a) => s + a.quantity, 0);
+  });
+  const el = document.getElementById('assignProgress');
+  const remaining = total - assigned;
+  el.innerHTML = `<strong>${assigned}/${total}</strong> assigned` +
+    (remaining > 0 ? ` · <span style="color:#856404;">${remaining} will go to you (Admin)</span>` : ' · <span style="color:#1e8a4a;">All items covered ✓</span>');
+}
+
+/* ══════════════════════════════════════════════════════
+   CONFIRM ASSIGN STEP → move to commission phase
+══════════════════════════════════════════════════════ */
+function confirmAssignStep() {
+  // Save assignments to sheet first
+  const btn = document.getElementById('btnConfirmAssign');
+  startProcessing(btn, 'Saving assignments…');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      // Move to commission phase — reload detail to get fresh assignments
+      google.script.run
+        .withSuccessHandler(detail => {
+          hideToast();
+          currentDetail = detail;
+          assignPhase = 'commission';
+          document.getElementById('phaseAssign').classList.add('hidden');
+          document.getElementById('phaseCommission').classList.remove('hidden');
+          renderCommissionPhase(detail);
+          document.getElementById('btnConfirmAssign').classList.add('hidden');
+          document.getElementById('btnConfirmAll').classList.remove('hidden');
+        })
+        .withFailureHandler(err => showToast('Reload error: ' + err.message, 'error'))
+        .getProjectDetail(currentDetail.project.projectId);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .saveAssignments(currentDetail.project.projectId, draftAssignments);
+}
+
+/* ══════════════════════════════════════════════════════
+   COMMISSION PHASE — ADMIN
+══════════════════════════════════════════════════════ */
+function renderCommissionPhase(detail) {
+  const p       = detail.project;
+  const items   = detail.items;
+  const active  = (detail.assignments || []).filter(a => a.status !== 'Superseded');
+
+  // Group assigned work by person
+  const byPerson = {};
+  active.forEach(a => {
+    if (!byPerson[a.assignedToEmail]) {
+      byPerson[a.assignedToEmail] = { name: a.assignedToName, email: a.assignedToEmail, items: [] };
+    }
+    byPerson[a.assignedToEmail].items.push({ itemName: a.itemName, quantity: a.quantity });
+  });
+
+  // Determine role per person
+  const memberRoles = {};
+  (detail.teamMembers || []).forEach(m => { memberRoles[m.email] = m.role; });
+
+  // Pre-fill from existing commissions if re-entering
+  const existingComm = {};
+  (detail.commissions || []).forEach(c => {
+    if (c.personEmail) existingComm[c.personEmail] = { pct: c.commissionPct, amt: c.commissionAmt };
+  });
+
+  const rows = Object.values(byPerson);
+  const tbody = document.getElementById('commissionBody');
+  tbody.innerHTML = rows.map(person => {
+    const workSummary = person.items.map(i => esc(i.itemName) + ' ×' + i.quantity).join(', ');
+    const ex = existingComm[person.email] || {};
+    const role = memberRoles[person.email] || 'Team';
+    return `<tr data-email="${esc(person.email)}" data-name="${esc(person.name)}" data-role="${esc(role)}">
+      <td class="col-person"><strong>${esc(person.name)}</strong><br><span style="font-size:11px;color:#888;">${esc(person.email)}</span></td>
+      <td class="col-work">${workSummary}</td>
+      <td class="col-pct">
+        <div class="pct-input-wrap">
+          <input type="number" class="comm-pct" min="0" max="100" step="0.1"
+            value="${ex.pct || ''}" placeholder="0" oninput="recalcCommissions()">
+          <span>%</span>
+        </div>
+      </td>
+      <td class="col-amt comm-amt-cell">${esc(p.currency)} 0.00</td>
+    </tr>`;
+  }).join('');
+
+  recalcCommissions();
+}
+
+function recalcCommissions() {
+  const p = currentDetail.project;
+  const total = p.totalAmount;
+  let sumCommissions = 0;
+
+  document.querySelectorAll('#commissionBody tr').forEach(row => {
+    const pct = parseFloat(row.querySelector('.comm-pct').value) || 0;
+    const amt = total * pct / 100;
+    sumCommissions += amt;
+    row.querySelector('.comm-amt-cell').textContent =
+      esc(p.currency) + ' ' + fmt(amt);
+  });
+
+  const grossProfit = total - sumCommissions;
+  const foot = document.getElementById('commissionFoot');
+  foot.innerHTML = `
+    <tr class="total-commission-row">
+      <td colspan="3">Total Commission</td>
+      <td class="col-amt">${esc(p.currency)} ${fmt(sumCommissions)}</td>
+    </tr>
+    <tr class="gross-profit-row">
+      <td colspan="3"><strong>Gross Profit (Remaining)</strong></td>
+      <td class="col-amt"><strong>${esc(p.currency)} ${fmt(grossProfit)}</strong></td>
+    </tr>
+    <tr>
+      <td colspan="3" style="color:#888;font-size:12px;">Project Total</td>
+      <td class="col-amt" style="color:#888;">${esc(p.currency)} ${fmt(total)}</td>
+    </tr>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   CONFIRM ALL — save commissions + notify
+══════════════════════════════════════════════════════ */
+function askConfirmAll() {
+  document.getElementById('overlayConfirmAll').classList.add('open');
+}
+
+function doConfirmAll() {
+  const btn = document.getElementById('btnConfirmAllDo');
+  closeDialog('overlayConfirmAll');
+
+  const p     = currentDetail.project;
+  const total = p.totalAmount;
+  let sumCommissions = 0;
+  const commissions = [];
+
+  document.querySelectorAll('#commissionBody tr').forEach(row => {
+    const pct   = parseFloat(row.querySelector('.comm-pct').value) || 0;
+    const amt   = total * pct / 100;
+    sumCommissions += amt;
+    commissions.push({
+      email:   row.dataset.email,
+      name:    row.dataset.name,
+      role:    row.dataset.role,
+      percent: pct,
+      amount:  amt
+    });
+  });
+  const grossProfit = total - sumCommissions;
+
+  startProcessing(btn, 'Confirming & notifying…');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Project assigned and team notified!', 'success');
+      setTimeout(showList, 1400);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .confirmAssignmentsAndCommissions(p.projectId, commissions, grossProfit);
+}
+
+/* ══════════════════════════════════════════════════════
+   READ-ONLY SUMMARY (Admin, already-assigned project)
+══════════════════════════════════════════════════════ */
+function renderReadOnlySummary(detail) {
+  const p      = detail.project;
+  const active = (detail.assignments || []).filter(a => a.status !== 'Superseded');
+
+  // Group by person
+  const byPerson = {};
+  active.forEach(a => {
+    if (!byPerson[a.assignedToEmail]) byPerson[a.assignedToEmail] = { name: a.assignedToName, items: [] };
+    byPerson[a.assignedToEmail].items.push(a.itemName + ' ×' + a.quantity);
+  });
+
+  document.getElementById('readOnlyAssignments').innerHTML = Object.entries(byPerson).map(([email, v]) => `
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;">
+      <strong style="min-width:140px;">${esc(v.name)}</strong>
+      <span style="color:#555;">${v.items.map(esc).join(' · ')}</span>
+    </div>`).join('') || '<p style="color:#888;font-size:13px;">No assignments found.</p>';
+
+  // Commission table
+  const comms = detail.commissions || [];
+  document.getElementById('readOnlyCommissions').innerHTML = comms.length ? `
+    <table style="width:100%;font-size:13px;border-collapse:collapse;">
+      ${comms.map(c => `
+        <tr style="border-bottom:1px solid #f0f2fa;">
+          <td style="padding:7px 10px;font-weight:600;">${esc(c.personName)}</td>
+          <td style="padding:7px 10px;color:#555;font-size:12px;">${c.commissionPct ? c.commissionPct + '%' : ''}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:600;">${esc(p.currency)} ${fmt(c.commissionAmt)}</td>
+          <td style="padding:7px 10px;"><span class="badge badge-${c.paymentStatus === 'Paid' ? 'delivered' : 'needs-assignment'}" style="font-size:10px;">${esc(c.paymentStatus)}</span></td>
+        </tr>`).join('')}
+    </table>` : '<p style="color:#888;font-size:13px;">No commissions set.</p>';
+}
+
+/* ══════════════════════════════════════════════════════
+   RE-ASSIGN (Admin re-opens assignment on assigned project)
+══════════════════════════════════════════════════════ */
+function enterReAssignMode() {
+  assignPhase = 'assign';
+  draftAssignments = JSON.parse(JSON.stringify(
+    (currentDetail.assignments||[]).filter(a => a.status !== 'Superseded')
+  ));
+  document.getElementById('phaseReadOnly').classList.add('hidden');
+  document.getElementById('phaseAssign').classList.remove('hidden');
+  renderAssignPhase(currentDetail);
+  document.getElementById('btnReAssign').classList.add('hidden');
+  document.getElementById('btnConfirmAssign').classList.remove('hidden');
+}
+
+/* ══════════════════════════════════════════════════════
+   TEAM VIEW (read-only)
+══════════════════════════════════════════════════════ */
+function renderTeamView(detail) {
+  const p      = detail.project;
+  const active = (detail.assignments||[]).filter(a =>
+    a.assignedToEmail === currentUser.email && a.status !== 'Superseded');
+
+  // Commission banner
+  const myComm = (detail.commissions||[]).find(c => c.personEmail === currentUser.email);
+  const banner = document.getElementById('teamCommissionBanner');
+  if (myComm) {
+    banner.innerHTML = `
+      <div class="commission-banner">
+        <div class="commission-banner-label">Your Commission for this project</div>
+        <div class="commission-banner-amount">${esc(p.currency)} ${fmt(myComm.commissionAmt)}</div>
+      </div>`;
+  } else {
+    banner.innerHTML = '';
+  }
+
+  // Item cards
+  const container = document.getElementById('teamItemCards');
+  if (!active.length) {
+    container.innerHTML = '<p class="empty-state">No items assigned to you.</p>';
+    return;
+  }
+  container.innerHTML = active.map(a => `
+    <div class="item-card">
+      <div class="item-header"><div class="item-name">${esc(a.itemName)}</div></div>
+      <div class="item-meta">
+        <div class="meta-pill">
+          <span class="pill-label">Qty</span>
+          <span class="pill-value">${a.quantity}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   SHOW LIST
+══════════════════════════════════════════════════════ */
+function showList() {
+  switchView('list');
+  document.getElementById('topbarTitle').textContent = 'Projects';
+  document.getElementById('formActions').classList.add('hidden');
+  renderUserChip(currentUser);
+  if (currentUser.role === 'Admin') {
+    google.script.run.withSuccessHandler(renderList).getProjects();
+  } else {
+    google.script.run.withSuccessHandler(renderTeamList).getMyProjects();
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════ */
 function switchView(name) {
   document.getElementById('viewList')   .classList.toggle('active', name === 'list');
   document.getElementById('viewProject').classList.toggle('active', name === 'project');
 }
-
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+function statusKey(s) {
+  if (!s) return 'needs-assignment';
+  return s.toLowerCase().replace(/\s+/g, '-');
 }
-
-// btn-sm style needed for list Open button
-const style = document.createElement('style');
-style.textContent = `.btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; } .btn-sm-primary { border-color: #4361ee; color: #4361ee; } .btn-sm-primary:hover { background: #eef0fd; }`;
-document.head.appendChild(style);
+function fmt(n) {
+  return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 init();
 </script>
