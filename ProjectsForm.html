@@ -7,14 +7,8 @@
     body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
     .view { display: none; padding: 20px 24px 100px; }
     .view.active { display: block; }
-
     .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
-    .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .topbar-right { display: flex; gap: 8px; align-items: center; }
-    .user-chip { display: flex; align-items: center; gap: 7px; background: #f0f2fa; border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px; }
-    .user-avatar { width: 22px; height: 22px; border-radius: 50%; background: #4361ee; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .user-chip-name { font-weight: 600; }
-    .user-chip-role { color: #888; font-size: 11px; }
+    .topbar-title { font-size: 16px; font-weight: 700; }
 
     .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover:not(:disabled) { background: #f0f2fa; }
@@ -23,6 +17,8 @@
     .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
     .btn-success { background: #1e8a4a; color: #fff; border-color: #1e8a4a; }
     .btn-success:hover:not(:disabled) { background: #166b39; }
+    .btn-danger { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled) { background: #fdecea; }
     .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
     .btn-ghost:hover { text-decoration: underline; }
     .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; }
@@ -30,31 +26,30 @@
     .btn-sm-primary:hover { background: #eef0fd; }
     .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
     .btn-sm-danger:hover { background: #fdecea; }
-    .btn-link { background: none; border: none; color: #4361ee; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0; text-decoration: underline; }
 
     .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
-    .btn-success .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
-    .btn-primary .spinner { border-color: rgba(255,255,255,0.4); border-top-color: #fff; }
+    .btn-primary .spinner, .btn-success .spinner { border-top-color: #fff; }
+    .btn-danger .spinner { border-color: rgba(195,57,43,0.3); border-top-color: #c0392b; }
     .btn.loading .spinner { display: inline-block; }
     .btn.loading .btn-label { opacity: 0.7; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
     .proc-bar.active { transform: scaleX(0.85); }
-    .proc-bar.done   { transform: scaleX(1); transition: transform 0.15s ease; }
-
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; pointer-events: none; }
-    .toast-info    { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .proc-bar.done { transform: scaleX(1); transition: transform 0.15s ease; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; }
+    .toast-info { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
     .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
-    .toast-error   { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+    .toast-error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
 
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .badge-needs-assignment { background: #fff3cd; color: #856404; }
-    .badge-assigned  { background: #e8ecfd; color: #2f4bcc; }
-    .badge-delivered { background: #d1f2e1; color: #0f5132; }
+    .badge-unpaid { background: #f8d7da; color: #842029; }
+    .badge-partially-paid { background: #fff3cd; color: #856404; }
+    .badge-fully-paid { background: #d1f2e1; color: #0f5132; }
+    .badge-distributed { background: #e8ecfd; color: #2f4bcc; }
 
     .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; transition: all 0.15s; }
+    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; }
     .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
     .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
 
@@ -63,13 +58,14 @@
     .table-wrap { overflow-x: auto; }
     table.main-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
     table.main-table thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    table.main-table tbody tr:nth-child(odd)  { background: #fff; }
+    table.main-table tbody tr:nth-child(odd) { background: #fff; }
     table.main-table tbody tr:nth-child(even) { background: #f8f9ff; }
     table.main-table tbody tr:hover { background: #eef0fd; cursor: pointer; }
     table.main-table tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
     .col-id { width: 90px; font-weight: 700; color: #4361ee; }
-    .col-status { width: 150px; }
-    .col-date { width: 110px; color: #666; }
+    .col-amt { width: 110px; text-align: right; }
+    .col-status { width: 130px; }
+    .col-date { width: 100px; color: #666; }
     .col-acts { width: 90px; text-align: right; }
 
     .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
@@ -80,60 +76,39 @@
     .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 3px; }
     .meta-value { color: #1a1a2e; font-weight: 600; }
 
-    /* ── Assignment section ── */
-    .assign-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-    .assign-toolbar label { font-size: 12px; font-weight: 600; color: #555; white-space: nowrap; }
-    .assign-toolbar select { padding: 5px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; }
-    .assign-progress { font-size: 12px; color: #666; margin-left: auto; }
-    .assign-progress strong { color: #1a1a2e; }
+    .items-ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .items-ref-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .items-ref-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: top; }
 
-    .item-assign-card { border: 1px solid #e2e4ef; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-    .item-assign-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: #f8f9ff; flex-wrap: wrap; gap: 8px; }
-    .item-assign-name { font-weight: 700; font-size: 14px; }
-    .item-assign-qty { font-size: 12px; color: #666; }
-    .item-assign-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .assign-pill { background: #e8ecfd; color: #2f4bcc; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-    .assign-pill-unassigned { background: #fff3cd; color: #856404; }
-    .assign-pill-admin { background: #f0f2fa; color: #555; }
-    .pill-remove { background: none; border: none; cursor: pointer; color: inherit; font-size: 13px; line-height: 1; padding: 0 0 0 2px; opacity: 0.7; }
-    .pill-remove:hover { opacity: 1; }
+    .paid-banner { display: flex; align-items: center; justify-content: space-between; background: #f8f9ff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .paid-banner-stat { text-align: center; }
+    .paid-banner-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 2px; }
+    .paid-banner-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .paid-banner-value.green { color: #1e8a4a; }
+    .paid-banner-value.orange { color: #856404; }
 
-    .item-assign-body { padding: 10px 14px; background: #fff; border-top: 1px solid #e2e4ef; }
-    .inline-assign-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .inline-assign-row select { flex: 1; min-width: 160px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
-    .inline-assign-row input { width: 80px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
-    .inline-assign-row label { font-size: 12px; color: #888; white-space: nowrap; }
+    .payments-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+    .payments-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .payments-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
+    .payments-table .col-amt { text-align: right; font-weight: 600; }
+    .payments-table .col-acts { text-align: right; }
 
-    /* ── Commission section ── */
-    .commission-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .commission-table thead th { background: #f0f2fa; color: #555; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
-    .commission-table tbody td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
-    .commission-table tfoot td { padding: 8px 10px; border-top: 2px solid #e2e4ef; font-weight: 700; font-size: 13px; }
-    .commission-table .col-person { min-width: 140px; }
-    .commission-table .col-work   { color: #555; font-size: 12px; }
-    .commission-table .col-pct    { width: 100px; }
-    .commission-table .col-amt    { width: 130px; text-align: right; font-weight: 600; }
-    .pct-input-wrap { display: flex; align-items: center; border: 1px solid #d0d3e0; border-radius: 5px; overflow: hidden; width: 90px; }
-    .pct-input-wrap input { border: none; padding: 5px 7px; font-size: 13px; width: 100%; }
-    .pct-input-wrap input:focus { outline: none; }
-    .pct-input-wrap span { padding: 0 7px; color: #888; background: #f0f2fa; border-left: 1px solid #d0d3e0; font-size: 13px; align-self: stretch; display: flex; align-items: center; }
-    .gross-profit-row td { background: #f8fff8; color: #0f5132; }
-    .total-commission-row td { background: #f8f9ff; }
+    .dist-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+    .dist-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .dist-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
+    .dist-table .col-amt { text-align: right; font-weight: 600; }
+    .dist-table .col-pct { text-align: right; color: #888; font-size: 12px; }
+    .dist-table .col-acts { text-align: right; }
+    .dist-progress { font-size: 12px; color: #666; margin: 8px 0 12px; }
+    .dist-progress strong { color: #1a1a2e; }
+    .dist-progress.match strong { color: #1e8a4a; }
+    .dist-progress.mismatch strong { color: #c0392b; }
 
-    /* ── Team (read-only) item cards ── */
-    .item-card { background: #fff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
-    .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
-    .item-name { font-weight: 700; font-size: 14px; }
-    .item-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; align-items: flex-start; }
-    .meta-pill { background: #f0f2fa; border-radius: 5px; padding: 4px 10px; font-size: 12px; }
-    .meta-pill .pill-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 1px; }
-    .meta-pill .pill-value { font-weight: 600; color: #1a1a2e; }
-    .item-desc-text { font-size: 12px; color: #555; margin-top: 8px; line-height: 1.5; }
-    .item-notes-text { font-size: 12px; color: #888; margin-top: 6px; font-style: italic; line-height: 1.5; }
+    .inline-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+    .inline-row select { min-width: 180px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+    .inline-row input { width: 120px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
 
-    .commission-banner { background: #e8ecfd; border: 1px solid #c5cdf9; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-    .commission-banner-label { font-size: 12px; color: #2f4bcc; font-weight: 600; }
-    .commission-banner-amount { font-size: 18px; font-weight: 700; color: #2f4bcc; }
+    .locked-note { font-size: 12px; color: #888; padding: 10px 0; }
 
     .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
     .spacer { flex: 1; }
@@ -142,22 +117,27 @@
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
     .overlay.open { display: flex; }
     .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 400px; width: 92%; }
-    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-    .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
-    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .dialog p { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
+    textarea { resize: vertical; min-height: 50px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    input, select { font-family: inherit; color: #1a1a2e; }
     .empty-state { text-align: center; padding: 40px; color: #888; font-size: 13px; }
   </style>
 </head>
 <body>
 
 <div class="proc-bar" id="procBar"></div>
-<div class="toast"    id="toast"></div>
+<div class="toast" id="toast"></div>
 
 <div class="topbar">
   <div class="topbar-title" id="topbarTitle">Projects</div>
-  <div class="topbar-right"  id="topbarRight"></div>
 </div>
 
 <!-- ═══ LIST VIEW ═══ -->
@@ -165,11 +145,11 @@
   <div class="list-toolbar">
     <div class="list-count" id="listCount">Loading...</div>
   </div>
-  <div class="filter-tabs hidden">
-    <button class="filter-tab active" data-filter="all"              onclick="setFilter('all')">All</button>
-    <button class="filter-tab"        data-filter="Needs Assignment" onclick="setFilter('Needs Assignment')">🟡 Needs Assignment</button>
-    <button class="filter-tab"        data-filter="Assigned"         onclick="setFilter('Assigned')">🔵 Assigned</button>
-    <button class="filter-tab"        data-filter="Delivered"        onclick="setFilter('Delivered')">✅ Delivered</button>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+    <button class="filter-tab" data-filter="Unpaid" onclick="setFilter('Unpaid')">🔴 Unpaid</button>
+    <button class="filter-tab" data-filter="Partially Paid" onclick="setFilter('Partially Paid')">🟡 Partially Paid</button>
+    <button class="filter-tab" data-filter="Fully Paid" onclick="setFilter('Fully Paid')">🟢 Fully Paid</button>
   </div>
   <div class="table-wrap">
     <table class="main-table" id="listTable">
@@ -178,8 +158,8 @@
           <th class="col-id">Quotation</th>
           <th>Client</th>
           <th>Project</th>
-          <th class="col-date">Due Date</th>
-          <th class="col-date">Deadline</th>
+          <th class="col-amt">Total</th>
+          <th class="col-amt">Paid</th>
           <th class="col-status">Status</th>
           <th class="col-acts"></th>
         </tr>
@@ -193,95 +173,60 @@
 
 <!-- ═══ PROJECT DETAIL VIEW ═══ -->
 <div class="view" id="viewProject">
-
-  <!-- Project overview -->
   <div class="section" id="projectSummary"></div>
 
-  <!-- ADMIN: Assignment phase -->
-  <div id="phaseAssign" class="hidden">
-    <div class="section">
-      <h3>Assign Items</h3>
-
-      <!-- Quick-assign toolbar -->
-      <div class="assign-toolbar">
-        <label>Assign all unassigned to:</label>
-        <select id="quickAssignSelect"></select>
-        <button class="btn-sm btn-sm-primary" onclick="quickAssignAll()">Apply</button>
-        <span class="assign-progress" id="assignProgress"></span>
-      </div>
-
-      <div id="itemAssignCards"></div>
-    </div>
+  <div class="section">
+    <h3>Scope of Work</h3>
+    <div id="itemsRefTable"></div>
   </div>
 
-  <!-- ADMIN: Commission phase (shown after assignment confirmed, or if already assigned) -->
-  <div id="phaseCommission" class="hidden">
-    <div class="section">
-      <h3>Set Commissions</h3>
-      <table class="commission-table" id="commissionTable">
-        <thead>
-          <tr>
-            <th class="col-person">Person</th>
-            <th class="col-work">Assigned Work</th>
-            <th class="col-pct">Commission %</th>
-            <th class="col-amt">Amount</th>
-          </tr>
-        </thead>
-        <tbody id="commissionBody"></tbody>
-        <tfoot id="commissionFoot"></tfoot>
-      </table>
-    </div>
+  <div class="section">
+    <h3>Payments</h3>
+    <div id="paidBanner"></div>
+    <div id="paymentsTableWrap"></div>
+    <button class="btn btn-primary" id="btnAddPayment" onclick="openAddPayment()">+ Record Payment</button>
   </div>
 
-  <!-- TEAM: Read-only assignment view -->
-  <div id="phaseTeam" class="hidden">
-    <div id="teamCommissionBanner"></div>
-    <div class="section">
-      <h3>Your Assigned Items</h3>
-      <div id="teamItemCards"></div>
-    </div>
+  <div class="section">
+    <h3>Revenue Distribution</h3>
+    <div id="distributionArea"></div>
   </div>
-
-  <!-- ADMIN read-only summary (after assigned, before editing) -->
-  <div id="phaseReadOnly" class="hidden">
-    <div class="section">
-      <h3>Assignments</h3>
-      <div id="readOnlyAssignments"></div>
-    </div>
-    <div class="section">
-      <h3>Commissions</h3>
-      <div id="readOnlyCommissions"></div>
-    </div>
-  </div>
-
 </div>
 
 <!-- ═══ FORM ACTIONS ═══ -->
 <div class="form-actions hidden" id="formActions">
   <button class="btn btn-ghost" onclick="showList()">← Back</button>
   <div class="spacer"></div>
-  <!-- Admin assignment flow -->
-  <button class="btn btn-primary hidden" id="btnConfirmAssign" onclick="confirmAssignStep()">
-    <div class="spinner"></div><span class="btn-label">Confirm Assignments →</span>
-  </button>
-  <button class="btn btn-success hidden" id="btnConfirmAll" onclick="askConfirmAll()">
-    <div class="spinner"></div><span class="btn-label">Confirm &amp; Notify Team</span>
-  </button>
-  <!-- Re-assign button (shown when already Assigned) -->
-  <button class="btn hidden" id="btnReAssign" onclick="enterReAssignMode()">
-    <span class="btn-label">Re-assign</span>
-  </button>
 </div>
 
-<!-- Confirm & Notify dialog -->
-<div class="overlay" id="overlayConfirmAll">
+<!-- ═══ RECORD PAYMENT DIALOG ═══ -->
+<div class="overlay" id="overlayPayment">
   <div class="dialog">
-    <h4>Confirm &amp; Notify Team</h4>
-    <p>This will save all assignments and commissions, update the project status to Assigned, and send email notifications to the assigned team members. Continue?</p>
+    <h4>Record Payment</h4>
+    <div class="field"><label>Amount</label><input type="text" id="payAmount" inputmode="decimal" placeholder="0.00"></div>
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="payDate"></div>
+      <div class="field"><label>Method</label><select id="payMethod"></select></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="payNotes" placeholder="Optional..."></textarea></div>
     <div class="dialog-btns">
-      <button class="btn" onclick="closeDialog('overlayConfirmAll')">Cancel</button>
-      <button class="btn btn-success" id="btnConfirmAllDo" onclick="doConfirmAll()">
-        <div class="spinner"></div><span class="btn-label">Yes, Confirm &amp; Notify</span>
+      <button class="btn" onclick="closeDialog('overlayPayment')">Cancel</button>
+      <button class="btn btn-primary" id="btnPaymentSave" onclick="submitPayment()">
+        <div class="spinner"></div><span class="btn-label">Save Payment</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE PAYMENT DIALOG ═══ -->
+<div class="overlay" id="overlayDeletePayment">
+  <div class="dialog">
+    <h4>Delete Payment</h4>
+    <p>This removes the payment record. It cannot be undone.</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayDeletePayment')">Cancel</button>
+      <button class="btn btn-danger" id="btnDeletePaymentConfirm" onclick="confirmDeletePayment()">
+        <div class="spinner"></div><span class="btn-label">Yes, Delete</span>
       </button>
     </div>
   </div>
@@ -291,12 +236,13 @@
 /* ══════════════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════════════ */
-let allProjects    = [];
-let activeFilter   = 'all';
-let currentUser    = null;
-let currentDetail  = null;
-let draftAssignments = [];
-let assignPhase    = 'assign';
+let allProjects   = [];
+let activeFilter  = 'all';
+let currentDetail = null;
+let currentProjectId = null;
+let deletePaymentId  = null;
+let draftDistribution = [];
+let distEditing = false;
 
 /* ══════════════════════════════════════════════════════
    PROCESSING / TOAST
@@ -327,597 +273,329 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 function init() {
   showToast('Loading…', 'info', 0);
   google.script.run
-    .withSuccessHandler(user => {
-      currentUser = user;
-      renderUserChip(user);
-      if (user.role === 'Admin') {
-        google.script.run
-          .withSuccessHandler(renderList)
-          .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
-          .getProjects();
-      } else {
-        google.script.run
-          .withSuccessHandler(renderTeamList)
-          .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
-          .getMyProjects();
-      }
-    })
-    .withFailureHandler(err => showAccessError(err.message))
-    .getCurrentUser();
-}
-
-function renderUserChip(user) {
-  const initials = (user.name||user.email).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('topbarRight').innerHTML = `
-    <div class="user-chip">
-      <div class="user-avatar">${esc(initials)}</div>
-      <span class="user-chip-name">${esc(user.name)}</span>
-      <span class="user-chip-role">${esc(user.role)}</span>
-    </div>`;
-}
-
-function showAccessError(msg) {
-  document.getElementById('viewList').innerHTML = `
-    <div class="empty-state">
-      <div style="font-size:48px;margin-bottom:16px;">🔒</div>
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Access Denied</h2>
-      <p>${esc(msg)}</p>
-    </div>`;
-  hideToast();
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
+    .getProjects();
 }
 
 /* ══════════════════════════════════════════════════════
-   LIST — ADMIN
+   LIST
 ══════════════════════════════════════════════════════ */
 function setFilter(f) {
   activeFilter = f;
-  document.querySelectorAll('.filter-tab').forEach(t =>
-    t.classList.toggle('active', t.dataset.filter === f));
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
   renderList(allProjects);
 }
 function renderList(projects) {
-  document.querySelector('.filter-tabs').classList.remove('hidden');
   allProjects = projects || [];
   hideToast();
-  const filtered = activeFilter === 'all'
-    ? allProjects
-    : allProjects.filter(p => p.status === activeFilter);
-  document.getElementById('listCount').textContent =
-    filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+  const filtered = activeFilter === 'all' ? allProjects : allProjects.filter(p => p.paymentStatus === activeFilter);
+  document.getElementById('listCount').textContent = filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
   const tbody = document.getElementById('listBody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(p => {
-    const sk = statusKey(p.status);
+    const sk = statusKey(p.paymentStatus);
     return `<tr onclick="openProject('${esc(p.projectId)}')">
       <td class="col-id">${esc(p.quotationId)}</td>
       <td><strong>${esc(p.accountName)}</strong></td>
-      <td>${esc(p.projectName)}</td>
-      <td class="col-date">${p.dueDate||'—'}</td>
-      <td class="col-date">${p.deliveryDeadline||'—'}</td>
-      <td class="col-status"><span class="badge badge-${sk}">${esc(p.status)}</span></td>
+      <td>${esc(p.projectName)}${p.isDistributed ? ' <span class="badge badge-distributed">Distributed</span>' : ''}</td>
+      <td class="col-amt">${esc(p.currency)} ${fmt(p.totalAmount)}</td>
+      <td class="col-amt">${esc(p.currency)} ${fmt(p.amountPaid)}</td>
+      <td class="col-status"><span class="badge badge-${sk}">${esc(p.paymentStatus)}</span></td>
       <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
     </tr>`;
   }).join('');
 }
-
-/* ══════════════════════════════════════════════════════
-   LIST — TEAM (restricted columns)
-══════════════════════════════════════════════════════ */
-function renderTeamList(projects) {
-  allProjects = projects || [];
-  hideToast();
-  // Hide admin filter tabs
-  document.querySelector('.filter-tabs').classList.add('hidden');
-  document.getElementById('listCount').textContent =
-    allProjects.length + ' project' + (allProjects.length !== 1 ? 's' : '');
-
-  // Rewrite table headers — team sees fewer columns
-  document.querySelector('#listTable thead tr').innerHTML = `
-    <th>Client</th>
-    <th>Project</th>
-    <th class="col-date">Due Date</th>
-    <th class="col-status">Status</th>
-    <th class="col-acts"></th>`;
-
-  const tbody = document.getElementById('listBody');
-  if (!allProjects.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#888;">No projects assigned to you yet.</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = allProjects.map(p => {
-    const sk = statusKey(p.status);
-    return `<tr onclick="openProject('${esc(p.projectId)}')">
-      <td><strong>${esc(p.accountName)}</strong></td>
-      <td>${esc(p.projectName)}</td>
-      <td class="col-date">${p.dueDate||'—'}</td>
-      <td class="col-status"><span class="badge badge-${sk}">${esc(p.status)}</span></td>
-      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
-    </tr>`;
-  }).join('');
+function showList() {
+  switchView('list');
+  document.getElementById('topbarTitle').textContent = 'Projects';
+  document.getElementById('formActions').classList.add('hidden');
+  google.script.run.withSuccessHandler(renderList).getProjects();
 }
 
 /* ══════════════════════════════════════════════════════
    OPEN PROJECT
 ══════════════════════════════════════════════════════ */
 function openProject(projectId) {
+  currentProjectId = projectId;
   startProcessing(null, 'Loading project…');
   google.script.run
     .withSuccessHandler(detail => {
       stopProcessing(null); hideToast();
       if (!detail) { showToast('Could not load project.', 'error'); return; }
       currentDetail = detail;
-      draftAssignments = JSON.parse(JSON.stringify(detail.assignments || []));
+      distEditing = false;
       renderProjectDetail(detail);
       switchView('project');
-      document.getElementById('topbarTitle').textContent =
-        currentUser.role === 'Admin'
-          ? detail.project.quotationId + ' — ' + detail.project.projectName
-          : detail.project.projectName;
-      renderUserChip(currentUser);
+      document.getElementById('topbarTitle').textContent = detail.project.quotationId + ' — ' + detail.project.projectName;
+      document.getElementById('formActions').classList.remove('hidden');
     })
     .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
     .getProjectDetail(projectId);
 }
 
 function renderProjectDetail(detail) {
-  const p  = detail.project;
-  const sk = statusKey(p.status);
+  const p = detail.project;
+  document.getElementById('projectSummary').innerHTML = `
+    <h3>Project Overview</h3>
+    <div class="meta-grid">
+      <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
+      <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
+      <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
+      <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
+      <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
+      ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
+    </div>`;
 
-  // Hide all phases first
-  ['phaseAssign','phaseCommission','phaseTeam','phaseReadOnly'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-
-  const bar = document.getElementById('formActions');
-  bar.classList.remove('hidden');
-  ['btnConfirmAssign','btnConfirmAll','btnReAssign'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-
-  if (currentUser.role === 'Admin') {
-    // ── Admin overview: full details ──────────────────────
-    document.getElementById('projectSummary').innerHTML = `
-      <h3>Project Overview</h3>
-      <div class="meta-grid">
-        <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
-        <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
-        <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
-        <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
-        ${p.status !== 'Needs Assignment' ? `
-        <div class="meta-cell"><div class="meta-label">Total Commission</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalCommission)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Gross Profit</div><div class="meta-value">${esc(p.currency)} ${fmt(p.remainingAmount)}</div></div>` : ''}
-        ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
-      </div>`;
-
-    if (p.status === 'Needs Assignment') {
-      assignPhase = 'assign';
-      document.getElementById('phaseAssign').classList.remove('hidden');
-      renderAssignPhase(detail);
-      document.getElementById('btnConfirmAssign').classList.remove('hidden');
-    } else {
-      document.getElementById('phaseReadOnly').classList.remove('hidden');
-      renderReadOnlySummary(detail);
-      document.getElementById('btnReAssign').classList.remove('hidden');
-    }
-
-  } else {
-    // ── Team overview: restricted details only ─────────────
-    document.getElementById('projectSummary').innerHTML = `
-      <h3>Project Overview</h3>
-      <div class="meta-grid">
-        <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
-        <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-${sk}">${esc(p.status)}</span></div></div>
-        <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
-        ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
-      </div>`;
-
-    document.getElementById('phaseTeam').classList.remove('hidden');
-    renderTeamView(detail);
-    // No action buttons for team
-  }
+  renderItemsRef(detail.items);
+  renderPayments(detail);
+  renderDistribution(detail);
 }
 
 /* ══════════════════════════════════════════════════════
-   ASSIGN PHASE — ADMIN
+   ITEMS (reference only)
 ══════════════════════════════════════════════════════ */
-function renderAssignPhase(detail) {
-  const members = detail.teamMembers || [];
-  const qs = document.getElementById('quickAssignSelect');
-  qs.innerHTML = members.map(m =>
-    `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
-  ).join('');
-  renderItemAssignCards(detail.items, members);
-  updateAssignProgress(detail.items);
-}
-
-function renderItemAssignCards(items, members) {
-  const container = document.getElementById('itemAssignCards');
-  container.innerHTML = '';
-  items.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'item-assign-card';
-    card.dataset.itemName = item.itemName;
-    container.appendChild(card);
-    rebuildItemCard(card, item, members);
-  });
-}
-
-function rebuildItemCard(card, item, members) {
-  const itemName = item.itemName;
-  const totalQty = item.quantity;
-  const myDraft = draftAssignments.filter(a => a.itemName === itemName);
-  const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
-  const remaining   = Math.max(0, totalQty - assignedQty);
-
-  let pillsHtml = myDraft.map((a,idx) => `
-    <span class="assign-pill ${a.assignedToEmail === '__admin__' ? 'assign-pill-admin' : ''}">
-      ${esc(a.assignedToName)}: ${a.quantity}
-      <button class="pill-remove" onclick="removeDraftAssignment('${esc(itemName)}',${idx})" title="Remove">×</button>
-    </span>`).join('');
-  if (remaining > 0) {
-    pillsHtml += `<span class="assign-pill assign-pill-unassigned">Unassigned: ${remaining}</span>`;
-  }
-
-  const opts = (members||[]).map(m =>
-    `<option value="${esc(m.email)}" data-name="${esc(m.name)}">${esc(m.name)} (${esc(m.role)})</option>`
-  ).join('');
-
-  card.innerHTML = `
-    <div class="item-assign-header">
-      <div>
-        <div class="item-assign-name">${esc(itemName)}</div>
-        <div class="item-assign-qty">Total: ${totalQty}</div>
-        ${item.description ? `<div style="font-size:11px;color:#888;margin-top:2px;">${esc(item.description)}</div>` : ''}
-      </div>
-      <div class="item-assign-pills">${pillsHtml}</div>
-    </div>
-    ${remaining > 0 ? `
-    <div class="item-assign-body">
-      <div class="inline-assign-row">
-        <label>Assign</label>
-        <input type="number" id="qty_${esc(itemName)}" value="${remaining}" min="1" max="${remaining}" style="width:70px;">
-        <label>to</label>
-        <select id="person_${esc(itemName)}">${opts}</select>
-        <button class="btn-sm btn-sm-primary" onclick="addDraftAssignment('${esc(itemName)}')">+ Add</button>
-      </div>
-    </div>` : ''}`;
-}
-
-function addDraftAssignment(itemName) {
-  const item = currentDetail.items.find(i => i.itemName === itemName);
-  const members = currentDetail.teamMembers;
-  const qtyEl = document.getElementById('qty_' + itemName);
-  const selEl = document.getElementById('person_' + itemName);
-  if (!qtyEl || !selEl) return;
-  const qty = parseInt(qtyEl.value, 10);
-  const email = selEl.value;
-  const name = selEl.options[selEl.selectedIndex].dataset.name || email;
-  if (!qty || qty < 1) { showToast('Enter a valid quantity.', 'error'); return; }
-  const myDraft = draftAssignments.filter(a => a.itemName === itemName);
-  const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
-  const remaining = item.quantity - assignedQty;
-  if (qty > remaining) { showToast('Quantity exceeds remaining (' + remaining + ').', 'error'); return; }
-  draftAssignments.push({ itemName, assignedToEmail: email, assignedToName: name, quantity: qty });
-  const card = document.querySelector('[data-item-name="' + itemName + '"]');
-  if (card) rebuildItemCard(card, item, members);
-  updateAssignProgress(currentDetail.items);
-}
-
-function removeDraftAssignment(itemName, idx) {
-  const item    = currentDetail.items.find(i => i.itemName === itemName);
-  const members = currentDetail.teamMembers;
-  let counter = 0;
-  draftAssignments = draftAssignments.filter(a => {
-    if (a.itemName !== itemName) return true;
-    return counter++ !== idx;
-  });
-  const card = document.querySelector('[data-item-name="' + itemName + '"]');
-  if (card) rebuildItemCard(card, item, members);
-  updateAssignProgress(currentDetail.items);
-}
-
-function quickAssignAll() {
-  const qs = document.getElementById('quickAssignSelect');
-  const email = qs.value;
-  const name  = qs.options[qs.selectedIndex] ? qs.options[qs.selectedIndex].text.split(' (')[0] : email;
-  const members = currentDetail.teamMembers;
-  currentDetail.items.forEach(item => {
-    const myDraft = draftAssignments.filter(a => a.itemName === item.itemName);
-    const assignedQty = myDraft.reduce((s,a) => s + a.quantity, 0);
-    const remaining = item.quantity - assignedQty;
-    if (remaining > 0) {
-      draftAssignments.push({ itemName: item.itemName, assignedToEmail: email, assignedToName: name, quantity: remaining });
-    }
-  });
-  renderItemAssignCards(currentDetail.items, members);
-  updateAssignProgress(currentDetail.items);
-}
-
-function updateAssignProgress(items) {
-  let total = 0, assigned = 0;
-  items.forEach(item => {
-    total += item.quantity;
-    const myDraft = draftAssignments.filter(a => a.itemName === item.itemName);
-    assigned += myDraft.reduce((s,a) => s + a.quantity, 0);
-  });
-  const el = document.getElementById('assignProgress');
-  const remaining = total - assigned;
-  el.innerHTML = `<strong>${assigned}/${total}</strong> assigned` +
-    (remaining > 0 ? ` · <span style="color:#856404;">${remaining} will go to you (Admin)</span>` : ' · <span style="color:#1e8a4a;">All items covered ✓</span>');
-}
-
-/* ══════════════════════════════════════════════════════
-   CONFIRM ASSIGN STEP → move to commission phase
-══════════════════════════════════════════════════════ */
-function confirmAssignStep() {
-  const btn = document.getElementById('btnConfirmAssign');
-  startProcessing(btn, 'Saving assignments…');
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
-      google.script.run
-        .withSuccessHandler(detail => {
-          hideToast();
-          currentDetail = detail;
-          assignPhase = 'commission';
-          document.getElementById('phaseAssign').classList.add('hidden');
-          document.getElementById('phaseCommission').classList.remove('hidden');
-          renderCommissionPhase(detail);
-          document.getElementById('btnConfirmAssign').classList.add('hidden');
-          document.getElementById('btnConfirmAll').classList.remove('hidden');
-        })
-        .withFailureHandler(err => showToast('Reload error: ' + err.message, 'error'))
-        .getProjectDetail(currentDetail.project.projectId);
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    .saveAssignments(currentDetail.project.projectId, draftAssignments);
-}
-
-/* ══════════════════════════════════════════════════════
-   COMMISSION PHASE — ADMIN
-══════════════════════════════════════════════════════ */
-function renderCommissionPhase(detail) {
-  const p      = detail.project;
-  const active = (detail.assignments || []).filter(a => a.status !== 'Superseded');
-
-  const byPerson = {};
-  active.forEach(a => {
-    if (!byPerson[a.assignedToEmail]) {
-      byPerson[a.assignedToEmail] = { name: a.assignedToName, email: a.assignedToEmail, items: [] };
-    }
-    byPerson[a.assignedToEmail].items.push({ itemName: a.itemName, quantity: a.quantity });
-  });
-
-  const memberRoles = {};
-  (detail.teamMembers || []).forEach(m => { memberRoles[m.email] = m.role; });
-
-  const existingComm = {};
-  (detail.commissions || []).forEach(c => {
-    if (c.personEmail) existingComm[c.personEmail] = { pct: c.commissionPct, amt: c.commissionAmt };
-  });
-
-  const rows = Object.values(byPerson);
-  const tbody = document.getElementById('commissionBody');
-  tbody.innerHTML = rows.map(person => {
-    const workSummary = person.items.map(i => esc(i.itemName) + ' ×' + i.quantity).join(', ');
-    const ex = existingComm[person.email] || {};
-    const role = memberRoles[person.email] || 'Team';
-    return `<tr data-email="${esc(person.email)}" data-name="${esc(person.name)}" data-role="${esc(role)}">
-      <td class="col-person"><strong>${esc(person.name)}</strong><br><span style="font-size:11px;color:#888;">${esc(person.email)}</span></td>
-      <td class="col-work">${workSummary}</td>
-      <td class="col-pct">
-        <div class="pct-input-wrap">
-          <input type="number" class="comm-pct" min="0" max="100" step="0.1"
-            value="${ex.pct || ''}" placeholder="0" oninput="recalcCommissions()">
-          <span>%</span>
-        </div>
-      </td>
-      <td class="col-amt comm-amt-cell">${esc(p.currency)} 0.00</td>
-    </tr>`;
-  }).join('');
-
-  recalcCommissions();
-}
-
-function recalcCommissions() {
-  const p = currentDetail.project;
-  const total = p.totalAmount;
-  let sumCommissions = 0;
-  document.querySelectorAll('#commissionBody tr').forEach(row => {
-    const pct = parseFloat(row.querySelector('.comm-pct').value) || 0;
-    const amt = total * pct / 100;
-    sumCommissions += amt;
-    row.querySelector('.comm-amt-cell').textContent = esc(p.currency) + ' ' + fmt(amt);
-  });
-  const grossProfit = total - sumCommissions;
-  const foot = document.getElementById('commissionFoot');
-  foot.innerHTML = `
-    <tr class="total-commission-row">
-      <td colspan="3">Total Commission</td>
-      <td class="col-amt">${esc(p.currency)} ${fmt(sumCommissions)}</td>
-    </tr>
-    <tr class="gross-profit-row">
-      <td colspan="3"><strong>Gross Profit (Remaining)</strong></td>
-      <td class="col-amt"><strong>${esc(p.currency)} ${fmt(grossProfit)}</strong></td>
-    </tr>
-    <tr>
-      <td colspan="3" style="color:#888;font-size:12px;">Project Total</td>
-      <td class="col-amt" style="color:#888;">${esc(p.currency)} ${fmt(total)}</td>
-    </tr>`;
-}
-
-/* ══════════════════════════════════════════════════════
-   CONFIRM ALL — save commissions + notify
-══════════════════════════════════════════════════════ */
-function askConfirmAll() {
-  document.getElementById('overlayConfirmAll').classList.add('open');
-}
-
-function doConfirmAll() {
-  const btn = document.getElementById('btnConfirmAllDo');
-  closeDialog('overlayConfirmAll');
-  const p     = currentDetail.project;
-  const total = p.totalAmount;
-  let sumCommissions = 0;
-  const commissions = [];
-  document.querySelectorAll('#commissionBody tr').forEach(row => {
-    const pct   = parseFloat(row.querySelector('.comm-pct').value) || 0;
-    const amt   = total * pct / 100;
-    sumCommissions += amt;
-    commissions.push({ email: row.dataset.email, name: row.dataset.name, role: row.dataset.role, percent: pct, amount: amt });
-  });
-  const grossProfit = total - sumCommissions;
-  startProcessing(btn, 'Confirming & notifying…');
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
-      showToast('Project assigned and team notified!', 'success');
-      setTimeout(showList, 1400);
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    .confirmAssignmentsAndCommissions(p.projectId, commissions, grossProfit);
-}
-
-/* ══════════════════════════════════════════════════════
-   READ-ONLY SUMMARY (Admin, already-assigned project)
-══════════════════════════════════════════════════════ */
-function renderReadOnlySummary(detail) {
-  const p      = detail.project;
-  const active = (detail.assignments || []).filter(a => a.status !== 'Superseded');
-  const byPerson = {};
-  active.forEach(a => {
-    if (!byPerson[a.assignedToEmail]) byPerson[a.assignedToEmail] = { name: a.assignedToName, items: [] };
-    byPerson[a.assignedToEmail].items.push(a.itemName + ' ×' + a.quantity);
-  });
-  document.getElementById('readOnlyAssignments').innerHTML = Object.entries(byPerson).map(([email, v]) => `
-    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;">
-      <strong style="min-width:140px;">${esc(v.name)}</strong>
-      <span style="color:#555;">${v.items.map(esc).join(' · ')}</span>
-    </div>`).join('') || '<p style="color:#888;font-size:13px;">No assignments found.</p>';
-
-  const comms = detail.commissions || [];
-  document.getElementById('readOnlyCommissions').innerHTML = comms.length ? `
-    <table style="width:100%;font-size:13px;border-collapse:collapse;">
-      ${comms.map(c => `
-        <tr style="border-bottom:1px solid #f0f2fa;">
-          <td style="padding:7px 10px;font-weight:600;">${esc(c.personName)}</td>
-          <td style="padding:7px 10px;color:#555;font-size:12px;">${c.commissionPct ? c.commissionPct + '%' : ''}</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:600;">${esc(p.currency)} ${fmt(c.commissionAmt)}</td>
-          <td style="padding:7px 10px;"><span class="badge badge-${c.paymentStatus === 'Paid' ? 'delivered' : 'needs-assignment'}" style="font-size:10px;">${esc(c.paymentStatus)}</span></td>
+function renderItemsRef(items) {
+  const el = document.getElementById('itemsRefTable');
+  if (!items || !items.length) { el.innerHTML = '<p class="empty-state">No items on this project.</p>'; return; }
+  el.innerHTML = `
+    <table class="items-ref-table">
+      <thead><tr><th>Item</th><th>Qty</th><th>Description</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${items.map(i => `<tr>
+          <td><strong>${esc(i.itemName)}</strong></td>
+          <td>${i.quantity}</td>
+          <td style="color:#555;">${esc(i.description || '—')}</td>
+          <td style="color:#888;font-style:italic;">${esc(i.notes || '—')}</td>
         </tr>`).join('')}
-    </table>` : '<p style="color:#888;font-size:13px;">No commissions set.</p>';
+      </tbody>
+    </table>`;
 }
 
 /* ══════════════════════════════════════════════════════
-   RE-ASSIGN
+   PAYMENTS
 ══════════════════════════════════════════════════════ */
-function enterReAssignMode() {
-  assignPhase = 'assign';
-  draftAssignments = JSON.parse(JSON.stringify(
-    (currentDetail.assignments||[]).filter(a => a.status !== 'Superseded')
-  ));
-  document.getElementById('phaseReadOnly').classList.add('hidden');
-  document.getElementById('phaseAssign').classList.remove('hidden');
-  renderAssignPhase(currentDetail);
-  document.getElementById('btnReAssign').classList.add('hidden');
-  document.getElementById('btnConfirmAssign').classList.remove('hidden');
-}
+function renderPayments(detail) {
+  const p = detail.project;
+  const remaining = detail.remainingToPay;
+  const isFull = detail.isFullyPaid;
 
-/* ══════════════════════════════════════════════════════
-   TEAM VIEW (read-only, restricted)
-══════════════════════════════════════════════════════ */
-function renderTeamView(detail) {
-  const p      = detail.project;
-  const active = (detail.assignments||[]).filter(a =>
-    a.assignedToEmail === currentUser.email && a.status !== 'Superseded');
+  document.getElementById('paidBanner').innerHTML = `
+    <div class="paid-banner">
+      <div class="paid-banner-stat"><div class="paid-banner-label">Total</div><div class="paid-banner-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
+      <div class="paid-banner-stat"><div class="paid-banner-label">Paid</div><div class="paid-banner-value green">${esc(p.currency)} ${fmt(detail.amountPaid)}</div></div>
+      <div class="paid-banner-stat"><div class="paid-banner-label">Remaining</div><div class="paid-banner-value ${remaining > 0 ? 'orange' : ''}">${esc(p.currency)} ${fmt(remaining)}</div></div>
+    </div>`;
 
-  // Commission banner
-  const myComm = (detail.commissions||[]).find(c => c.personEmail === currentUser.email);
-  const banner = document.getElementById('teamCommissionBanner');
-  if (myComm) {
-    banner.innerHTML = `
-      <div class="commission-banner">
-        <div class="commission-banner-label">Your Commission for this project</div>
-        <div class="commission-banner-amount">${esc(p.currency)} ${fmt(myComm.commissionAmt)}</div>
-      </div>`;
+  const wrap = document.getElementById('paymentsTableWrap');
+  if (!detail.payments.length) {
+    wrap.innerHTML = '<p class="empty-state">No payments recorded yet.</p>';
   } else {
-    banner.innerHTML = '';
+    wrap.innerHTML = `
+      <table class="payments-table">
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th>Recorded By</th><th class="col-acts"></th></tr></thead>
+        <tbody>
+          ${detail.payments.map(pm => `<tr>
+            <td>${pm.date || '—'}</td>
+            <td class="col-amt">${esc(p.currency)} ${fmt(pm.amount)}</td>
+            <td>${esc(pm.method || '—')}</td>
+            <td style="color:#555;">${esc(pm.notes || '—')}</td>
+            <td style="color:#888;font-size:12px;">${esc(pm.recordedBy)}</td>
+            <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDeletePayment('${esc(pm.paymentId)}')">Delete</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
   }
 
-  // Item cards — show Name, Quantity, Description, Notes
-  const container = document.getElementById('teamItemCards');
-  if (!active.length) {
-    container.innerHTML = '<p class="empty-state">No items assigned to you.</p>';
+  document.getElementById('btnAddPayment').classList.toggle('hidden', isFull);
+}
+
+function openAddPayment() {
+  document.getElementById('payAmount').value = '';
+  document.getElementById('payDate').valueAsDate = new Date();
+  document.getElementById('payNotes').value = '';
+  const sel = document.getElementById('payMethod');
+  if (!sel.options.length) {
+    google.script.run.withSuccessHandler(methods => {
+      sel.innerHTML = '<option value="">Select method...</option>' + (methods||[]).map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    }).getPaymentMethods();
+  }
+  document.getElementById('overlayPayment').classList.add('open');
+}
+function submitPayment() {
+  const amount = safe(document.getElementById('payAmount').value);
+  const date   = document.getElementById('payDate').value;
+  const method = document.getElementById('payMethod').value;
+  if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+  if (!date)   { showToast('Select a date.', 'error'); return; }
+  if (!method) { showToast('Select a payment method.', 'error'); return; }
+
+  const btn = document.getElementById('btnPaymentSave');
+  startProcessing(btn, 'Saving payment...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      closeDialog('overlayPayment');
+      showToast('Payment recorded.', 'success');
+      openProject(currentProjectId);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .recordPayment(currentProjectId, {
+      amount, date, method,
+      notes: document.getElementById('payNotes').value
+    });
+}
+function askDeletePayment(paymentId) {
+  deletePaymentId = paymentId;
+  document.getElementById('overlayDeletePayment').classList.add('open');
+}
+function confirmDeletePayment() {
+  const btn = document.getElementById('btnDeletePaymentConfirm');
+  startProcessing(btn, 'Deleting...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      closeDialog('overlayDeletePayment');
+      if (!res.success) { showToast(res.error || 'Cannot delete.', 'error'); return; }
+      showToast('Payment deleted.', 'success');
+      openProject(currentProjectId);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .deletePayment(deletePaymentId);
+}
+
+/* ══════════════════════════════════════════════════════
+   REVENUE DISTRIBUTION
+══════════════════════════════════════════════════════ */
+function renderDistribution(detail) {
+  const area = document.getElementById('distributionArea');
+  const p = detail.project;
+
+  if (!detail.isFullyPaid) {
+    area.innerHTML = '<p class="locked-note">Distribute revenue once this project is fully paid.</p>';
     return;
   }
 
-  // Build a lookup for item descriptions/notes from detail.items
-  const itemMeta = {};
-  (detail.items || []).forEach(i => { itemMeta[i.itemName] = i; });
+  if (detail.distribution.length && !distEditing) {
+    area.innerHTML = `
+      <table class="dist-table">
+        <thead><tr><th>Person</th><th class="col-amt">Amount</th><th class="col-pct">%</th></tr></thead>
+        <tbody>
+          ${detail.distribution.map(d => `<tr>
+            <td><strong>${esc(d.personName)}</strong></td>
+            <td class="col-amt">${esc(p.currency)} ${fmt(d.amount)}</td>
+            <td class="col-pct">${d.percent.toFixed(1)}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <button class="btn" onclick="enterDistEdit()">Edit Distribution</button>`;
+    return;
+  }
 
-  container.innerHTML = active.map(a => {
-    const meta = itemMeta[a.itemName] || {};
-    const descHtml = meta.description
-      ? `<div class="item-desc-text">${esc(meta.description)}</div>` : '';
-    const notesHtml = meta.notes
-      ? `<div class="item-notes-text">Notes: ${esc(meta.notes)}</div>` : '';
-    return `
-      <div class="item-card">
-        <div class="item-header">
-          <div class="item-name">${esc(a.itemName)}</div>
-        </div>
-        <div class="item-meta">
-          <div class="meta-pill">
-            <span class="pill-label">Qty</span>
-            <span class="pill-value">${a.quantity}</span>
-          </div>
-        </div>
-        ${descHtml}
-        ${notesHtml}
-      </div>`;
-  }).join('');
+  // Editing mode
+  if (!distEditing) {
+    draftDistribution = [];
+    distEditing = true;
+  }
+  renderDistEditor(detail);
 }
 
-/* ══════════════════════════════════════════════════════
-   SHOW LIST
-══════════════════════════════════════════════════════ */
-function showList() {
-  switchView('list');
-  document.getElementById('topbarTitle').textContent = 'Projects';
-  document.getElementById('formActions').classList.add('hidden');
-  renderUserChip(currentUser);
-  if (currentUser.role === 'Admin') {
-    google.script.run.withSuccessHandler(renderList).getProjects();
-  } else {
-    google.script.run.withSuccessHandler(renderTeamList).getMyProjects();
-  }
+function enterDistEdit() {
+  draftDistribution = currentDetail.distribution.map(d => ({ personId: d.personId, personName: d.personName, amount: d.amount }));
+  distEditing = true;
+  renderDistEditor(currentDetail);
+}
+
+function renderDistEditor(detail) {
+  const area = document.getElementById('distributionArea');
+  const p = detail.project;
+  const members = detail.teamMembers || [];
+  const sum = draftDistribution.reduce((s, r) => s + r.amount, 0);
+  const diff = p.totalAmount - sum;
+  const matchClass = Math.abs(diff) < 0.5 ? 'match' : 'mismatch';
+
+  const rowsHtml = draftDistribution.map((r, idx) => `
+    <tr>
+      <td><strong>${esc(r.personName)}</strong></td>
+      <td class="col-amt">${esc(p.currency)} ${fmt(r.amount)}</td>
+      <td class="col-pct">${p.totalAmount ? ((r.amount / p.totalAmount) * 100).toFixed(1) : '0.0'}%</td>
+      <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="removeDistRow(${idx})">Remove</button></td>
+    </tr>`).join('');
+
+  area.innerHTML = `
+    <table class="dist-table">
+      <thead><tr><th>Person</th><th class="col-amt">Amount</th><th class="col-pct">%</th><th class="col-acts"></th></tr></thead>
+      <tbody>${rowsHtml || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
+    </table>
+    <div class="dist-progress ${matchClass}">
+      Distributed: <strong>${esc(p.currency)} ${fmt(sum)}</strong> / ${esc(p.currency)} ${fmt(p.totalAmount)}
+      ${Math.abs(diff) >= 0.5 ? ` — ${diff > 0 ? esc(p.currency) + ' ' + fmt(diff) + ' remaining' : 'over by ' + esc(p.currency) + ' ' + fmt(-diff)}` : ' ✓'}
+    </div>
+    <div class="inline-row">
+      <select id="distPersonSelect">${members.map(m => `<option value="${esc(m.id)}" data-name="${esc(m.name)}">${esc(m.name)}${m.role ? ' (' + esc(m.role) + ')' : ''}</option>`).join('')}</select>
+      <input type="text" id="distAmountInput" placeholder="Amount" inputmode="decimal">
+      <button class="btn-sm btn-sm-primary" onclick="addDistRow()">+ Add</button>
+    </div>
+    <div class="dialog-btns" style="margin-top:16px;">
+      <button class="btn" onclick="cancelDistEdit()">Cancel</button>
+      <button class="btn btn-success" id="btnSaveDist" onclick="submitDistribution()">
+        <div class="spinner"></div><span class="btn-label">Save Distribution</span>
+      </button>
+    </div>`;
+}
+
+function addDistRow() {
+  const sel = document.getElementById('distPersonSelect');
+  const amtEl = document.getElementById('distAmountInput');
+  if (!sel.options.length) { showToast('No team members found. Add some in the Team module first.', 'error'); return; }
+  const amount = safe(amtEl.value);
+  if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+  const personId = sel.value;
+  const personName = sel.options[sel.selectedIndex].dataset.name;
+  draftDistribution.push({ personId, personName, amount });
+  renderDistEditor(currentDetail);
+}
+function removeDistRow(idx) {
+  draftDistribution.splice(idx, 1);
+  renderDistEditor(currentDetail);
+}
+function cancelDistEdit() {
+  distEditing = false;
+  draftDistribution = [];
+  renderDistribution(currentDetail);
+}
+function submitDistribution() {
+  const btn = document.getElementById('btnSaveDist');
+  startProcessing(btn, 'Saving distribution...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Revenue distributed.', 'success');
+      distEditing = false;
+      openProject(currentProjectId);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .saveDistribution(currentProjectId, draftDistribution);
 }
 
 /* ══════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════ */
 function switchView(name) {
-  document.getElementById('viewList')   .classList.toggle('active', name === 'list');
+  document.getElementById('viewList').classList.toggle('active', name === 'list');
   document.getElementById('viewProject').classList.toggle('active', name === 'project');
 }
 function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
-function statusKey(s) {
-  if (!s) return 'needs-assignment';
-  return s.toLowerCase().replace(/\s+/g, '-');
-}
-function fmt(n) {
-  return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function statusKey(s) { return String(s||'').toLowerCase().replace(/\s+/g, '-'); }
+function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 init();
 </script>
