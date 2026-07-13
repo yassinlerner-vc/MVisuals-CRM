@@ -305,71 +305,29 @@ function showToast(msg, type, duration) {
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
-/* ══════════════════════════════
-   INIT
-══════════════════════════════ */
 function init() {
   showToast('Loading...', 'info', 0);
+  document.getElementById('btnNewQuotation').classList.remove('hidden');
+  google.script.run.withSuccessHandler(d => { itemsList = d || []; }).getItems();
+  google.script.run.withSuccessHandler(loadSettings).getSettings();
+  google.script.run.withSuccessHandler(loadAccounts).getAccounts();
   google.script.run
-    .withSuccessHandler(user => {
-      currentUser = user;
-      renderUserChip(user);
-      // Only Admin can create/edit/delete/confirm quotations
-      if (user.role === 'Admin') {
-        document.getElementById('btnNewQuotation').classList.remove('hidden');
-      }
-      google.script.run.withSuccessHandler(d => { itemsList = d || []; }).getItems();
-      google.script.run.withSuccessHandler(loadSettings).getSettings();
-      google.script.run.withSuccessHandler(loadAccounts).getAccounts();
-      google.script.run.withSuccessHandler(renderList).getQuotations();
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getQuotations();
 
-      document.getElementById('pricingMode').addEventListener('change', onPricingModeChange);
-      document.getElementById('minDays').addEventListener('input', onMinDaysInput);
-      document.getElementById('maxDays').addEventListener('input', onMaxDaysInput);
-      document.getElementById('dateIssued').addEventListener('change', updateDeadline);
-      document.getElementById('applyDiscount').addEventListener('change', onDiscountToggle);
-      document.getElementById('applyTax').addEventListener('change', onTaxToggle);
-      document.getElementById('discountPercent').addEventListener('input', sanitizePct);
-      document.getElementById('taxPercent').addEventListener('input', sanitizePct);
-      document.getElementById('discountPercent').addEventListener('input', calc);
-      document.getElementById('taxPercent').addEventListener('input', calc);
-      initSubtotalInput();
-    })
-    .withFailureHandler(err => showAccessError(err.message))
-    .getCurrentUser();
+  document.getElementById('pricingMode').addEventListener('change', onPricingModeChange);
+  document.getElementById('minDays').addEventListener('input', onMinDaysInput);
+  document.getElementById('maxDays').addEventListener('input', onMaxDaysInput);
+  document.getElementById('dateIssued').addEventListener('change', updateDeadline);
+  document.getElementById('applyDiscount').addEventListener('change', onDiscountToggle);
+  document.getElementById('applyTax').addEventListener('change', onTaxToggle);
+  document.getElementById('discountPercent').addEventListener('input', sanitizePct);
+  document.getElementById('taxPercent').addEventListener('input', sanitizePct);
+  document.getElementById('discountPercent').addEventListener('input', calc);
+  document.getElementById('taxPercent').addEventListener('input', calc);
+  initSubtotalInput();
 }
-
-function renderUserChip(user) {
-  const initials = (user.name || user.email).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  document.getElementById('topbarRight').innerHTML = `
-    <div class="user-chip">
-      <div class="user-avatar">${escHtml(initials)}</div>
-      <span class="user-chip-name">${escHtml(user.name)}</span>
-      <span class="user-chip-role">${escHtml(user.role)}</span>
-    </div>`;
-}
-
-function showAccessError(msg) {
-  document.getElementById('viewList').innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;text-align:center;padding:40px;">
-      <div style="font-size:48px;margin-bottom:16px;">🔒</div>
-      <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Access Denied</h2>
-      <p style="font-size:13px;color:#888;">${escHtml(msg)}</p>
-    </div>`;
-  hideToast();
-}
-
-function loadAccounts(accounts) {
-  const sel = document.getElementById('account');
-  sel.innerHTML = '';
-  (accounts || []).forEach(a => sel.add(new Option(a.name, a.id)));
-}
-function loadSettings(s) {
-  const cu = document.getElementById('currency');
-  cu.innerHTML = '';
-  (s.currencies || []).forEach(c => cu.add(new Option(c, c)));
-}
-
 /* ══════════════════════════════
    SUBTOTAL — calculator style
 ══════════════════════════════ */
@@ -471,7 +429,7 @@ function toggleHist(histId, quotationId, btn) {
         let pdfHtml = r.folderUrl
           ? (r.isCurrent
               ? `<a class="hist-pdf" href="${escHtml(r.folderUrl)}" target="_blank">View PDF ↗</a>`
-              : `<a class="hist-trash" href="${escHtml(r.folderUrl)}" target="_blank">View in Trash ↗</a>`)
+              : `<a class="hist-archived" href="${escHtml(r.folderUrl)}" target="_blank">View in Archived ↗</a>`)
           : `<span class="hist-none">PDF not available</span>`;
         return `<tr class="hist-row"><td colspan="8"><span class="hist-ver">${label}</span><span class="hist-date">${r.changedAt}</span><span class="hist-by">by ${escHtml(r.changedBy)}</span>${pdfHtml}</td></tr>`;
       }).join('');
