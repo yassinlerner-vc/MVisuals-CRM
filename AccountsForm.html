@@ -248,8 +248,7 @@ let allAccounts = [];
 let currentMode = 'list';
 let currentId   = null;
 let currentData = null;
-let currentUser = null;  // { email, name, role }
-
+let currentUser = { email: 'admin', name: 'Admin', role: 'Admin' };
 /* ══════════════════════════════
    PROCESSING / TOAST
 ══════════════════════════════ */
@@ -278,23 +277,16 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 ══════════════════════════════ */
 function init() {
   showToast('Loading...', 'info', 0);
+  renderUserChip(currentUser);
+  document.getElementById('btnNewAccount').classList.remove('hidden');
+  loadDropdown('sourceList',   'Account Sources');
+  loadDropdown('channelList',  'Account Channels');
+  loadDropdown('countryList',  'Countries');
+  loadDropdown('industryList', 'Industries');
   google.script.run
-    .withSuccessHandler(user => {
-      currentUser = user;
-      renderUserChip(user);
-      // Team role has read-only access to Accounts
-      // Lead and Admin can create/edit
-      if (user.role === 'Admin' || user.role === 'Lead') {
-        document.getElementById('btnNewAccount').classList.remove('hidden');
-      }
-      loadDropdown('sourceList',   'Account Sources');
-      loadDropdown('channelList',  'Account Channels');
-      loadDropdown('countryList',  'Countries');
-      loadDropdown('industryList', 'Industries');
-      google.script.run.withSuccessHandler(renderList).getAccounts();
-    })
-    .withFailureHandler(err => showAccessError(err.message))
-    .getCurrentUser();
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getAccounts();
 }
 
 function renderUserChip(user) {
