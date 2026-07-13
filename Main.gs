@@ -4,21 +4,64 @@
 const CLIENTS_FOLDER_ID  = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
 const LEADS_FOLDER_ID    = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
 const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
+const RUYA_TEAM_FOLDER_ID = '1S_nrzYMIJdpwBb84t-73D-NU7WDt33Nc';
 
 // ============================================================
-//  COLUMN INDEXES — Users (0-based)
+//  COLUMN INDEXES — Payments (0-based)
 // ============================================================
-const U = {
-  EMAIL:      0,
-  NAME:       1,
-  ROLE:       2,
-  STATUS:     3,
-  CREATED_BY: 4,
-  CREATED_AT: 5,
-  NOTES:      6,
-  MEMBER_ID:  7
+const PAY = {
+  PAYMENT_ID:   0,
+  PROJECT_ID:   1,
+  QUOTATION_ID: 2,
+  ACCOUNT_NAME: 3,
+  PROJECT_NAME: 4,
+  AMOUNT:       5,
+  DATE:         6,
+  METHOD:       7,
+  NOTES:        8,
+  RECORDED_BY:  9,
+  RECORDED_AT:  10
 };
 
+// ============================================================
+//  COLUMN INDEXES — Revenue_Distribution (0-based)
+// ============================================================
+const DIST = {
+  DISTRIBUTION_ID: 0,
+  PROJECT_ID:      1,
+  QUOTATION_ID:    2,
+  ACCOUNT_NAME:    3,
+  PROJECT_NAME:    4,
+  PERSON_ID:       5,
+  PERSON_NAME:     6,
+  PERCENT:         7,
+  AMOUNT:          8,
+  CURRENCY:        9,
+  NOTES:           10,
+  CREATED_BY:      11,
+  CREATED_AT:      12
+};
+
+// ============================================================
+//  PAYMENT METHODS — hardcoded (small, stable list)
+// ============================================================
+const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', 'Other'];
+
+function getPaymentMethods() {
+  return PAYMENT_METHODS;
+}
+// ============================================================
+//  COLUMN INDEXES — Team (0-based)
+// ============================================================
+const TM = {
+  TEAM_ID:    0,
+  NAME:       1,
+  PHONE:      2,
+  EMAIL:      3,
+  ROLE:       4,
+  FOLDER_URL: 5,
+  CREATED_AT: 6
+};
 // ============================================================
 //  COLUMN INDEXES — Accounts (0-based)
 // ============================================================
@@ -148,7 +191,7 @@ function onOpen() {
     .addItem('Accounts',    'openAccountsModule')
     .addItem('Quotations',  'openQuotationsModule')
     .addItem('Projects',    'openProjectsModule')
-    .addItem('Users',       'openUsersModule')
+    .addItem('Team',       'openTeamModule')
     .addToUi();
 }
 
@@ -170,10 +213,10 @@ function openProjectsModule() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Projects');
 }
 
-function openUsersModule() {
-  const html = HtmlService.createHtmlOutputFromFile('UsersForm')
+function openTeamModule() {
+  const html = HtmlService.createHtmlOutputFromFile('TeamForm')
     .setWidth(960).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Users');
+  SpreadsheetApp.getUi().showModalDialog(html, 'Team');
 }
 
 // ============================================================
