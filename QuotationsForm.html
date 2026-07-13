@@ -280,8 +280,7 @@ let currentId     = null;
 let itemsList     = [];
 let rowCount      = 0;
 let subtotalCents = 0;
-let currentUser   = null;  // { email, name, role }
-
+let currentUser   = { email: 'admin', name: 'Admin', role: 'Admin' };
 /* ══════════════════════════════
    PROCESSING / TOAST
 ══════════════════════════════ */
@@ -307,6 +306,7 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 
 function init() {
   showToast('Loading...', 'info', 0);
+  renderUserChip(currentUser);
   document.getElementById('btnNewQuotation').classList.remove('hidden');
   google.script.run.withSuccessHandler(d => { itemsList = d || []; }).getItems();
   google.script.run.withSuccessHandler(loadSettings).getSettings();
@@ -792,6 +792,26 @@ function safe(v)   { return Number(String(v).replace(/,/g, '')) || 0; }
 function fmt(n)    { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtNum(n) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function setFmt(el, val) { if (el) el.value = fmt(val); }
+function renderUserChip(user) {
+  const initials = (user.name || user.email).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('topbarRight').innerHTML = `
+    <div class="user-chip">
+      <div class="user-avatar">${escHtml(initials)}</div>
+      <span class="user-chip-name">${escHtml(user.name)}</span>
+      <span class="user-chip-role">${escHtml(user.role)}</span>
+    </div>`;
+}
+function loadSettings(settings) {
+  const sel = document.getElementById('currency');
+  sel.innerHTML = '';
+  (settings.currencies || []).forEach(c => sel.add(new Option(c, c)));
+}
+
+function loadAccounts(accounts) {
+  const sel = document.getElementById('account');
+  sel.innerHTML = '<option value="">Select account...</option>';
+  (accounts || []).forEach(a => sel.add(new Option(a.name, a.id)));
+}
 function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 init();
