@@ -769,13 +769,13 @@ function confirmQuotation(quotationId) {
   // ── Create Projects row ───────────────────────────────────
 const projectId = Utilities.getUuid();
 pSheet.appendRow([
- projectId, quotationId, accountId, accountName,
- projectName, projectDesc, deliveryDdl, dueDate,
-'Needs Assignment', '', now, '',   // cols 0-11 (Status = Needs Assignment)
-  qRow[Q.TOTAL],                     // col 12 Total Amount
-  qRow[Q.CURRENCY],                  // col 13 Currency
-  0,                                 // col 14 Total Commission (set on confirm)
-  0                                  // col 15 Remaining Amount (set on confirm)
+  projectId, quotationId, accountId, accountName,
+  projectName, projectDesc, deliveryDdl, dueDate,
+  'Active', '', now, '',              // cols 0-11 — Status is now just a lifecycle marker; payment status is computed live from Payments sheet
+  qRow[Q.TOTAL],                      // col 12 Total Amount
+  qRow[Q.CURRENCY],                   // col 13 Currency
+  0,                                  // col 14 unused — legacy commission column, safe to ignore
+  0                                   // col 15 unused — legacy remaining-amount column, safe to ignore
   ]);
 
   // ── Create Project_Items rows ─────────────────────────────
