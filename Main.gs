@@ -5,6 +5,9 @@ const CLIENTS_FOLDER_ID  = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
 const LEADS_FOLDER_ID    = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
 const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
 const RUYA_TEAM_FOLDER_ID = '1S_nrzYMIJdpwBb84t-73D-NU7WDt33Nc';
+const RUYA_QUOTATIONS_PIPELINE_ID  = '14_BP1bYHWJ3hqXwHE5WfYxp6hskjqWqj';
+const RUYA_QUOTATIONS_CONFIRMED_ID = '1StmfEKC-cUVK-Y-5WrJI1avmgvXQBe5s';
+const RUYA_QUOTATIONS_FULFILLED_ID = '1OBZ6QVCq_oG-b0nFK3Ejmaol8Iz7JjTn';
 
 // ============================================================
 //  COLUMN INDEXES — Payments (0-based)
