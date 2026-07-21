@@ -79,27 +79,42 @@ function generateQuotationId() {
 }
 
 // ============================================================
-//  DRIVE HELPERS
+//  DRIVE HELPERS — quotation PDF (single file, no per-quotation
+//  folder anymore; it lives directly in whichever stage folder
+//  it's currently in: Pipeline / Confirmed / Fulfilled)
 // ============================================================
 
-/** Standard folder name: "Q-0001 - Project Name" */
-function quotationFolderName(quotationId, projectName) {
-  return quotationId + ' - ' + projectName;
+/** Filename for a live PDF: "v1 - Account Name - Project Name.pdf" */
+function quotationPdfName(version, accountName, projectName) {
+  return 'v' + version + ' - ' + accountName + ' - ' + projectName + '.pdf';
 }
 
-/** Resolves a quotation's Drive folder from its stored URL. Returns Folder or null. */
-function getQuotationFolder(folderUrl) {
-  if (!folderUrl) return null;
+/** Filename for an archived (superseded) PDF, prefixed with quotation ID
+ *  so multiple accounts' archived versions don't collide by name. */
+function quotationArchivedPdfName(quotationId, version, accountName, projectName) {
+  return quotationId + ' - v' + version + ' - ' + accountName + ' - ' + projectName + '.pdf';
+}
+
+/** Resolves a quotation's PDF file from its stored URL. Returns File or null. */
+function getQuotationPdfFile(pdfUrl) {
+  if (!pdfUrl) return null;
   try {
-    const url = extractUrl(folderUrl);
+    const url = extractUrl(pdfUrl);
     if (!url) return null;
     const match = url.match(/[-\w]{25,}/);
     if (!match) return null;
-    return DriveApp.getFolderById(match[0]);
+    return DriveApp.getFileById(match[0]);
   } catch(e) {
-    Logger.log('getQuotationFolder error: ' + e);
+    Logger.log('getQuotationPdfFile error: ' + e);
     return null;
   }
+}
+
+/** Maps a quotation's Status to its current Drive stage folder. */
+function getQuotationStageFolder(status) {
+  if (status === 'Confirmed')  return DriveApp.getFolderById(RUYA_QUOTATIONS_CONFIRMED_ID);
+  if (status === 'Fully Paid') return DriveApp.getFolderById(RUYA_QUOTATIONS_FULFILLED_ID);
+  return DriveApp.getFolderById(RUYA_QUOTATIONS_PIPELINE_ID); // Drafted / default
 }
 
 /** Gets or creates a named subfolder inside a parent folder. Safe — never duplicates. */
@@ -190,7 +205,7 @@ function getQuotationById(quotationId) {
     total:              qRow[Q.TOTAL],
     status:             qRow[Q.STATUS],
     notes:              qRow[Q.NOTES],
-    folderUrl:          extractUrl(qRow[Q.FOLDER_URL]) || '',
+    pdfUrl:             extractUrl(qRow[Q.FOLDER_URL]) || '', // the live quotation PDF
     items
   };
 }
@@ -207,11 +222,11 @@ function getQuotationHistory(quotationId) {
   const qData   = qSheet.getDataRange().getValues();
   const tz      = Session.getScriptTimeZone();
 
-  let currentFolderUrl = '', currentVersion = 1;
+  let currentPdfUrl = '', currentVersion = 1;
   for (let i = 1; i < qData.length; i++) {
     if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-      currentFolderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-      currentVersion   = qData[i][Q.CURRENT_VERSION] || 1;
+      currentPdfUrl  = extractUrl(qData[i][Q.FOLDER_URL]) || '';
+      currentVersion = qData[i][Q.CURRENT_VERSION] || 1;
       break;
     }
   }
@@ -240,7 +255,7 @@ function getQuotationHistory(quotationId) {
     const isCurrent = r.version === currentVersion;
     let linkUrl = '';
     if (isCurrent) {
-      linkUrl = currentFolderUrl;
+      linkUrl = currentPdfUrl;
     } else {
       const entry = pdfRows.find(p => p.version === r.version);
       linkUrl = entry ? entry.pdfUrl : '';
@@ -252,13 +267,14 @@ function getQuotationHistory(quotationId) {
 // ============================================================
 //  QUOTATIONS — CREATE
 //
-//  Folder lifecycle:
-//    ON CREATE  → "Q-XXXX - Project Name/" created inside account's Pipeline/
-//                 Archived/ subfolder created immediately (always present)
-//                 PDF v1 saved in qFolder root
-//    ON EDIT    → new PDF saved in qFolder root; old PDF moved to qFolder/Archived/
-//    ON CONFIRM → qFolder moved Pipeline/ → Projects/
-//                 Uploads/, Rejected/, Deliverables/ + per-item subfolders created
+//  PDF lifecycle:
+//    ON CREATE  → PDF "v1 - Account - Project.pdf" saved directly
+//                 into Ruya_Quotations/Pipeline
+//    ON EDIT    → new version PDF saved into current stage folder;
+//                 old PDF renamed + moved to global Archived
+//    ON CONFIRM → PDF moved Pipeline → Confirmed; empty project
+//                 folder created under account's Projects/
+//    ON FULLY PAID (future) → PDF moved Confirmed → Fulfilled
 // ============================================================
 function createQuotation(data) {
   const ss            = SpreadsheetApp.getActive();
@@ -272,44 +288,16 @@ function createQuotation(data) {
 
   // ── Get account info ──────────────────────────────────────
   const accounts = accountsSheet.getDataRange().getValues();
-  let accountName = '', accountFolderUrl = '';
+  let accountName = '';
   for (let i = 1; i < accounts.length; i++) {
     if (String(accounts[i][0]) === String(data.accountId)) {
-      accountName      = accounts[i][A.ACCOUNT_NAME];
-      accountFolderUrl = accountsSheet.getRange(i + 1, A.FOLDER_URL + 1)
-        .getRichTextValue().getLinkUrl()
-        || extractUrl(accounts[i][A.FOLDER_URL]);
+      accountName = accounts[i][A.ACCOUNT_NAME];
       break;
     }
   }
-
-  if (!accountFolderUrl) {
-    return { success: false, error: 'Account folder not found. Please check the account record.' };
+  if (!accountName) {
+    return { success: false, error: 'Account not found. Please check the account record.' };
   }
-
-  // ── Resolve Pipeline subfolder ────────────────────────────
-  // Pipeline is guaranteed to exist for every account (createAccount creates it;
-  // migrateAccountFolders backfills it). We use getOrCreateSubfolder as a
-  // safety net only — we do NOT rely on this to create Pipeline for new accounts.
-  let pipelineFolder;
-  try {
-    const fid           = accountFolderUrl.match(/[-\w]{25,}/)[0];
-    const accountFolder = DriveApp.getFolderById(fid);
-    pipelineFolder      = getOrCreateSubfolder(accountFolder, 'Pipeline');
-  } catch(e) {
-    Logger.log('Pipeline folder error: ' + e);
-    return { success: false, error: 'Could not access Pipeline folder for this account.' };
-  }
-
-  // ── Create quotation folder inside Pipeline ───────────────
-  // Structure created upfront so the folder is always predictable:
-  //   Q-XXXX - Project Name/
-  //     Archived/       ← version history PDFs land here on every edit
-  //   (Uploads/, Rejected/, Deliverables/ added on confirmation)
-  const folderName = quotationFolderName(quotationId, data.projectName);
-  const qFolder    = pipelineFolder.createFolder(folderName);
-  qFolder.createFolder('Archived');
-  const folderUrl  = qFolder.getUrl();
 
   // ── Calculations ──────────────────────────────────────────
   let subtotal = data.subtotal;
@@ -321,18 +309,20 @@ function createQuotation(data) {
   const taxAmount          = data.taxed ? discountedSubtotal * (data.taxPercent / 100) : 0;
   const total              = discountedSubtotal + taxAmount;
 
-  // ── Generate PDF → save inside qFolder ───────────────────
+  // ── Generate PDF → save directly into Ruya_Quotations/Pipeline ──
   const html = generateQuotationHTML({
     quotationId, accountName, ...data,
     subtotal, taxAmount, discountAmount, total, version
   });
   const blob = Utilities.newBlob(html, 'text/html', 'quotation.html')
     .getAs('application/pdf')
-    .setName(quotationId + ' - ' + data.projectName + ' - v' + version + '.pdf');
-  qFolder.createFile(blob);
+    .setName(quotationPdfName(version, accountName, data.projectName));
+  const pipelineFolder = DriveApp.getFolderById(RUYA_QUOTATIONS_PIPELINE_ID);
+  const pdfFile = pipelineFolder.createFile(blob);
+  const pdfUrl  = pdfFile.getUrl();
 
   // ── Write quotation row ───────────────────────────────────
-  // FOLDER_URL stores the quotation FOLDER url, not the PDF file url
+  // FOLDER_URL column now stores the quotation PDF FILE url directly
   qSheet.appendRow([
     quotationId, version, data.accountId, accountName,
     data.projectName, data.projectDescription,
@@ -340,7 +330,7 @@ function createQuotation(data) {
     data.pricingMode, data.currency,
     subtotal, data.discounted, data.discountPercent, discountAmount,
     data.taxed, data.taxPercent, taxAmount,
-    total, 'Drafted', data.notes, folderUrl,
+    total, 'Drafted', data.notes, pdfUrl,
     user, now, user, now
   ]);
 
@@ -364,7 +354,7 @@ function createQuotation(data) {
   writeLog('Quotations_Log', 'Quotations', quotationId,
     quotationId + ' — ' + data.projectName,
     data.accountId, accountName,
-    'Folder', '', folderUrl, 'Quotation folder created in Pipeline');
+    'PDF', '', pdfUrl, 'Quotation PDF created in Pipeline');
 
   writeLog('Quotations_Log', 'Quote_Items', quotationId,
     quotationId + ' — ' + data.projectName,
@@ -383,11 +373,11 @@ function createQuotation(data) {
 //  QUOTATIONS — EDIT
 //
 //  Drive behaviour:
-//    • Resolves existing qFolder from FOLDER_URL (stays in Pipeline until confirm).
-//    • Saves new PDF (vN+1) into qFolder root.
-//    • Moves old PDF into qFolder/Archived/ — created on first edit, reused after.
-//    • Renames qFolder if project name changed.
-//    • FOLDER_URL in sheet stays unchanged throughout.
+//    • New PDF (vN+1) saved into whichever stage folder the
+//      quotation is currently in (Pipeline/Confirmed/Fulfilled).
+//    • Old PDF renamed with the quotation ID prefix and moved
+//      into the global Archived folder.
+//    • Status is preserved as-is — editing never changes stage.
 // ============================================================
 function editQuotation(data) {
   const ss            = SpreadsheetApp.getActive();
@@ -400,25 +390,20 @@ function editQuotation(data) {
 
   // ── Find quotation row ────────────────────────────────────
   const qData = qSheet.getDataRange().getValues();
-  let qRowIndex = -1, currentVersion = 1, currentFolderUrl = '', oldRow = null;
+  let qRowIndex = -1, currentVersion = 1, currentPdfUrl = '', oldRow = null;
   for (let i = 1; i < qData.length; i++) {
     if (String(qData[i][Q.QUOTATION_ID]) === String(data.id)) {
-      qRowIndex        = i + 1;
-      currentVersion   = qData[i][Q.CURRENT_VERSION] || 1;
-      currentFolderUrl = extractUrl(qData[i][Q.FOLDER_URL]) || '';
-      oldRow           = qData[i];
+      qRowIndex      = i + 1;
+      currentVersion = qData[i][Q.CURRENT_VERSION] || 1;
+      currentPdfUrl  = extractUrl(qData[i][Q.FOLDER_URL]) || '';
+      oldRow         = qData[i];
       break;
     }
   }
   if (qRowIndex === -1) return { success: false, error: 'Quotation not found.' };
 
   const newVersion = Number(currentVersion) + 1;
-
-  // ── Resolve quotation folder ──────────────────────────────
-  const qFolder = getQuotationFolder(currentFolderUrl);
-  if (!qFolder) {
-    return { success: false, error: 'Quotation folder not found in Drive. Cannot save new version.' };
-  }
+  const status      = oldRow[Q.STATUS];
 
   // ── Get account name ──────────────────────────────────────
   const accounts = accountsSheet.getDataRange().getValues();
@@ -439,21 +424,8 @@ function editQuotation(data) {
   const taxAmount          = data.taxed ? discountedSubtotal * (data.taxPercent / 100) : 0;
   const total              = discountedSubtotal + taxAmount;
 
-  // ── Find old PDF in qFolder root ──────────────────────────
-  const oldPdfName = data.id + ' - ' + oldRow[Q.PROJECT_NAME] + ' - v' + currentVersion + '.pdf';
-  let oldPdfFile   = null;
-  try {
-    const files = qFolder.getFiles();
-    while (files.hasNext()) {
-      const f = files.next();
-      if (f.getMimeType() === MimeType.PDF) {
-        if (f.getName() === oldPdfName) { oldPdfFile = f; break; }
-        if (!oldPdfFile) oldPdfFile = f; // fallback: first PDF in root
-      }
-    }
-  } catch(e) { Logger.log('Old PDF search error: ' + e); }
-
-  // ── Generate new PDF → save into qFolder root ─────────────
+  // ── Generate new PDF → save into current stage folder ─────
+  const stageFolder = getQuotationStageFolder(status);
   const html = generateQuotationHTML({
     quotationId: data.id, accountName, ...data,
     subtotal, taxAmount, discountAmount, total,
@@ -461,34 +433,23 @@ function editQuotation(data) {
   });
   const blob = Utilities.newBlob(html, 'text/html', 'quotation.html')
     .getAs('application/pdf')
-    .setName(data.id + ' - ' + data.projectName + ' - v' + newVersion + '.pdf');
-  qFolder.createFile(blob);
+    .setName(quotationPdfName(newVersion, accountName, data.projectName));
+  const newPdfFile = stageFolder.createFile(blob);
+  const newPdfUrl  = newPdfFile.getUrl();
 
-  // ── Move old PDF → qFolder/Archived/ ─────────────────────
-  // Archived/ always exists (created at quotation creation) — no need for get-or-create
+  // ── Archive old PDF ────────────────────────────────────────
   let oldPdfUrl = '';
+  const oldPdfFile = getQuotationPdfFile(currentPdfUrl);
   if (oldPdfFile) {
-    oldPdfUrl = oldPdfFile.getUrl();
     try {
-      const archivedFolders = qFolder.getFoldersByName('Archived');
-      if (archivedFolders.hasNext()) {
-        const archivedFolder = archivedFolders.next();
-        archivedFolder.addFile(oldPdfFile);
-        qFolder.removeFile(oldPdfFile);
-      } else {
-        // Safety net: should never happen if createQuotation ran correctly
-        Logger.log('Warning: Archived folder missing for ' + data.id + ' — creating it now');
-        const archivedFolder = qFolder.createFolder('Archived');
-        archivedFolder.addFile(oldPdfFile);
-        qFolder.removeFile(oldPdfFile);
-      }
+      oldPdfFile.setName(
+        quotationArchivedPdfName(data.id, currentVersion, oldRow[Q.ACCOUNT_NAME], oldRow[Q.PROJECT_NAME]));
+      oldPdfUrl = oldPdfFile.getUrl();
+      const archivedRoot = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
+      const parents = oldPdfFile.getParents();
+      archivedRoot.addFile(oldPdfFile);
+      while (parents.hasNext()) parents.next().removeFile(oldPdfFile);
     } catch(e) { Logger.log('Old PDF archive error: ' + e); }
-  }
-
-  // ── Rename folder if project name changed ─────────────────
-  if (String(oldRow[Q.PROJECT_NAME] || '') !== data.projectName) {
-    try { qFolder.setName(quotationFolderName(data.id, data.projectName)); }
-    catch(e) { Logger.log('Folder rename error: ' + e); }
   }
 
   // ── Snapshot old items for log ────────────────────────────
@@ -504,7 +465,7 @@ function editQuotation(data) {
   logQuotationFieldChanges(oldRow, { ...data, subtotal, total, discountAmount, taxAmount },
     data.accountId, accountName);
 
-  // ── Update quotation row — FOLDER_URL stays the same ──────
+  // ── Update quotation row — FOLDER_URL now points to the new PDF ──
   qSheet.getRange(qRowIndex, 1, 1, 27).setValues([[
     data.id, newVersion, data.accountId, accountName,
     data.projectName, data.projectDescription,
@@ -512,7 +473,7 @@ function editQuotation(data) {
     data.pricingMode, data.currency,
     subtotal, data.discounted, data.discountPercent, discountAmount,
     data.taxed, data.taxPercent, taxAmount,
-    total, 'Drafted', data.notes, currentFolderUrl,
+    total, status, data.notes, newPdfUrl,
     oldRow[Q.CREATED_BY], oldRow[Q.CREATED_AT], user, now
   ]]);
 
@@ -576,23 +537,26 @@ function editQuotation(data) {
 
 // ============================================================
 //  QUOTATIONS — DELETE
+//  Only non-Confirmed quotations can be deleted, so the PDF is
+//  always in Pipeline at this point. Renamed + moved to Archived.
 // ============================================================
 function deleteQuotation(quotationId) {
   const qSheet = getSheet('Quotations');
   const iSheet = getSheet('Quote_Items');
   const qData  = qSheet.getDataRange().getValues();
 
-  let qRowIndex = -1, folderUrl = '', accountId = '', accountName = '', projectName = '';
+  let qRowIndex = -1, pdfUrl = '', accountId = '', accountName = '', projectName = '', version = 1;
   for (let i = 1; i < qData.length; i++) {
     if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
       if (qData[i][Q.STATUS] === 'Confirmed') {
         return { success: false, error: 'Cannot delete a confirmed quotation.' };
       }
       qRowIndex   = i + 1;
-      folderUrl   = extractUrl(qData[i][Q.FOLDER_URL]) || '';
+      pdfUrl      = extractUrl(qData[i][Q.FOLDER_URL]) || '';
       accountId   = qData[i][Q.ACCOUNT_ID];
       accountName = qData[i][Q.ACCOUNT_NAME];
       projectName = qData[i][Q.PROJECT_NAME];
+      version     = qData[i][Q.CURRENT_VERSION] || 1;
       break;
     }
   }
@@ -606,16 +570,16 @@ function deleteQuotation(quotationId) {
       notes: r[QI.NOTES], unitPrice: r[QI.UNIT_PRICE], subtotal: r[QI.SUBTOTAL]
     }));
 
-  // Move entire quotation folder to global Archived root
-  if (folderUrl) {
+  // Move the quotation PDF to Archived
+  const pdfFile = getQuotationPdfFile(pdfUrl);
+  if (pdfFile) {
     try {
-      const fid          = folderUrl.match(/[-\w]{25,}/)[0];
-      const qFolder      = DriveApp.getFolderById(fid);
+      pdfFile.setName(quotationArchivedPdfName(quotationId, version, accountName, projectName));
       const archivedRoot = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
-      const parents      = qFolder.getParents();
-      archivedRoot.addFolder(qFolder);
-      while (parents.hasNext()) parents.next().removeFolder(qFolder);
-    } catch(e) { Logger.log('Delete folder move error: ' + e); }
+      const parents = pdfFile.getParents();
+      archivedRoot.addFile(pdfFile);
+      while (parents.hasNext()) parents.next().removeFile(pdfFile);
+    } catch(e) { Logger.log('Delete PDF archive error: ' + e); }
   }
 
   qSheet.deleteRow(qRowIndex);
@@ -627,7 +591,7 @@ function deleteQuotation(quotationId) {
 
   writeLog('Quotations_Log', 'Quotations', quotationId,
     quotationId + ' — ' + projectName, accountId, accountName,
-    'Status', 'Drafted', 'Deleted', 'Quotation deleted — folder moved to Archived');
+    'Status', 'Drafted', 'Deleted', 'Quotation deleted — PDF moved to Archived');
 
   writeLog('Quotations_Log', 'Quote_Items', quotationId,
     quotationId + ' — ' + projectName, accountId, accountName,
@@ -637,24 +601,13 @@ function deleteQuotation(quotationId) {
 }
 
 // ============================================================
-//  QUOTATIONS — CONFIRM  (replace the existing confirmQuotation function)
+//  QUOTATIONS — CONFIRM
 //
-//  Drive folder structure created upfront on confirmation:
-//
-//    Q-XXXX - Project Name/
-//      Archived/                     ← version PDFs (already exists from creation)
-//      Uploads/
-//        [Item 1 Name]/
-//        [Item 2 Name]/
-//      Rejected/
-//        [Item 1 Name]/
-//        [Item 2 Name]/
-//      Deliverables/
-//        Archived/
-//          [Item 1 Name]/
-//          [Item 2 Name]/
-//        [Item 1 Name]/
-//        [Item 2 Name]/
+//  Drive behaviour on confirm:
+//    • PDF moved Ruya_Quotations/Pipeline → Ruya_Quotations/Confirmed
+//    • An empty folder "Project Name - Account Name" is created
+//      inside the account's Projects/ folder (no PDF inside it —
+//      the PDF lives in Ruya_Quotations, not the account folder)
 // ============================================================
 function confirmQuotation(quotationId) {
   const ss            = SpreadsheetApp.getActive();
@@ -682,7 +635,7 @@ function confirmQuotation(quotationId) {
   const accountName = qRow[Q.ACCOUNT_NAME];
   const projectName = qRow[Q.PROJECT_NAME];
   const projectDesc = qRow[Q.PROJECT_DESC];
-  const folderUrl   = extractUrl(qRow[Q.FOLDER_URL]) || '';
+  const pdfUrl      = extractUrl(qRow[Q.FOLDER_URL]) || '';
   const deliveryDdl = qRow[Q.DELIVERY_DEADLINE];
   const dateIssued  = qRow[Q.DATE_ISSUED];
   const minDays     = qRow[Q.MIN_DAYS];
@@ -712,54 +665,36 @@ function confirmQuotation(quotationId) {
     String(r[QI.QUOTATION_ID]) === String(quotationId) && r[QI.STATUS] === 'Approved'
   );
 
-  // ── Drive: move qFolder Pipeline → Projects ───────────────
-  // Then pre-create ALL workflow subfolders with per-item subdirs
-  const qFolder = getQuotationFolder(folderUrl);
-  if (qFolder) {
-    try {
-      // Resolve account folder and move qFolder
-      const accounts2 = accountsSheet.getDataRange().getValues();
-      let accountFolderUrl = '';
-      for (let i = 1; i < accounts2.length; i++) {
-        if (String(accounts2[i][0]) === String(accountId)) {
-          accountFolderUrl = accountsSheet.getRange(i + 1, A.FOLDER_URL + 1)
-            .getRichTextValue().getLinkUrl()
-            || extractUrl(accounts2[i][A.FOLDER_URL]);
-          break;
-        }
+  // ── Drive: move PDF Pipeline → Confirmed ──────────────────
+  try {
+    const pdfFile = getQuotationPdfFile(pdfUrl);
+    if (pdfFile) {
+      const confirmedFolder = DriveApp.getFolderById(RUYA_QUOTATIONS_CONFIRMED_ID);
+      const parents = pdfFile.getParents();
+      confirmedFolder.addFile(pdfFile);
+      while (parents.hasNext()) parents.next().removeFile(pdfFile);
+    }
+  } catch(e) { Logger.log('Confirm PDF move error: ' + e); }
+
+  // ── Drive: create empty project folder inside account's Projects/ ──
+  try {
+    const accounts2 = accountsSheet.getDataRange().getValues();
+    let accountFolderUrl = '';
+    for (let i = 1; i < accounts2.length; i++) {
+      if (String(accounts2[i][0]) === String(accountId)) {
+        accountFolderUrl = accountsSheet.getRange(i + 1, A.FOLDER_URL + 1)
+          .getRichTextValue().getLinkUrl()
+          || extractUrl(accounts2[i][A.FOLDER_URL]);
+        break;
       }
-
-      if (accountFolderUrl) {
-        const accFid         = accountFolderUrl.match(/[-\w]{25,}/)[0];
-        const accountFolder  = DriveApp.getFolderById(accFid);
-        const projectsFolder = getOrCreateSubfolder(accountFolder, 'Projects');
-        const pipelineFolder = getOrCreateSubfolder(accountFolder, 'Pipeline');
-        projectsFolder.addFolder(qFolder);
-        pipelineFolder.removeFolder(qFolder);
-      }
-
-      // ── Pre-create all workflow folders with item subfolders ──
-      //
-      //  Uploads/[item]/
-      //  Rejected/[item]/
-      //  Deliverables/[item]/
-      //  Deliverables/Archived/[item]/
-
-      const uploadsFolder    = getOrCreateSubfolder(qFolder, 'Uploads');
-      const rejectedFolder   = getOrCreateSubfolder(qFolder, 'Rejected');
-      const delivFolder      = getOrCreateSubfolder(qFolder, 'Deliverables');
-      const delivArchFolder  = getOrCreateSubfolder(delivFolder, 'Archived');
-
-      approvedItems.forEach(item => {
-        const itemName = String(item[QI.ITEM_NAME] || 'Unnamed Item');
-        getOrCreateSubfolder(uploadsFolder,   itemName);
-        getOrCreateSubfolder(rejectedFolder,  itemName);
-        getOrCreateSubfolder(delivFolder,     itemName);
-        getOrCreateSubfolder(delivArchFolder, itemName);
-      });
-
-    } catch(e) { Logger.log('Confirm folder error: ' + e); }
-  }
+    }
+    if (accountFolderUrl) {
+      const accFid          = accountFolderUrl.match(/[-\w]{25,}/)[0];
+      const accountFolder   = DriveApp.getFolderById(accFid);
+      const projectsFolder  = getOrCreateSubfolder(accountFolder, 'Projects');
+      getOrCreateSubfolder(projectsFolder, projectName + ' - ' + accountName);
+    }
+  } catch(e) { Logger.log('Confirm project folder error: ' + e); }
 
   // ── Update quotation status ───────────────────────────────
   qSheet.getRange(qRowIndex, Q.STATUS          + 1).setValue('Confirmed');
@@ -767,23 +702,18 @@ function confirmQuotation(quotationId) {
   qSheet.getRange(qRowIndex, Q.LAST_UPDATED_AT + 1).setValue(now);
 
   // ── Create Projects row ───────────────────────────────────
-const projectId = Utilities.getUuid();
-pSheet.appendRow([
-  projectId, quotationId, accountId, accountName,
-  projectName, projectDesc, deliveryDdl, dueDate,
-  'Active', '', now, '',              // cols 0-11 — Status is now just a lifecycle marker; payment status is computed live from Payments sheet
-  qRow[Q.TOTAL],                      // col 12 Total Amount
-  qRow[Q.CURRENCY],                   // col 13 Currency
-  0,                                  // col 14 unused — legacy commission column, safe to ignore
-  0                                   // col 15 unused — legacy remaining-amount column, safe to ignore
+  const projectId = Utilities.getUuid();
+  pSheet.appendRow([
+    projectId, quotationId, accountId, accountName,
+    projectName, projectDesc, deliveryDdl, dueDate,
+    'Active', '', now, '',              // cols 0-11
+    qRow[Q.TOTAL],                      // col 12 Total Amount
+    qRow[Q.CURRENCY],                   // col 13 Currency
+    0,                                  // col 14 unused
+    0                                   // col 15 unused
   ]);
 
   // ── Create Project_Items rows ─────────────────────────────
-  //  New column layout (16 cols, no REDO_COUNT, no UPLOADED_FILE_URL):
-  //  Item ID | Project ID | Quotation ID | Account Name | Project Name |
-  //  Project Description | Item Name | Quantity | Description | Notes |
-  //  Delivery Status | Assigned To | Internal Notes | Due Date |
-  //  Completed At | Created At
   approvedItems.forEach(item => {
     piSheet.appendRow([
       Utilities.getUuid(),          // Item ID
@@ -796,8 +726,9 @@ pSheet.appendRow([
       item[QI.QUANTITY],            // Quantity
       item[QI.DESCRIPTION],         // Description
       item[QI.NOTES],               // Notes
-  ]);
+    ]);
   });
+
   // ── Logs ─────────────────────────────────────────────────
   writeLog('Quotations_Log', 'Quotations', quotationId,
     quotationId + ' — ' + projectName, accountId, accountName,
@@ -815,19 +746,6 @@ pSheet.appendRow([
 
 // ============================================================
 //  BRANDING — read from the Branding sheet
-//
-//  Expected sheet layout (row 2 = values, row 1 = headers):
-//    Col A  Logo Drive file URL   (e.g. https://drive.google.com/file/d/FILE_ID/view)
-//    Col B  Company Name          (e.g. MVisuals)
-//    Col C  Primary Colour        (hex, e.g. #1a1a2e)   — header bar, total row
-//    Col D  Accent Colour         (hex, e.g. #4361ee)   — section labels, borders
-//    Col E  Company Address       (plain text, line breaks OK)
-//    Col F  Website               (e.g. www.mvisuals.com)
-//    Col G  Footer Note           (e.g. "Prices valid for 30 days.")
-//
-//  If a cell is empty, sensible defaults are used.
-//  To rebrand: update row 2 only — the PDF and (later) the UI
-//  all read from this single source of truth.
 // ============================================================
 function getBranding() {
   const sheet = getSheet('Branding');
@@ -843,16 +761,6 @@ function getBranding() {
   };
 }
 
-/**
- * Fetches a Drive file by its URL/ID and returns a base64 data-URI
- * suitable for embedding in an <img src="..."> tag.
- * Returns '' if the file cannot be fetched (so the PDF still renders).
- *
- * WHY base64: Apps Script's PDF renderer cannot make outbound HTTP
- * requests to fetch external URLs, including Drive share links.
- * Embedding the image as a data-URI is the only reliable way to
- * include it in the generated PDF.
- */
 function driveImageToBase64(url) {
   if (!url) return '';
   try {
@@ -869,11 +777,6 @@ function driveImageToBase64(url) {
   }
 }
 
-/**
- * Formats a number in accounting style:
- *   1234567.8 → "1,234,567.80"
- * No sign prefix — caller decides how to label it.
- */
 function fmtAccounting(n) {
   const num = Number(n) || 0;
   return num.toLocaleString('en-US', {
@@ -884,14 +787,6 @@ function fmtAccounting(n) {
 
 // ============================================================
 //  PDF GENERATION
-//
-//  Design principles:
-//    • Single source of truth for colours/logo: Branding sheet
-//    • Logo embedded as base64 (required for PDF renderer)
-//    • All financial figures in accounting format (1,234.56) — no sign prefixes
-//    • Discount and Tax labelled clearly without +/- symbols
-//    • Clean two-column header layout, full-width items table
-//    • Gracefully degrades if any branding field is missing
 // ============================================================
 function generateQuotationHTML(data) {
   const branding    = getBranding();
@@ -901,7 +796,6 @@ function generateQuotationHTML(data) {
   const showPricing = data.pricingMode === 'Itemized';
   const cur         = data.currency || '';
 
-  // ── Items rows ────────────────────────────────────────────
   const itemsRows = (data.items || []).map((item, i) => `
     <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8f9ff'};">
       <td style="text-align:center;color:#888;">${i + 1}</td>
@@ -913,7 +807,6 @@ function generateQuotationHTML(data) {
       <td style="text-align:right;">${cur} ${fmtAccounting(item.subtotal)}</td>` : ''}
     </tr>`).join('');
 
-  // ── Pricing summary rows ──────────────────────────────────
   const discountedSubtotal = data.subtotal - (data.discountAmount || 0);
 
   const summaryRows = `
@@ -940,12 +833,10 @@ function generateQuotationHTML(data) {
       <td style="padding:10px;text-align:right;font-weight:700;font-size:14px;">${cur} ${fmtAccounting(data.total)}</td>
     </tr>`;
 
-  // ── Delivery text ─────────────────────────────────────────
   const deliveryText = (data.minDays && data.maxDays)
     ? `${data.minDays}–${data.maxDays} working days`
     : (data.deliveryDeadline || '—');
 
-  // ── Footer ────────────────────────────────────────────────
   const footerNote = branding.footerNote
     ? `<p style="font-size:11px;color:#888;margin-top:4px;">${esc(branding.footerNote)}</p>` : '';
   const websiteText = branding.website
@@ -964,149 +855,38 @@ function generateQuotationHTML(data) {
     background: #fff;
     padding: 32px 40px;
   }
-
-  /* ── Header ── */
-  .header {
-    display: table;
-    width: 100%;
-    margin-bottom: 32px;
-  }
-  .header-left, .header-right {
-    display: table-cell;
-    vertical-align: middle;
-  }
+  .header { display: table; width: 100%; margin-bottom: 32px; }
+  .header-left, .header-right { display: table-cell; vertical-align: middle; }
   .header-right { text-align: right; }
   .logo { max-height: 56px; max-width: 180px; }
-  .company-name {
-    font-size: 20px;
-    font-weight: 700;
-    color: ${primary};
-    letter-spacing: 0.02em;
-  }
-  .company-meta {
-    font-size: 10px;
-    color: #888;
-    margin-top: 4px;
-    line-height: 1.5;
-  }
-  .doc-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: ${primary};
-  }
-  .doc-meta {
-    font-size: 11px;
-    color: #888;
-    margin-top: 4px;
-    line-height: 1.6;
-  }
-
-  /* ── Divider ── */
-  .divider {
-    border: none;
-    border-top: 2px solid ${accent};
-    margin: 0 0 24px;
-  }
-
-  /* ── Info grid ── */
-  .info-grid {
-    display: table;
-    width: 100%;
-    margin-bottom: 28px;
-  }
-  .info-col {
-    display: table-cell;
-    width: 50%;
-    vertical-align: top;
-    padding-right: 20px;
-  }
+  .company-name { font-size: 20px; font-weight: 700; color: ${primary}; letter-spacing: 0.02em; }
+  .company-meta { font-size: 10px; color: #888; margin-top: 4px; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: ${primary}; }
+  .doc-meta { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.6; }
+  .divider { border: none; border-top: 2px solid ${accent}; margin: 0 0 24px; }
+  .info-grid { display: table; width: 100%; margin-bottom: 28px; }
+  .info-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 20px; }
   .info-col:last-child { padding-right: 0; }
-  .info-label {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: ${accent};
-    margin-bottom: 4px;
-  }
-  .info-value {
-    font-size: 12px;
-    color: #1a1a2e;
-    line-height: 1.5;
-  }
-  .info-value.large {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  /* ── Section heading ── */
-  .section-label {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: ${accent};
-    margin-bottom: 8px;
-  }
-
-  /* ── Items table ── */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    margin-bottom: 0;
-  }
-  thead th {
-    background: ${primary};
-    color: #fff;
-    padding: 9px 10px;
-    text-align: left;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
+  .info-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 4px; }
+  .info-value { font-size: 12px; color: #1a1a2e; line-height: 1.5; }
+  .info-value.large { font-size: 14px; font-weight: 600; }
+  .section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0; }
+  thead th { background: ${primary}; color: #fff; padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
   thead th.num   { width: 32px; text-align: center; }
   thead th.qty   { width: 50px; text-align: center; }
   thead th.price { width: 110px; text-align: right; }
   thead th.sub   { width: 120px; text-align: right; }
-  tbody td {
-    padding: 8px 10px;
-    border-bottom: 1px solid #e8eaf0;
-    vertical-align: top;
-  }
-  tfoot td {
-    border-top: 2px solid #e8eaf0;
-  }
-
-  /* ── Notes ── */
-  .notes-box {
-    background: #f8f9ff;
-    border-left: 3px solid ${accent};
-    padding: 10px 14px;
-    font-size: 11px;
-    color: #555;
-    margin-top: 24px;
-    line-height: 1.5;
-  }
-
-  /* ── Footer ── */
-  .footer {
-    margin-top: 40px;
-    padding-top: 12px;
-    border-top: 1px solid #e8eaf0;
-    font-size: 10px;
-    color: #aaa;
-    display: table;
-    width: 100%;
-  }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid #e8eaf0; vertical-align: top; }
+  tfoot td { border-top: 2px solid #e8eaf0; }
+  .notes-box { background: #f8f9ff; border-left: 3px solid ${accent}; padding: 10px 14px; font-size: 11px; color: #555; margin-top: 24px; line-height: 1.5; }
+  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e8eaf0; font-size: 10px; color: #aaa; display: table; width: 100%; }
   .footer-left  { display: table-cell; vertical-align: middle; }
   .footer-right { display: table-cell; text-align: right; vertical-align: middle; }
 </style>
 </head>
 <body>
 
-<!-- ═══ HEADER ═══ -->
 <div class="header">
   <div class="header-left">
     ${logoDataUri
@@ -1128,7 +908,6 @@ function generateQuotationHTML(data) {
 
 <hr class="divider">
 
-<!-- ═══ INFO GRID ═══ -->
 <div class="info-grid">
   <div class="info-col">
     <div class="info-label">Prepared for</div>
@@ -1142,7 +921,6 @@ function generateQuotationHTML(data) {
   </div>
 </div>
 
-<!-- ═══ ITEMS TABLE ═══ -->
 <div class="section-label">Scope of Work</div>
 <table>
   <thead>
@@ -1163,13 +941,11 @@ function generateQuotationHTML(data) {
 </table>
 
 ${data.notes ? `
-<!-- ═══ NOTES ═══ -->
 <div class="notes-box">
   <strong style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:${accent};">Notes</strong><br>
   ${esc(data.notes)}
 </div>` : ''}
 
-<!-- ═══ FOOTER ═══ -->
 <div class="footer">
   <div class="footer-left">
     ${esc(branding.companyName)}${websiteText}
@@ -1184,7 +960,6 @@ ${data.notes ? `
 </html>`;
 }
 
-/** HTML-escape helper used inside generateQuotationHTML */
 function esc(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
