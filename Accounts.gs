@@ -88,7 +88,8 @@ function getAccountRow(accountId) {
 
 // ============================================================
 //  ACCOUNTS — CREATE
-//  Creates account folder in Leads with 4 standard subfolders
+//  Creates account folder in Leads with 2 standard subfolders:
+//  Brand Assets, Projects
 // ============================================================
 function createAccount(formData) {
   const sheet     = getSheet('Accounts');
@@ -102,9 +103,7 @@ function createAccount(formData) {
 
   // Create standard subfolders
   accountFolder.createFolder('Brand Assets');
-  accountFolder.createFolder('Pipeline');
   accountFolder.createFolder('Projects');
-  accountFolder.createFolder('Other');
 
   const folderUrl = accountFolder.getUrl();
 
@@ -273,8 +272,10 @@ function promoteAccountToClient(accountId) {
     'Status', data[A.STATUS], 'Client',
     'Promoted on quotation confirmation');
 }
+
 // ============================================================
-//  ACCOUNTS — MIGRATE EXISTING (kept for safety)
+//  ACCOUNTS — MIGRATE EXISTING (kept for safety — backfills
+//  accounts that never got an ID/folder)
 // ============================================================
 function migrateExistingAccounts() {
   const sheet        = getSheet('Accounts');
@@ -295,9 +296,7 @@ function migrateExistingAccounts() {
       const accountId     = generateAccountId();
       const accountFolder = leadsFolder.createFolder(accountId + ' - ' + accountName);
       accountFolder.createFolder('Brand Assets');
-      accountFolder.createFolder('Pipeline');
       accountFolder.createFolder('Projects');
-      accountFolder.createFolder('Other');
       sheet.getRange(i + 1, A.ACCOUNT_ID  + 1).setValue(accountId);
       sheet.getRange(i + 1, A.FOLDER_URL  + 1).setValue(accountFolder.getUrl());
       sheet.getRange(i + 1, A.STATUS      + 1).setValue(row[A.STATUS] || 'Lead');
@@ -307,7 +306,6 @@ function migrateExistingAccounts() {
   SpreadsheetApp.getUi().alert(
     'Migration complete. ' + updated + ' accounts updated.');
 }
-
 // ============================================================
 //  HELPER — extract plain URL from either a formula or raw string
 // ============================================================
