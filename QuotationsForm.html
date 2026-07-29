@@ -127,6 +127,8 @@
     .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #1a1a2e; }
     .dialog p  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
     .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; }
+    .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
     body.readonly-mode .edit-only { display: none !important; }
     body.readonly-mode input:not([type="checkbox"]), body.readonly-mode select, body.readonly-mode textarea { pointer-events: none; background: #f0f2fa; color: #555; }
     body.readonly-mode input[type="checkbox"] { pointer-events: none; }
@@ -227,6 +229,13 @@
       <div class="divider-row"></div>
       <div class="pricing-label-cell"><label class="total-label">Total</label></div>
       <div class="pricing-input-cell"><input type="text" id="total" class="amt-field total-input" readonly placeholder="0.00"></div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Payment Details</h3>
+    <div class="checkbox-row">
+      <input type="checkbox" id="includeBankDetails">
+      <label for="includeBankDetails">Include Bank Details section in PDF</label>
     </div>
   </div>
   <div class="section"><h3>Notes</h3><textarea id="notes" placeholder="Any additional notes..."></textarea></div>
@@ -562,6 +571,7 @@ function populateForm(q) {
   setValue('currency', q.currency); setValue('notes', q.notes);
   document.getElementById('applyDiscount').checked = !!q.discounted;
   document.getElementById('applyTax').checked      = !!q.taxed;
+  document.getElementById('includeBankDetails').checked = !!q.includeBankDetails;
   document.getElementById('discountInputs').style.visibility = q.discounted ? 'visible' : 'hidden';
   document.getElementById('taxInputs').style.visibility      = q.taxed      ? 'visible' : 'hidden';
   setValue('discountPercent', q.discountPercent || ''); setValue('taxPercent', q.taxPercent || '');
@@ -586,6 +596,7 @@ function resetForm() {
   document.getElementById('dateIssued').valueAsDate = new Date();
   ['projectName','projectDescription','minDays','maxDays','deadline','notes'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('applyDiscount').checked = false; document.getElementById('applyTax').checked = false;
+  document.getElementById('includeBankDetails').checked = false;
   document.getElementById('discountInputs').style.visibility = 'hidden'; document.getElementById('taxInputs').style.visibility = 'hidden';
   ['discountPercent','taxPercent','discountAmount','taxAmount','total'].forEach(id => { document.getElementById(id).value = ''; });
   subtotalCents = 0; document.getElementById('subtotal').value = '';
@@ -634,6 +645,7 @@ function collectFormData() {
     currency: document.getElementById('currency').value, subtotal: getSubtotalValue(),
     discounted: document.getElementById('applyDiscount').checked, discountPercent: safe(document.getElementById('discountPercent').value),
     taxed: document.getElementById('applyTax').checked, taxPercent: safe(document.getElementById('taxPercent').value),
+    includeBankDetails: document.getElementById('includeBankDetails').checked,
     notes: document.getElementById('notes').value, items
   };
 }
