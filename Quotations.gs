@@ -27,7 +27,8 @@ function logQuotationFieldChanges(oldRow, newData, accountId, accountName) {
     { key: 'Taxed',              old: oldRow[Q.TAXED],            nw: newData.taxed },
     { key: 'TaxPercent',         old: oldRow[Q.TAX_PERCENT],      nw: newData.taxPercent },
     { key: 'Total',              old: oldRow[Q.TOTAL],            nw: newData.total },
-    { key: 'Notes',              old: oldRow[Q.NOTES],            nw: newData.notes }
+    { key: 'Notes',              old: oldRow[Q.NOTES],            nw: newData.notes },
+    { key: 'IncludeBankDetails', old: oldRow[Q.INCLUDE_BANK_DETAILS], nw: newData.includeBankDetails }
   ];
 
   fields.forEach(f => {
@@ -205,6 +206,7 @@ function getQuotationById(quotationId) {
     total:              qRow[Q.TOTAL],
     status:             qRow[Q.STATUS],
     notes:              qRow[Q.NOTES],
+    includeBankDetails: !!qRow[Q.INCLUDE_BANK_DETAILS],
     pdfUrl:             extractUrl(qRow[Q.FOLDER_URL]) || '', // the live quotation PDF
     items
   };
@@ -321,6 +323,8 @@ function createQuotation(data) {
   const pdfFile = pipelineFolder.createFile(blob);
   const pdfUrl  = pdfFile.getUrl();
 
+  const includeBankDetails = !!data.includeBankDetails;
+
   // ── Write quotation row ───────────────────────────────────
   // FOLDER_URL column now stores the quotation PDF FILE url directly
   qSheet.appendRow([
@@ -331,7 +335,8 @@ function createQuotation(data) {
     subtotal, data.discounted, data.discountPercent, discountAmount,
     data.taxed, data.taxPercent, taxAmount,
     total, 'Drafted', data.notes, pdfUrl,
-    user, now, user, now
+    user, now, user, now,
+    includeBankDetails
   ]);
 
   // ── Write items ───────────────────────────────────────────
@@ -404,6 +409,7 @@ function editQuotation(data) {
 
   const newVersion = Number(currentVersion) + 1;
   const status      = oldRow[Q.STATUS];
+  const includeBankDetails = !!data.includeBankDetails;
 
   // ── Get account name ──────────────────────────────────────
   const accounts = accountsSheet.getDataRange().getValues();
@@ -462,11 +468,12 @@ function editQuotation(data) {
     }));
 
   // ── Log field-level changes ───────────────────────────────
-  logQuotationFieldChanges(oldRow, { ...data, subtotal, total, discountAmount, taxAmount },
+  logQuotationFieldChanges(oldRow, { ...data, subtotal, total, discountAmount, taxAmount, includeBankDetails },
     data.accountId, accountName);
 
   // ── Update quotation row — FOLDER_URL now points to the new PDF ──
-  qSheet.getRange(qRowIndex, 1, 1, 27).setValues([[
+  // 28 columns now (added IncludeBankDetails at the end).
+  qSheet.getRange(qRowIndex, 1, 1, 28).setValues([[
     data.id, newVersion, data.accountId, accountName,
     data.projectName, data.projectDescription,
     data.dateIssued, data.minDays, data.maxDays, data.deliveryDeadline,
@@ -474,7 +481,8 @@ function editQuotation(data) {
     subtotal, data.discounted, data.discountPercent, discountAmount,
     data.taxed, data.taxPercent, taxAmount,
     total, status, data.notes, newPdfUrl,
-    oldRow[Q.CREATED_BY], oldRow[Q.CREATED_AT], user, now
+    oldRow[Q.CREATED_BY], oldRow[Q.CREATED_AT], user, now,
+    includeBankDetails
   ]]);
 
   // ── Update items ──────────────────────────────────────────
@@ -746,35 +754,61 @@ function confirmQuotation(quotationId) {
 
 // ============================================================
 //  BRANDING — read from the Branding sheet
+//  Cols: A LogoUrl (unused — logo is hardcoded, see Logo.gs) |
+//  B CompanyName | C PrimaryColor | D AccentColor | E Address
+//  (unused — not shown on PDF anymore) | F Website | G FooterNote |
+//  H Phone | I Email | J Instagram
 // ============================================================
 function getBranding() {
   const sheet = getSheet('Branding');
   const row   = sheet ? (sheet.getDataRange().getValues()[1] || []) : [];
   return {
-    logoUrl:     String(row[0] || ''),
-    companyName: String(row[1] || 'Quotation'),
-    primaryColor:String(row[2] || '#1a1a2e'),
-    accentColor: String(row[3] || '#4361ee'),
-    address:     String(row[4] || ''),
-    website:     String(row[5] || ''),
-    footerNote:  String(row[6] || '')
+    companyName:  String(row[1] || 'Ruya Studios'),
+    primaryColor: String(row[2] || '#4A1D13'),
+    accentColor:  String(row[3] || '#4A1D13'),
+    website:      String(row[5] || ''),
+    footerNote:   String(row[6] || ''),
+    phone:        String(row[7] || ''),
+    email:        String(row[8] || ''),
+    instagram:    String(row[9] || '')
   };
 }
 
-function driveImageToBase64(url) {
-  if (!url) return '';
-  try {
-    const match = url.match(/[-\w]{25,}/);
-    if (!match) return '';
-    const file     = DriveApp.getFileById(match[0]);
-    const blob     = file.getBlob();
-    const mime     = blob.getContentType() || 'image/png';
-    const base64   = Utilities.base64Encode(blob.getBytes());
-    return 'data:' + mime + ';base64,' + base64;
-  } catch(e) {
-    Logger.log('Logo base64 error: ' + e);
-    return '';
-  }
+// ============================================================
+//  BANK DETAILS — read from the Bank_Details sheet (row 2)
+// ============================================================
+function getBankDetails() {
+  const sheet = getSheet('Bank_Details');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return null;
+  const row = data[1];
+  return {
+    accountName:     String(row[BD.ACCOUNT_NAME]     || ''),
+    bankName:        String(row[BD.BANK_NAME]        || ''),
+    iban:            String(row[BD.IBAN]             || ''),
+    swiftCode:       String(row[BD.SWIFT_CODE]       || ''),
+    nationality:     String(row[BD.NATIONALITY]      || ''),
+    branchName:      String(row[BD.BRANCH_NAME]      || ''),
+    branchCode:      String(row[BD.BRANCH_CODE]      || ''),
+    address:         String(row[BD.ADDRESS]          || ''),
+    instapayAddress: String(row[BD.INSTAPAY_ADDRESS] || ''),
+    instapayMobile:  String(row[BD.INSTAPAY_MOBILE]  || '')
+  };
+}
+
+// ============================================================
+//  QUOTATION TERMS — read from the Quotation_Terms sheet.
+//  One row per term (Term | Detail); order in the sheet is the
+//  order they print in, so Yassin can add/reorder freely.
+// ============================================================
+function getQuotationTerms() {
+  const sheet = getSheet('Quotation_Terms');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1)
+    .filter(row => row[0])
+    .map(row => ({ term: String(row[0]), detail: String(row[1] || '') }));
 }
 
 function fmtAccounting(n) {
@@ -792,7 +826,6 @@ function generateQuotationHTML(data) {
   const branding    = getBranding();
   const primary     = branding.primaryColor;
   const accent      = branding.accentColor;
-  const logoDataUri = driveImageToBase64(branding.logoUrl);
   const showPricing = data.pricingMode === 'Itemized';
   const cur         = data.currency || '';
 
@@ -806,8 +839,6 @@ function generateQuotationHTML(data) {
       <td style="text-align:right;">${cur} ${fmtAccounting(item.unitPrice)}</td>
       <td style="text-align:right;">${cur} ${fmtAccounting(item.subtotal)}</td>` : ''}
     </tr>`).join('');
-
-  const discountedSubtotal = data.subtotal - (data.discountAmount || 0);
 
   const summaryRows = `
     <tr>
@@ -827,20 +858,77 @@ function generateQuotationHTML(data) {
       <td style="padding:6px 10px;color:#555;">Tax (${esc(String(data.taxPercent || 0))}%)</td>
       <td style="padding:6px 10px;text-align:right;">${cur} ${fmtAccounting(data.taxAmount)}</td>
     </tr>` : ''}
-    <tr style="background:${primary};color:#fff;">
-      <td colspan="${showPricing ? 5 : 3}" style="border:none;background:${primary};"></td>
-      <td style="padding:10px;font-weight:700;font-size:14px;">Total</td>
-      <td style="padding:10px;text-align:right;font-weight:700;font-size:14px;">${cur} ${fmtAccounting(data.total)}</td>
+    <tr>
+      <td colspan="${showPricing ? 5 : 3}" style="border:none;"></td>
+      <td style="padding:10px;font-weight:700;font-size:14px;color:#1a1a2e;border-top:2px solid #e2e4ef;">Total</td>
+      <td style="padding:10px;text-align:right;font-weight:700;font-size:14px;color:#1a1a2e;border-top:2px solid #e2e4ef;">${cur} ${fmtAccounting(data.total)}</td>
     </tr>`;
 
   const deliveryText = (data.minDays && data.maxDays)
     ? `${data.minDays}–${data.maxDays} working days`
     : (data.deliveryDeadline || '—');
 
-  const footerNote = branding.footerNote
-    ? `<p style="font-size:11px;color:#888;margin-top:4px;">${esc(branding.footerNote)}</p>` : '';
-  const websiteText = branding.website
-    ? `<span style="margin-left:16px;">${esc(branding.website)}</span>` : '';
+  // ── Terms block (always included, page-break protected) ────
+  const terms = getQuotationTerms();
+  const termsRows = terms.map(t => `
+    <tr>
+      <td style="padding:9px 10px;font-weight:700;color:#1a1a2e;border-bottom:1px solid #f0f2fa;width:160px;">${esc(t.term)}</td>
+      <td style="padding:9px 10px;color:#444;border-bottom:1px solid #f0f2fa;">${esc(t.detail)}</td>
+    </tr>`).join('');
+  const termsBlock = terms.length ? `
+  <div class="section-block avoid-break">
+    <div class="section-label">Terms</div>
+    <table class="mini-table">
+      <thead><tr><th style="width:160px;">Term</th><th>Detail</th></tr></thead>
+      <tbody>${termsRows}</tbody>
+    </table>
+  </div>` : '';
+
+  // ── Payment Details block (only if toggled on for this quotation) ──
+  const bank = data.includeBankDetails ? getBankDetails() : null;
+  let paymentBlock = '';
+  if (data.includeBankDetails && bank) {
+    const hasBankTransfer = bank.accountName || bank.bankName || bank.iban ||
+      bank.swiftCode || bank.nationality || bank.branchName || bank.branchCode || bank.address;
+    const hasInstapay = bank.instapayAddress || bank.instapayMobile;
+
+    const bankTransferHtml = hasBankTransfer ? `
+      <div class="pay-subblock avoid-break">
+        <div class="pay-subheader">Bank Transfer</div>
+        <table class="pay-table">
+          <tr><td class="pay-label">Account Name</td><td class="pay-value">${esc(bank.accountName || '—')}</td><td class="pay-label">Bank Name</td><td class="pay-value">${esc(bank.bankName || '—')}</td></tr>
+          <tr><td class="pay-label">IBAN</td><td class="pay-value">${esc(bank.iban || '—')}</td><td class="pay-label">SWIFT Code</td><td class="pay-value">${esc(bank.swiftCode || '—')}</td></tr>
+          <tr><td class="pay-label">Nationality</td><td class="pay-value">${esc(bank.nationality || '—')}</td><td class="pay-label">Branch Name</td><td class="pay-value">${esc(bank.branchName || '—')}</td></tr>
+          <tr><td class="pay-label">Address</td><td class="pay-value">${esc(bank.address || '—')}</td><td class="pay-label">Branch Code</td><td class="pay-value">${esc(bank.branchCode || '—')}</td></tr>
+        </table>
+      </div>` : '';
+
+    const instapayHtml = hasInstapay ? `
+      <div class="pay-subblock avoid-break">
+        <div class="pay-subheader">Instapay</div>
+        <table class="pay-table">
+          <tr><td class="pay-label">Payment Address</td><td class="pay-value">${esc(bank.instapayAddress || '—')}</td><td class="pay-label">Mobile Number</td><td class="pay-value">${esc(bank.instapayMobile || '—')}</td></tr>
+        </table>
+      </div>` : '';
+
+    if (bankTransferHtml || instapayHtml) {
+      paymentBlock = `
+      <div class="section-block avoid-break">
+        <div class="section-label">Payment Details</div>
+        ${bankTransferHtml}
+        ${instapayHtml}
+      </div>`;
+    }
+  }
+const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+  const ICON_MAIL = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`;
+  const ICON_INSTAGRAM = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/></svg>`;
+  const ICON_GLOBE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+  // ── Footer ───────────────────────────────────────────────
+  const instagramHandle = branding.instagram
+    ? '@' + String(branding.instagram).replace(/^@/, '') : '';
+  const footerNoteHtml = branding.footerNote
+    ? `<div class="footer-note">${esc(branding.footerNote)}</div>` : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -855,12 +943,11 @@ function generateQuotationHTML(data) {
     background: #fff;
     padding: 32px 40px;
   }
-  .header { display: table; width: 100%; margin-bottom: 32px; }
+  .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+  .header { display: table; width: 100%; margin-bottom: 24px; }
   .header-left, .header-right { display: table-cell; vertical-align: middle; }
   .header-right { text-align: right; }
-  .logo { max-height: 56px; max-width: 180px; }
-  .company-name { font-size: 20px; font-weight: 700; color: ${primary}; letter-spacing: 0.02em; }
-  .company-meta { font-size: 10px; color: #888; margin-top: 4px; line-height: 1.5; }
+  .logo { max-height: 34px; width: auto; }
   .doc-title { font-size: 22px; font-weight: 700; color: ${primary}; }
   .doc-meta { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.6; }
   .divider { border: none; border-top: 2px solid ${accent}; margin: 0 0 24px; }
@@ -871,29 +958,45 @@ function generateQuotationHTML(data) {
   .info-value { font-size: 12px; color: #1a1a2e; line-height: 1.5; }
   .info-value.large { font-size: 14px; font-weight: 600; }
   .section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 8px; }
+  .section-block { margin-top: 28px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0; }
-  thead th { background: ${primary}; color: #fff; padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  thead th { background: none; color: #888; padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e4ef; }
   thead th.num   { width: 32px; text-align: center; }
   thead th.qty   { width: 50px; text-align: center; }
   thead th.price { width: 110px; text-align: right; }
   thead th.sub   { width: 120px; text-align: right; }
   tbody td { padding: 8px 10px; border-bottom: 1px solid #e8eaf0; vertical-align: top; }
-  tfoot td { border-top: 2px solid #e8eaf0; }
+  .mini-table thead th { background: #F3EDEB; color: #888; }
+  .mini-table tbody tr, .mini-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .pay-subheader { background: #F3EDEB; color: #888; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 10px; margin-top: 12px; margin-bottom: 4px; }
+  .pay-table td { padding: 7px 10px; font-size: 12px; border-bottom: 1px solid #f0f2fa; }
+  .pay-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .pay-label { font-weight: 700; color: #1a1a2e; width: 22%; }
+  .pay-value { color: #444; width: 28%; }
   .notes-box { background: #f8f9ff; border-left: 3px solid ${accent}; padding: 10px 14px; font-size: 11px; color: #555; margin-top: 24px; line-height: 1.5; }
-  .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #e8eaf0; font-size: 10px; color: #aaa; display: table; width: 100%; }
-  .footer-left  { display: table-cell; vertical-align: middle; }
-  .footer-right { display: table-cell; text-align: right; vertical-align: middle; }
+  .footer {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid #e8eaf0;
+  font-size: 10px;
+  color: #888;
+  text-align: center;      /* ← centers the inline items */
+  white-space: nowrap;     /* ← already there, keeps it on one line */
+  overflow: hidden;        /* ← extra safety: clips instead of wrapping if it ever overflows */
+}
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e8eaf0; font-size: 10px; color: #888; white-space: nowrap; }
+  .footer-heading { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-right: 12px; vertical-align: middle; }
+  .footer-heading-findus { margin-left: 28px; }
+  .footer-item { display: inline-block; font-size: 10px; color: #888; margin-right: 16px; vertical-align: middle; }
+  .footer-item svg { vertical-align: -2px; margin-right: 4px; }
+  .footer-note { margin-top: 10px; font-size: 10px; color: #aaa; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="header-left">
-    ${logoDataUri
-      ? `<img class="logo" src="${logoDataUri}" alt="${esc(branding.companyName)}">`
-      : `<div class="company-name">${esc(branding.companyName)}</div>`}
-    ${branding.address
-      ? `<div class="company-meta">${esc(branding.address).replace(/\n/g,'<br>')}</div>` : ''}
+    <img class="logo" src="${RUYA_LOGO_BASE64}" alt="${esc(branding.companyName)}">
   </div>
   <div class="header-right">
     <div class="doc-title">QUOTATION</div>
@@ -946,15 +1049,19 @@ ${data.notes ? `
   ${esc(data.notes)}
 </div>` : ''}
 
+${termsBlock}
+
+${paymentBlock}
+
 <div class="footer">
-  <div class="footer-left">
-    ${esc(branding.companyName)}${websiteText}
-    ${footerNote}
-  </div>
-  <div class="footer-right" style="color:#bbb;font-size:9px;">
-    ${esc(data.quotationId)} · v${esc(String(data.version))}
-  </div>
+  <span class="footer-heading">Contact</span>
+  ${branding.phone ? `<span class="footer-item">${ICON_PHONE}${esc(branding.phone)}</span>` : ''}
+  ${branding.email ? `<span class="footer-item">${ICON_MAIL}${esc(branding.email)}</span>` : ''}
+  <span class="footer-heading footer-heading-findus">Find Us</span>
+  ${instagramHandle ? `<span class="footer-item">${ICON_INSTAGRAM}${esc(instagramHandle)}</span>` : ''}
+  ${branding.website ? `<span class="footer-item">${ICON_GLOBE}${esc(branding.website)}</span>` : ''}
 </div>
+${footerNoteHtml}
 
 </body>
 </html>`;
