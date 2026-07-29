@@ -30,6 +30,7 @@ function getTeam() {
       phone:     row[TM.PHONE],
       email:     row[TM.EMAIL],
       role:      row[TM.ROLE],
+      isPartner: !!row[TM.IS_PARTNER],
       folderUrl: extractUrl(row[TM.FOLDER_URL]),
       createdAt: row[TM.CREATED_AT]
         ? Utilities.formatDate(new Date(row[TM.CREATED_AT]), tz, 'yyyy-MM-dd') : ''
@@ -53,6 +54,7 @@ function getTeamById(teamId) {
         phone:     row[TM.PHONE],
         email:     row[TM.EMAIL],
         role:      row[TM.ROLE],
+        isPartner: !!row[TM.IS_PARTNER],
         folderUrl: extractUrl(row[TM.FOLDER_URL]),
         createdAt: row[TM.CREATED_AT]
           ? Utilities.formatDate(new Date(row[TM.CREATED_AT]), tz, 'yyyy-MM-dd') : ''
@@ -60,6 +62,15 @@ function getTeamById(teamId) {
     }
   }
   return null;
+}
+
+// ============================================================
+//  TEAM — GET PARTNERS ONLY
+//  Used to populate Expense/Drawing split pickers — only ever
+//  pulls people flagged IsPartner, never the free-text Role.
+// ============================================================
+function getPartners() {
+  return getTeam().filter(t => t.isPartner);
 }
 
 // ============================================================
@@ -85,14 +96,20 @@ function createTeam(formData) {
   }
 
   const folderUrl = memberFolder.getUrl();
+  const isPartner = !!formData.isPartner;
 
   sheet.appendRow([
     teamId, formData.name, formData.phone, formData.email, formData.role,
-    folderUrl, now
+    folderUrl, now, isPartner
   ]);
 
   writeLog('Team_Log', 'Team', teamId, teamId + ' — ' + formData.name,
     '', '', 'Status', '', 'Created', 'Team member added');
+
+  if (isPartner) {
+    writeLog('Team_Log', 'Team', teamId, teamId + ' — ' + formData.name,
+      '', '', 'IsPartner', '', true, 'Marked as Partner on creation');
+  }
 
   return { success: true, teamId, folderUrl };
 }
@@ -116,11 +133,14 @@ function editTeam(formData) {
   }
   if (rowIndex === -1) return { success: false, error: 'Team member not found.' };
 
+  const newIsPartner = !!formData.isPartner;
+
   const fields = [
-    { key: 'Name',  old: oldRow[TM.NAME],  nw: formData.name  },
-    { key: 'Phone', old: oldRow[TM.PHONE], nw: formData.phone },
-    { key: 'Email', old: oldRow[TM.EMAIL], nw: formData.email },
-    { key: 'Role',  old: oldRow[TM.ROLE],  nw: formData.role  }
+    { key: 'Name',      old: oldRow[TM.NAME],       nw: formData.name  },
+    { key: 'Phone',     old: oldRow[TM.PHONE],       nw: formData.phone },
+    { key: 'Email',     old: oldRow[TM.EMAIL],       nw: formData.email },
+    { key: 'Role',      old: oldRow[TM.ROLE],        nw: formData.role  },
+    { key: 'IsPartner', old: !!oldRow[TM.IS_PARTNER],nw: newIsPartner   }
   ];
   fields.forEach(f => {
     if (String(f.old) !== String(f.nw)) {
@@ -129,10 +149,11 @@ function editTeam(formData) {
     }
   });
 
-  sheet.getRange(rowIndex, TM.NAME  + 1).setValue(formData.name);
-  sheet.getRange(rowIndex, TM.PHONE + 1).setValue(formData.phone);
-  sheet.getRange(rowIndex, TM.EMAIL + 1).setValue(formData.email);
-  sheet.getRange(rowIndex, TM.ROLE  + 1).setValue(formData.role);
+  sheet.getRange(rowIndex, TM.NAME       + 1).setValue(formData.name);
+  sheet.getRange(rowIndex, TM.PHONE      + 1).setValue(formData.phone);
+  sheet.getRange(rowIndex, TM.EMAIL      + 1).setValue(formData.email);
+  sheet.getRange(rowIndex, TM.ROLE       + 1).setValue(formData.role);
+  sheet.getRange(rowIndex, TM.IS_PARTNER + 1).setValue(newIsPartner);
 
   const folderUrl = extractUrl(oldRow[TM.FOLDER_URL]);
   if (folderUrl) {
