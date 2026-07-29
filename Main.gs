@@ -55,6 +55,12 @@ function getPaymentMethods() {
 }
 // ============================================================
 //  COLUMN INDEXES — Team (0-based)
+//
+//  Col 7 (H) added: IsPartner — checkbox, marks whether this
+//  team member is a business Partner (Owner). Used to filter
+//  who can appear in Expense/Drawing splits. Kept separate from
+//  the free-text Role field so filtering never depends on exact
+//  wording. Added at the very end so no existing index shifts.
 // ============================================================
 const TM = {
   TEAM_ID:    0,
@@ -63,7 +69,8 @@ const TM = {
   EMAIL:      3,
   ROLE:       4,
   FOLDER_URL: 5,
-  CREATED_AT: 6
+  CREATED_AT: 6,
+  IS_PARTNER: 7
 };
 // ============================================================
 //  COLUMN INDEXES — Accounts (0-based)
