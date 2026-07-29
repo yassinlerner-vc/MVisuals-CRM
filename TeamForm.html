@@ -40,12 +40,14 @@
     tbody tr:hover { background: #eef0fd; cursor: pointer; }
     tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
     .col-date { width: 110px; color: #666; }
+    .col-partner { width: 110px; }
     .col-acts { width: 160px; text-align: right; white-space: nowrap; }
     .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; }
     .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
     .btn-sm-primary:hover { background: #eef0fd; }
     .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
     .btn-sm-danger:hover { background: #fdecea; }
+    .partner-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: #fff3cd; color: #856404; }
     .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
     h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
     .field { margin-bottom: 12px; }
@@ -55,6 +57,10 @@
     input:focus { outline: none; border-color: #4361ee; }
     input:disabled { background: #f0f2fa; color: #666; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0; }
+    .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
+    .checkbox-hint { font-size: 11px; color: #888; margin-top: 4px; }
     .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; margin-bottom: 14px; }
     .meta-row strong { color: #555; }
     .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
@@ -89,11 +95,11 @@
     <table>
       <thead>
         <tr>
-          <th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th class="col-date">Added</th><th class="col-acts"></th>
+          <th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th class="col-partner">Partner</th><th class="col-date">Added</th><th class="col-acts"></th>
         </tr>
       </thead>
       <tbody id="listBody">
-        <tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -114,6 +120,13 @@
     <div class="row2">
       <div class="field"><label>Phone Number</label><input type="text" id="tmPhone" placeholder="e.g. +20 100 000 0000"></div>
       <div class="field"><label>Role</label><input type="text" id="tmRole" placeholder="e.g. Editor, Motion Designer"></div>
+    </div>
+    <div class="field">
+      <div class="checkbox-row">
+        <input type="checkbox" id="tmIsPartner">
+        <label for="tmIsPartner">Partner (Owner)</label>
+      </div>
+      <div class="checkbox-hint">Partners can appear in Expense and Drawing splits. Doesn't affect their Role text.</div>
     </div>
   </div>
 </div>
@@ -178,7 +191,7 @@ function renderList(team) {
   document.getElementById('listCount').textContent = allTeam.length + ' team member' + (allTeam.length !== 1 ? 's' : '');
   const tbody = document.getElementById('listBody');
   if (!allTeam.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">No team members yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No team members yet.</td></tr>';
     return;
   }
   tbody.innerHTML = allTeam.map(t => `
@@ -187,6 +200,7 @@ function renderList(team) {
       <td style="color:#666;">${escHtml(t.email)}</td>
       <td>${escHtml(t.phone || '—')}</td>
       <td>${escHtml(t.role || '—')}</td>
+      <td class="col-partner">${t.isPartner ? '<span class="partner-badge">★ Partner</span>' : '—'}</td>
       <td class="col-date">${t.createdAt || '—'}</td>
       <td class="col-acts" onclick="event.stopPropagation()">
         <button class="btn-sm btn-sm-primary" onclick="openTeam('${escHtml(t.id)}')">Open →</button>
@@ -213,6 +227,7 @@ function openTeam(id) {
   document.getElementById('tmEmail').value = t.email;
   document.getElementById('tmPhone').value = t.phone || '';
   document.getElementById('tmRole').value = t.role || '';
+  document.getElementById('tmIsPartner').checked = !!t.isPartner;
   setReadOnly(true);
   switchView('form');
   showFormActions('view', t);
@@ -221,6 +236,7 @@ function openTeam(id) {
 function showNew() {
   currentMode = 'new'; currentId = null; currentData = null;
   ['tmName','tmEmail','tmPhone','tmRole'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tmIsPartner').checked = false;
   document.getElementById('metaRow').style.display = 'none';
   setReadOnly(false);
   switchView('form');
@@ -261,7 +277,7 @@ function switchView(name) {
   document.getElementById('viewForm').classList.toggle('active', name === 'form');
 }
 function setReadOnly(on) {
-  ['tmName','tmEmail','tmPhone','tmRole'].forEach(id => document.getElementById(id).disabled = on);
+  ['tmName','tmEmail','tmPhone','tmRole','tmIsPartner'].forEach(id => document.getElementById(id).disabled = on);
 }
 
 function saveForm() {
@@ -272,7 +288,8 @@ function saveForm() {
   const data = {
     name, email,
     phone: document.getElementById('tmPhone').value.trim(),
-    role: document.getElementById('tmRole').value.trim()
+    role: document.getElementById('tmRole').value.trim(),
+    isPartner: document.getElementById('tmIsPartner').checked
   };
   const btn = document.getElementById('btnSave');
   if (currentMode === 'new') {
