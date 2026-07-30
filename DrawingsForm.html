@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
+    .view { display: none; padding: 20px 24px 100px; }
+    .view.active { display: block; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
+    .topbar-title { font-size: 16px; font-weight: 700; }
+    .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover:not(:disabled) { background: #f0f2fa; }
+    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-danger { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled) { background: #fdecea; }
+    .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
+    .btn-ghost:hover { text-decoration: underline; }
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
+    .btn-primary .spinner, .btn-danger .spinner { border-top-color: #fff; }
+    .btn.loading .spinner { display: inline-block; }
+    .btn.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
+    .proc-bar.active { transform: scaleX(0.85); }
+    .proc-bar.done { transform: scaleX(1); transition: transform 0.15s ease; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; }
+    .toast-info { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
+    .toast-error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+    .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .list-count { font-size: 13px; color: #666; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
+    thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    tbody tr:nth-child(odd) { background: #fff; }
+    tbody tr:nth-child(even) { background: #f8f9ff; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
+    .col-amt { width: 130px; text-align: right; font-weight: 600; }
+    .col-date { width: 110px; color: #666; }
+    .col-acts { width: 90px; text-align: right; }
+    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; }
+    .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover { background: #fdecea; }
+    .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
+    h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
+    textarea { resize: vertical; min-height: 50px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
+    .spacer { flex: 1; }
+    .hidden { display: none !important; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 360px; width: 90%; }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .dialog p { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .empty-state { text-align: center; padding: 40px; color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="proc-bar" id="procBar"></div>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-title">Drawings</div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div class="list-toolbar">
+    <div class="list-count" id="listCount">Loading...</div>
+    <button class="btn btn-primary" onclick="showNew()">+ Record Drawing</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="col-date">Date</th><th>Partner</th><th class="col-amt">Amount</th><th>Method</th><th>Notes</th><th class="col-acts"></th></tr>
+      </thead>
+      <tbody id="listBody">
+        <tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- NEW DRAWING VIEW -->
+<div class="view" id="viewNew">
+  <div class="section">
+    <h3>Drawing Details</h3>
+    <div class="field" style="max-width:280px;"><label>Partner</label><select id="drwPerson"></select></div>
+    <div class="row3">
+      <div class="field"><label>Amount</label><input type="text" id="drwAmount" inputmode="decimal" placeholder="0.00"></div>
+      <div class="field"><label>Currency</label><select id="drwCurrency"></select></div>
+      <div class="field"><label>Date</label><input type="date" id="drwDate"></div>
+    </div>
+    <div class="field" style="max-width:280px;"><label>Method</label><select id="drwMethod"></select></div>
+    <div class="field"><label>Notes</label><textarea id="drwNotes" placeholder="Optional..."></textarea></div>
+  </div>
+</div>
+
+<!-- FORM ACTIONS -->
+<div class="form-actions hidden" id="formActions">
+  <button class="btn btn-ghost" onclick="showList()">← Back</button>
+  <div class="spacer"></div>
+  <button class="btn btn-primary" id="btnSave" onclick="submitDrawing()"><div class="spinner"></div><span class="btn-label">Record Drawing</span></button>
+</div>
+
+<!-- DELETE DIALOG -->
+<div class="overlay" id="overlayDelete">
+  <div class="dialog">
+    <h4>Delete Drawing</h4>
+    <p>This removes the drawing record. It cannot be undone.</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayDelete')">Cancel</button>
+      <button class="btn btn-danger" id="btnDeleteConfirm" onclick="confirmDelete()"><div class="spinner"></div><span class="btn-label">Yes, Delete</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allDrawings = [];
+let partnersList = [];
+let currencies = ['EGP'];
+let deleteIdPending = null;
+
+function startProcessing(btn, msg) {
+  document.getElementById('procBar').className = 'proc-bar active';
+  showToast(msg || 'Processing...', 'info', 0);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+}
+function stopProcessing(btn) {
+  const bar = document.getElementById('procBar');
+  bar.className = 'proc-bar done';
+  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
+  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+}
+let toastTimer = null;
+function showToast(msg, type, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast toast-' + (type||'info'); t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3000);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
+
+function init() {
+  google.script.run.withSuccessHandler(d => { partnersList = d || []; }).getPartners();
+  google.script.run.withSuccessHandler(settings => {
+    currencies = (settings && settings.currencies && settings.currencies.length) ? settings.currencies : ['EGP'];
+  }).getSettings();
+  google.script.run.withSuccessHandler(methods => {
+    const sel = document.getElementById('drwMethod');
+    sel.innerHTML = '';
+    (methods || []).forEach(m => sel.add(new Option(m, m)));
+  }).getPaymentMethods();
+  google.script.run.withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getDrawings();
+}
+
+function renderList(drawings) {
+  allDrawings = drawings || [];
+  hideToast();
+  document.getElementById('listCount').textContent = allDrawings.length + ' drawing' + (allDrawings.length !== 1 ? 's' : '');
+  const tbody = document.getElementById('listBody');
+  if (!allDrawings.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">No drawings recorded yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allDrawings.map(d => `
+    <tr>
+      <td class="col-date">${d.date || '—'}</td>
+      <td><strong>${escHtml(d.personName)}</strong></td>
+      <td class="col-amt">${escHtml(d.currency)} ${fmt(d.amount)}</td>
+      <td>${escHtml(d.method || '—')}</td>
+      <td style="color:#555;">${escHtml(d.notes || '—')}</td>
+      <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDelete('${escHtml(d.id)}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+function showList() {
+  switchView('list');
+  document.getElementById('formActions').classList.add('hidden');
+  google.script.run.withSuccessHandler(renderList).getDrawings();
+}
+
+function showNew() {
+  const sel = document.getElementById('drwPerson');
+  sel.innerHTML = '';
+  partnersList.forEach(p => sel.add(new Option(p.name, p.id)));
+  if (!sel.options.length) { showToast('No Partners found. Mark someone as a Partner in Team first.', 'error'); return; }
+  const curSel = document.getElementById('drwCurrency');
+  curSel.innerHTML = '';
+  currencies.forEach(c => curSel.add(new Option(c, c)));
+  document.getElementById('drwAmount').value = '';
+  document.getElementById('drwNotes').value = '';
+  document.getElementById('drwDate').valueAsDate = new Date();
+  switchView('new');
+  document.getElementById('formActions').classList.remove('hidden');
+}
+
+function submitDrawing() {
+  const sel = document.getElementById('drwPerson');
+  const data = {
+    personId: sel.value,
+    personName: sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '',
+    amount: safe(document.getElementById('drwAmount').value),
+    currency: document.getElementById('drwCurrency').value,
+    date: document.getElementById('drwDate').value,
+    method: document.getElementById('drwMethod').value,
+    notes: document.getElementById('drwNotes').value
+  };
+  if (!data.amount || data.amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+  if (!data.date) { showToast('Select a date.', 'error'); return; }
+  const btn = document.getElementById('btnSave');
+  startProcessing(btn, 'Recording...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Drawing recorded.', 'success');
+      setTimeout(showList, 1000);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .createDrawing(data);
+}
+
+function askDelete(id) { deleteIdPending = id; document.getElementById('overlayDelete').classList.add('open'); }
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+function confirmDelete() {
+  const btn = document.getElementById('btnDeleteConfirm');
+  startProcessing(btn, 'Deleting...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      closeDialog('overlayDelete');
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Deleted.', 'success');
+      setTimeout(showList, 900);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .deleteDrawing(deleteIdPending);
+}
+
+function switchView(name) {
+  document.getElementById('viewList').classList.toggle('active', name === 'list');
+  document.getElementById('viewNew').classList.toggle('active', name === 'new');
+}
+function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>
