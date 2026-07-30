@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
+    .view { display: none; padding: 20px 24px 100px; }
+    .view.active { display: block; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
+    .topbar-title { font-size: 16px; font-weight: 700; }
+
+    .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover:not(:disabled) { background: #f0f2fa; }
+    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-success { background: #1e8a4a; color: #fff; border-color: #1e8a4a; }
+    .btn-success:hover:not(:disabled) { background: #166b39; }
+    .btn-danger { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled) { background: #fdecea; }
+    .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
+    .btn-ghost:hover { text-decoration: underline; }
+    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
+    .btn-sm-primary:hover { background: #eef0fd; }
+    .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover { background: #fdecea; }
+
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
+    .btn-primary .spinner, .btn-success .spinner { border-top-color: #fff; }
+    .btn-danger .spinner { border-color: rgba(195,57,43,0.3); border-top-color: #c0392b; }
+    .btn.loading .spinner { display: inline-block; }
+    .btn.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
+    .proc-bar.active { transform: scaleX(0.85); }
+    .proc-bar.done { transform: scaleX(1); transition: transform 0.15s ease; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; }
+    .toast-info { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
+    .toast-error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-recurring { background: #e8ecfd; color: #2f4bcc; }
+    .badge-onetime   { background: #f0f2fa; color: #888; }
+    .badge-logged    { background: #d1f2e1; color: #0f5132; }
+    .badge-needs-review { background: #fff3cd; color: #856404; }
+    .badge-paused    { background: #f0f2fa; color: #888; }
+    .badge-archived  { background: #f8d7da; color: #842029; }
+
+    .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; }
+    .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
+
+    .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; flex-wrap: wrap; }
+    .list-count { font-size: 13px; color: #666; }
+    .toolbar-btns { display: flex; gap: 8px; }
+    .table-wrap { overflow-x: auto; }
+    table.main-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
+    table.main-table thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    table.main-table tbody tr:nth-child(odd) { background: #fff; }
+    table.main-table tbody tr:nth-child(even) { background: #f8f9ff; }
+    table.main-table tbody tr:hover { background: #eef0fd; cursor: pointer; }
+    table.main-table tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
+    .col-amt { width: 120px; text-align: right; }
+    .col-type { width: 100px; }
+    .col-status { width: 130px; }
+    .col-date { width: 110px; color: #666; }
+    .col-acts { width: 110px; text-align: right; }
+
+    .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
+    h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
+    textarea { resize: vertical; min-height: 50px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0; }
+    .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
+
+    .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; margin-bottom: 14px; }
+    .meta-row strong { color: #555; }
+
+    .dist-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+    .dist-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .dist-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
+    .dist-table .col-amt { text-align: right; font-weight: 600; }
+    .dist-table .col-pct { text-align: right; color: #888; font-size: 12px; width: 70px; }
+    .dist-table .col-acts { text-align: right; }
+    .dist-progress { font-size: 12px; color: #666; margin: 8px 0 12px; }
+    .dist-progress strong { color: #1a1a2e; }
+    .dist-progress.match strong { color: #1e8a4a; }
+    .dist-progress.mismatch strong { color: #c0392b; }
+    .inline-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+    .inline-row select { min-width: 160px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+    .inline-row input { width: 90px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+
+    .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .history-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
+    .history-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: top; }
+    .history-table .col-amt { text-align: right; font-weight: 600; }
+    .split-chip { display: inline-block; background: #f0f2fa; color: #555; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin: 1px 3px 1px 0; }
+
+    .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
+    .spacer { flex: 1; }
+    .hidden { display: none !important; }
+
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 420px; width: 92%; }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .dialog p { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+    .empty-state { text-align: center; padding: 40px; color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="proc-bar" id="procBar"></div>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-title" id="topbarTitle">Expenses</div>
+</div>
+
+<!-- ═══ LIST VIEW ═══ -->
+<div class="view active" id="viewList">
+  <div class="list-toolbar">
+    <div class="list-count" id="listCount">Loading...</div>
+    <div class="toolbar-btns">
+      <button class="btn" onclick="showLogPicker()">Log Expense</button>
+      <button class="btn btn-primary" onclick="showNewExpense()">+ New Expense</button>
+    </div>
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-tab="all" onclick="setTab('all')">All</button>
+    <button class="filter-tab" data-tab="onetime" onclick="setTab('onetime')">One-Time</button>
+    <button class="filter-tab" data-tab="recurring" onclick="setTab('recurring')">Recurring</button>
+  </div>
+  <div class="table-wrap">
+    <table class="main-table" id="listTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th class="col-type">Type</th>
+          <th class="col-amt">Last Amount</th>
+          <th class="col-status">Status</th>
+          <th class="col-date">Last Logged</th>
+          <th class="col-acts"></th>
+        </tr>
+      </thead>
+      <tbody id="listBody">
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ NEW EXPENSE VIEW ═══ -->
+<div class="view" id="viewNew">
+  <div class="section">
+    <h3>Expense Details</h3>
+    <div class="row2">
+      <div class="field"><label>Name</label><input type="text" id="newName" placeholder="e.g. Adobe Creative Cloud"></div>
+      <div class="field"><label>Category</label><input list="categoryList" id="newCategory" placeholder="Select or type..."><datalist id="categoryList"></datalist></div>
+    </div>
+    <div class="field"><label>Vendor (optional)</label><input type="text" id="newVendor" placeholder="e.g. Adobe"></div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="newIsRecurring" onchange="toggleNewFrequency()">
+      <label for="newIsRecurring">This is a recurring expense</label>
+    </div>
+    <div class="field hidden" id="newFrequencyField" style="max-width:220px;margin-top:10px;">
+      <label>Frequency</label>
+      <select id="newFrequency"></select>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>First Instance</h3>
+    <div class="row3">
+      <div class="field"><label>Amount</label><input type="text" id="newAmount" inputmode="decimal" placeholder="0.00" oninput="renderNewSplitEditor()"></div>
+      <div class="field"><label>Currency</label><select id="newCurrency" onchange="renderNewSplitEditor()"></select></div>
+      <div class="field"><label>Date</label><input type="date" id="newDate"></div>
+    </div>
+    <div class="field" style="max-width:280px;">
+      <label>Paid By</label>
+      <select id="newPaidBy"></select>
+    </div>
+    <div class="field"><label>Split</label><div id="newSplitArea"></div></div>
+    <div class="field"><label>Notes</label><textarea id="newNotes" placeholder="Optional..."></textarea></div>
+  </div>
+</div>
+
+<!-- ═══ LOG INSTANCE VIEW (Log Expense / Review / Log New Instance) ═══ -->
+<div class="view" id="viewInstance">
+  <div class="meta-row" id="instMetaRow">
+    <span><strong>Expense:</strong> <span id="instCatalogName"></span></span>
+    <span><strong>Category:</strong> <span id="instCatalogCategory"></span></span>
+    <span id="instPeriodWrap" class="hidden"><strong>Period:</strong> <span id="instPeriod"></span></span>
+  </div>
+  <div class="section">
+    <h3>Instance Details</h3>
+    <div class="row3">
+      <div class="field"><label>Amount</label><input type="text" id="instAmount" inputmode="decimal" placeholder="0.00" oninput="renderInstSplitEditor()"></div>
+      <div class="field"><label>Currency</label><select id="instCurrency" onchange="renderInstSplitEditor()"></select></div>
+      <div class="field"><label>Date</label><input type="date" id="instDate"></div>
+    </div>
+    <div class="field" style="max-width:280px;">
+      <label>Paid By</label>
+      <select id="instPaidBy"></select>
+    </div>
+    <div class="field"><label>Split</label><div id="instSplitArea"></div></div>
+    <div class="field"><label>Notes</label><textarea id="instNotes" placeholder="Optional..."></textarea></div>
+  </div>
+</div>
+
+<!-- ═══ HISTORY VIEW ═══ -->
+<div class="view" id="viewHistory">
+  <div class="section" id="historySummary"></div>
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin-bottom:0;">Price History</h3>
+      <button class="btn btn-sm btn-sm-primary" onclick="logNewInstanceFromHistory()">+ Log New Instance</button>
+    </div>
+    <div id="historyTableWrap"></div>
+  </div>
+</div>
+
+<!-- ═══ FORM ACTIONS ═══ -->
+<div class="form-actions hidden" id="formActions">
+  <button class="btn btn-ghost" onclick="showList()">← Back</button>
+  <div class="spacer"></div>
+  <button class="btn hidden" id="btnPause" onclick="togglePause()"><span class="btn-label">Pause</span></button>
+  <button class="btn btn-primary hidden" id="btnSaveNew" onclick="submitNewExpense()"><div class="spinner"></div><span class="btn-label">Create Expense</span></button>
+  <button class="btn btn-primary hidden" id="btnSaveInstance" onclick="submitInstance()"><div class="spinner"></div><span class="btn-label">Save</span></button>
+</div>
+
+<!-- ═══ LOG PICKER DIALOG ═══ -->
+<div class="overlay" id="overlayPicker">
+  <div class="dialog">
+    <h4>Log Expense</h4>
+    <p>Pick an existing expense to log a new instance against it.</p>
+    <div class="field"><label>Expense</label><select id="pickerSelect"></select></div>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayPicker')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPicker()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE INSTANCE DIALOG ═══ -->
+<div class="overlay" id="overlayDeleteInstance">
+  <div class="dialog">
+    <h4>Delete Instance</h4>
+    <p>This removes this logged expense and its split. It cannot be undone.</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayDeleteInstance')">Cancel</button>
+      <button class="btn btn-danger" id="btnDeleteInstanceConfirm" onclick="confirmDeleteInstance()">
+        <div class="spinner"></div><span class="btn-label">Yes, Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let allCatalog     = [];
+let activeTab      = 'all';
+let currentCatalog = null;     // catalog entry currently open (history/instance)
+let partnersList   = [];
+let paidByOptions  = [];
+let currencies     = [];
+let newDraftSplit  = [];
+let instDraftSplit = [];
+let instIsReview   = false;
+let instPeriodKey  = '';
+let deleteExpenseIdPending = null;
+
+/* ══════════════════════════════════════════════════════
+   PROCESSING / TOAST
+══════════════════════════════════════════════════════ */
+function startProcessing(btn, msg) {
+  document.getElementById('procBar').className = 'proc-bar active';
+  showToast(msg || 'Loading…', 'info', 0);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+}
+function stopProcessing(btn) {
+  const bar = document.getElementById('procBar');
+  bar.className = 'proc-bar done';
+  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
+  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+}
+let toastTimer = null;
+function showToast(msg, type, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast toast-' + (type||'info'); t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3500);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+function init() {
+  showToast('Loading…', 'info', 0);
+  google.script.run.withSuccessHandler(d => { partnersList = d || []; }).getPartners();
+  google.script.run.withSuccessHandler(d => { paidByOptions = d || []; populatePaidBySelects(); }).getPaidByOptions();
+  google.script.run.withSuccessHandler(loadCurrencies).getSettings();
+  google.script.run.withSuccessHandler(list => {
+    const dl = document.getElementById('categoryList');
+    (list || []).forEach(c => { const o = document.createElement('option'); o.value = c; dl.appendChild(o); });
+  }).getExpenseCategories();
+  google.script.run.withSuccessHandler(list => {
+    const sel = document.getElementById('newFrequency');
+    sel.innerHTML = '';
+    (list || ['Monthly']).forEach(f => sel.add(new Option(f, f)));
+  }).getExpenseFrequencies();
+  google.script.run
+    .withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
+    .getExpenseCatalog();
+}
+function loadCurrencies(settings) {
+  currencies = (settings && settings.currencies && settings.currencies.length) ? settings.currencies : ['EGP'];
+  populateCurrencySelects();
+}
+function populateCurrencySelects() {
+  ['newCurrency', 'instCurrency'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    currencies.forEach(c => sel.add(new Option(c, c)));
+  });
+}
+function populatePaidBySelects() {
+  ['newPaidBy', 'instPaidBy'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    paidByOptions.forEach(o => sel.add(new Option(o.name, o.id)));
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   LIST
+══════════════════════════════════════════════════════ */
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderList(allCatalog);
+}
+function renderList(catalog) {
+  allCatalog = catalog || [];
+  hideToast();
+  let filtered = allCatalog;
+  if (activeTab === 'onetime')   filtered = allCatalog.filter(c => !c.isRecurring);
+  if (activeTab === 'recurring') filtered = allCatalog.filter(c => c.isRecurring);
+
+  document.getElementById('listCount').textContent = filtered.length + ' expense' + (filtered.length !== 1 ? 's' : '');
+  const tbody = document.getElementById('listBody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No expenses found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(c => {
+    let statusHtml = '';
+    if (c.status === 'Archived') statusHtml = '<span class="badge badge-archived">Archived</span>';
+    else if (c.status === 'Paused') statusHtml = '<span class="badge badge-paused">Paused</span>';
+    else if (c.isRecurring) statusHtml = `<span class="badge badge-${c.reviewStatus === 'Logged' ? 'logged' : 'needs-review'}">${esc(c.reviewStatus)}</span>`;
+    else statusHtml = c.lastLoggedDate ? '<span class="badge badge-logged">Logged</span>' : '<span class="badge badge-needs-review">Not Logged</span>';
+    return `<tr onclick="openHistory('${esc(c.id)}')">
+      <td><strong>${esc(c.name)}</strong></td>
+      <td>${esc(c.category || '—')}</td>
+      <td class="col-type"><span class="badge ${c.isRecurring ? 'badge-recurring' : 'badge-onetime'}">${c.isRecurring ? esc(c.frequency || 'Recurring') : 'One-Time'}</span></td>
+      <td class="col-amt">${c.lastAmount ? esc(c.lastCurrency) + ' ' + fmt(c.lastAmount) : '—'}</td>
+      <td class="col-status">${statusHtml}</td>
+      <td class="col-date">${c.lastLoggedDate || '—'}</td>
+      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openHistory('${esc(c.id)}')">Open →</button></td>
+    </tr>`;
+  }).join('');
+}
+function showList() {
+  switchView('list');
+  document.getElementById('topbarTitle').textContent = 'Expenses';
+  document.getElementById('formActions').classList.add('hidden');
+  google.script.run.withSuccessHandler(renderList).getExpenseCatalog();
+}
+
+/* ══════════════════════════════════════════════════════
+   NEW EXPENSE
+══════════════════════════════════════════════════════ */
+function showNewExpense() {
+  ['newName','newCategory','newVendor','newAmount','newNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newIsRecurring').checked = false;
+  document.getElementById('newFrequencyField').classList.add('hidden');
+  document.getElementById('newDate').valueAsDate = new Date();
+  newDraftSplit = [];
+  renderNewSplitEditor();
+  switchView('new');
+  document.getElementById('topbarTitle').textContent = 'New Expense';
+  document.getElementById('formActions').classList.remove('hidden');
+  document.getElementById('btnPause').classList.add('hidden');
+  document.getElementById('btnSaveInstance').classList.add('hidden');
+  document.getElementById('btnSaveNew').classList.remove('hidden');
+}
+function toggleNewFrequency() {
+  document.getElementById('newFrequencyField').classList.toggle('hidden', !document.getElementById('newIsRecurring').checked);
+}
+function renderNewSplitEditor() { renderSplitEditor('newSplitArea', newDraftSplit, 'newAmount', 'newCurrency', 'addNewSplitRow', 'removeNewSplitRow', 'splitNewEvenly'); }
+function addNewSplitRow() {
+  const sel = document.getElementById('newSplitPersonSelect');
+  const pctEl = document.getElementById('newSplitPercentInput');
+  if (!sel || !sel.options.length) { showToast('No Partners found. Mark someone as a Partner in Team first.', 'error'); return; }
+  const pct = safe(pctEl.value);
+  if (!pct || pct <= 0) { showToast('Enter a valid %.', 'error'); return; }
+  newDraftSplit.push({ personId: sel.value, personName: sel.options[sel.selectedIndex].dataset.name, percent: pct });
+  renderNewSplitEditor();
+}
+function removeNewSplitRow(idx) { newDraftSplit.splice(idx, 1); renderNewSplitEditor(); }
+function splitNewEvenly() { newDraftSplit = evenSplit(); renderNewSplitEditor(); }
+
+function submitNewExpense() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { showToast('Enter an expense name.', 'error'); return; }
+  const isRecurring = document.getElementById('newIsRecurring').checked;
+  const data = {
+    name, category: document.getElementById('newCategory').value,
+    vendor: document.getElementById('newVendor').value,
+    isRecurring, frequency: document.getElementById('newFrequency').value,
+    amount: safe(document.getElementById('newAmount').value),
+    currency: document.getElementById('newCurrency').value,
+    date: document.getElementById('newDate').value,
+    paidById: document.getElementById('newPaidBy').value,
+    paidByName: selectedText('newPaidBy'),
+    splits: newDraftSplit,
+    notes: document.getElementById('newNotes').value
+  };
+  if (!data.date) { showToast('Select a date.', 'error'); return; }
+  const btn = document.getElementById('btnSaveNew');
+  startProcessing(btn, 'Creating expense...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Expense created.', 'success');
+      setTimeout(showList, 1000);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .createExpenseCatalogEntry(data);
+}
+
+/* ══════════════════════════════════════════════════════
+   LOG EXPENSE PICKER
+══════════════════════════════════════════════════════ */
+function showLogPicker() {
+  const sel = document.getElementById('pickerSelect');
+  sel.innerHTML = '';
+  allCatalog.filter(c => c.status !== 'Archived').forEach(c => sel.add(new Option(c.name + (c.category ? ' (' + c.category + ')' : ''), c.id)));
+  if (!sel.options.length) { showToast('No expenses in the catalog yet — create one first.', 'error'); return; }
+  document.getElementById('overlayPicker').classList.add('open');
+}
+function confirmPicker() {
+  const catalogId = document.getElementById('pickerSelect').value;
+  closeDialog('overlayPicker');
+  openInstanceForm(catalogId, false);
+}
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ══════════════════════════════════════════════════════
+   LOG / REVIEW INSTANCE FORM
+══════════════════════════════════════════════════════ */
+function openInstanceForm(catalogId, isReview) {
+  const entry = allCatalog.find(c => c.id === catalogId);
+  if (!entry) { showToast('Expense not found.', 'error'); return; }
+  currentCatalog = entry;
+  instIsReview = !!isReview;
+  instPeriodKey = entry.isRecurring ? entry.currentPeriod : '';
+
+  document.getElementById('instCatalogName').textContent = entry.name;
+  document.getElementById('instCatalogCategory').textContent = entry.category || '—';
+  document.getElementById('instPeriodWrap').classList.toggle('hidden', !entry.isRecurring);
+  document.getElementById('instPeriod').textContent = instPeriodKey;
+
+  document.getElementById('instAmount').value = entry.lastAmount || '';
+  setSelectValue('instCurrency', entry.lastCurrency || currencies[0]);
+  document.getElementById('instDate').valueAsDate = new Date();
+  setSelectValue('instPaidBy', entry.lastPaidById || (paidByOptions[0] ? paidByOptions[0].id : ''));
+  document.getElementById('instNotes').value = '';
+  instDraftSplit = (entry.lastSplit || []).map(s => ({ personId: s.personId, personName: s.personName, percent: s.percent }));
+  renderInstSplitEditor();
+
+  switchView('instance');
+  document.getElementById('topbarTitle').textContent = (isReview ? 'Review — ' : 'Log Expense — ') + entry.name;
+  document.getElementById('formActions').classList.remove('hidden');
+  document.getElementById('btnPause').classList.add('hidden');
+  document.getElementById('btnSaveNew').classList.add('hidden');
+  document.getElementById('btnSaveInstance').classList.remove('hidden');
+}
+function renderInstSplitEditor() { renderSplitEditor('instSplitArea', instDraftSplit, 'instAmount', 'instCurrency', 'addInstSplitRow', 'removeInstSplitRow', 'splitInstEvenly'); }
+function addInstSplitRow() {
+  const sel = document.getElementById('instSplitPersonSelect');
+  const pctEl = document.getElementById('instSplitPercentInput');
+  if (!sel || !sel.options.length) { showToast('No Partners found. Mark someone as a Partner in Team first.', 'error'); return; }
+  const pct = safe(pctEl.value);
+  if (!pct || pct <= 0) { showToast('Enter a valid %.', 'error'); return; }
+  instDraftSplit.push({ personId: sel.value, personName: sel.options[sel.selectedIndex].dataset.name, percent: pct });
+  renderInstSplitEditor();
+}
+function removeInstSplitRow(idx) { instDraftSplit.splice(idx, 1); renderInstSplitEditor(); }
+function splitInstEvenly() { instDraftSplit = evenSplit(); renderInstSplitEditor(); }
+
+function submitInstance() {
+  const data = {
+    catalogId: currentCatalog.id,
+    amount: safe(document.getElementById('instAmount').value),
+    currency: document.getElementById('instCurrency').value,
+    date: document.getElementById('instDate').value,
+    paidById: document.getElementById('instPaidBy').value,
+    paidByName: selectedText('instPaidBy'),
+    splits: instDraftSplit,
+    notes: document.getElementById('instNotes').value,
+    periodKey: instPeriodKey
+  };
+  if (!data.date) { showToast('Select a date.', 'error'); return; }
+  const btn = document.getElementById('btnSaveInstance');
+  startProcessing(btn, 'Saving...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Logged.', 'success');
+      setTimeout(showList, 1000);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .logExpenseInstance(data);
+}
+
+/* ══════════════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════════════ */
+function openHistory(catalogId) {
+  const entry = allCatalog.find(c => c.id === catalogId);
+  if (!entry) return;
+  currentCatalog = entry;
+  startProcessing(null, 'Loading history...');
+  google.script.run
+    .withSuccessHandler(history => {
+      stopProcessing(null); hideToast();
+      renderHistory(entry, history || []);
+      switchView('history');
+      document.getElementById('topbarTitle').textContent = entry.name;
+      document.getElementById('formActions').classList.remove('hidden');
+      document.getElementById('btnSaveNew').classList.add('hidden');
+      document.getElementById('btnSaveInstance').classList.add('hidden');
+      const btnPause = document.getElementById('btnPause');
+      btnPause.classList.remove('hidden');
+      btnPause.querySelector('.btn-label').textContent = entry.status === 'Paused' ? 'Reactivate' : 'Pause';
+    })
+    .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
+    .getExpenseHistory(catalogId);
+}
+function renderHistory(entry, history) {
+  document.getElementById('historySummary').innerHTML = `
+    <h3>Overview</h3>
+    <div class="meta-row" style="margin-bottom:0;">
+      <span><strong>Category:</strong> ${esc(entry.category || '—')}</span>
+      <span><strong>Vendor:</strong> ${esc(entry.vendor || '—')}</span>
+      <span><strong>Type:</strong> ${entry.isRecurring ? esc(entry.frequency || 'Recurring') : 'One-Time'}</span>
+      <span><strong>Status:</strong> ${esc(entry.status)}</span>
+    </div>`;
+  const wrap = document.getElementById('historyTableWrap');
+  if (!history.length) {
+    wrap.innerHTML = '<p class="empty-state">No instances logged yet.</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="history-table">
+      <thead><tr><th>Date</th><th>Period</th><th class="col-amt">Amount</th><th>Paid By</th><th>Split</th><th class="col-acts"></th></tr></thead>
+      <tbody>
+        ${history.map(h => `<tr>
+          <td>${h.date || '—'}</td>
+          <td>${esc(h.periodKey || '—')}</td>
+          <td class="col-amt">${esc(h.currency)} ${fmt(h.amount)}</td>
+          <td>${esc(h.paidByName)}</td>
+          <td>${h.splits.map(s => `<span class="split-chip">${esc(s.personName)} ${s.percent.toFixed(1)}%</span>`).join('')}</td>
+          <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDeleteInstance('${esc(h.expenseId)}')">Delete</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+function logNewInstanceFromHistory() { openInstanceForm(currentCatalog.id, false); }
+
+function togglePause() {
+  const newStatus = currentCatalog.status === 'Paused' ? 'Active' : 'Paused';
+  startProcessing(null, 'Updating...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(null);
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast(newStatus === 'Paused' ? 'Paused.' : 'Reactivated.', 'success');
+      setTimeout(showList, 900);
+    })
+    .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
+    .setExpenseCatalogStatus(currentCatalog.id, newStatus);
+}
+
+/* ══════════════════════════════════════════════════════
+   DELETE INSTANCE
+══════════════════════════════════════════════════════ */
+function askDeleteInstance(expenseId) { deleteExpenseIdPending = expenseId; document.getElementById('overlayDeleteInstance').classList.add('open'); }
+function confirmDeleteInstance() {
+  const btn = document.getElementById('btnDeleteInstanceConfirm');
+  startProcessing(btn, 'Deleting...');
+  google.script.run
+    .withSuccessHandler(res => {
+      stopProcessing(btn);
+      closeDialog('overlayDeleteInstance');
+      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
+      showToast('Deleted.', 'success');
+      openHistory(currentCatalog.id);
+    })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .deleteExpenseInstance(deleteExpenseIdPending);
+}
+
+/* ══════════════════════════════════════════════════════
+   SHARED SPLIT EDITOR RENDERER
+   (both New Expense and Log/Review forms call this with
+   their own element ids so the logic isn't duplicated)
+══════════════════════════════════════════════════════ */
+function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, removeFnName, evenFnName) {
+  const area = document.getElementById(areaId);
+  const amount = safe(document.getElementById(amountId).value);
+  const cur = document.getElementById(currencyId).value;
+  const sum = draft.reduce((s, r) => s + r.percent, 0);
+  const matchClass = Math.abs(sum - 100) < 0.5 ? 'match' : 'mismatch';
+
+  const rows = draft.map((r, idx) => `<tr>
+    <td><strong>${esc(r.personName)}</strong></td>
+    <td class="col-pct">${r.percent.toFixed(1)}%</td>
+    <td class="col-amt">${esc(cur)} ${fmt(amount * r.percent / 100)}</td>
+    <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="${removeFnName}(${idx})">Remove</button></td>
+  </tr>`).join('');
+
+  const personIdPrefix = areaId === 'newSplitArea' ? 'newSplit' : 'instSplit';
+
+  area.innerHTML = `
+    <table class="dist-table">
+      <thead><tr><th>Person</th><th class="col-pct">%</th><th class="col-amt">Amount</th><th class="col-acts"></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
+    </table>
+    <div class="dist-progress ${matchClass}">
+      Total: <strong>${sum.toFixed(1)}%</strong>
+      ${Math.abs(sum - 100) >= 0.5 ? (sum < 100 ? ' — ' + (100 - sum).toFixed(1) + '% remaining' : ' — over by ' + (sum - 100).toFixed(1) + '%') : ' ✓'}
+    </div>
+    <div class="inline-row">
+      <select id="${personIdPrefix}PersonSelect">${partnersList.map(p => `<option value="${esc(p.id)}" data-name="${esc(p.name)}">${esc(p.name)}</option>`).join('')}</select>
+      <input type="text" id="${personIdPrefix}PercentInput" placeholder="%" inputmode="decimal">
+      <button class="btn-sm btn-sm-primary" onclick="${addFnName}()">+ Add</button>
+      <button class="btn-sm" onclick="${evenFnName}()">Split Evenly (All Partners)</button>
+    </div>`;
+}
+function evenSplit() {
+  const n = partnersList.length;
+  if (!n) return [];
+  const base = Math.round((100 / n) * 10) / 10;
+  const rows = partnersList.map(p => ({ personId: p.id, personName: p.name, percent: base }));
+  const usedSum = base * n;
+  const remainder = Math.round((100 - usedSum) * 10) / 10;
+  if (rows.length) rows[rows.length - 1].percent = Math.round((rows[rows.length - 1].percent + remainder) * 10) / 10;
+  return rows;
+}
+
+/* ══════════════════════════════════════════════════════
+   VIEW HELPERS
+══════════════════════════════════════════════════════ */
+function switchView(name) {
+  ['viewList','viewNew','viewInstance','viewHistory'].forEach(id => {
+    document.getElementById(id).classList.toggle('active', id === 'view' + name.charAt(0).toUpperCase() + name.slice(1));
+  });
+}
+function setSelectValue(id, val) {
+  const el = document.getElementById(id);
+  for (let o of el.options) { if (String(o.value) === String(val)) { o.selected = true; return; } }
+}
+function selectedText(id) {
+  const el = document.getElementById(id);
+  return el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : '';
+}
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════ */
+function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>
