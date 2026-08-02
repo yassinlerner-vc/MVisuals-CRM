@@ -10,6 +10,16 @@ const RUYA_QUOTATIONS_CONFIRMED_ID = '1StmfEKC-cUVK-Y-5WrJI1avmgvXQBe5s';
 const RUYA_QUOTATIONS_FULFILLED_ID = '1OBZ6QVCq_oG-b0nFK3Ejmaol8Iz7JjTn';
 
 // ============================================================
+//  COMPANY ACCOUNT — the shared pooled account. Not a separate
+//  entity with its own money; it's only ever partner balances.
+//  Used as a special PaidBy value meaning "no one personally
+//  fronted cash — the split directly debits each partner's
+//  notional balance in the pool."
+// ============================================================
+const COMPANY_ACCOUNT_ID   = 'COMPANY';
+const COMPANY_ACCOUNT_NAME = 'Company Account';
+
+// ============================================================
 //  COLUMN INDEXES — Payments (0-based)
 // ============================================================
 const PAY = {
@@ -53,6 +63,18 @@ const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', '
 function getPaymentMethods() {
   return PAYMENT_METHODS;
 }
+
+// ============================================================
+//  EXPENSE FREQUENCIES — hardcoded for now; only Monthly is
+//  needed today, kept as a list so it's a one-line extension
+//  later (e.g. Weekly, Yearly) without touching the schema.
+// ============================================================
+const EXPENSE_FREQUENCIES = ['Monthly'];
+
+function getExpenseFrequencies() {
+  return EXPENSE_FREQUENCIES;
+}
+
 // ============================================================
 //  COLUMN INDEXES — Team (0-based)
 //
@@ -223,6 +245,91 @@ const BD = {
 };
 
 // ============================================================
+//  COLUMN INDEXES — Expense_Catalog (0-based)
+//
+//  The master list of expense TYPES — both recurring and
+//  one-time. Doubles as the "template" for recurring expenses:
+//  Last* fields always reflect the most recently logged
+//  instance, and are only ever used as a pre-fill suggestion —
+//  never an authority. The real price history lives in Expenses.
+// ============================================================
+const EC = {
+  CATALOG_ID:        0,
+  NAME:              1,
+  CATEGORY:          2,
+  VENDOR:            3,
+  IS_RECURRING:      4,
+  FREQUENCY:         5,
+  LAST_AMOUNT:       6,
+  LAST_CURRENCY:     7,
+  LAST_PAID_BY:      8,
+  LAST_PAID_BY_NAME: 9,
+  LAST_SPLIT_JSON:   10,
+  STATUS:            11,
+  NOTES:             12,
+  CREATED_BY:        13,
+  CREATED_AT:        14
+};
+
+// ============================================================
+//  COLUMN INDEXES — Expenses (0-based)
+//
+//  One row = one real transaction in time (= the price history
+//  for its CatalogId). PeriodKey ("2026-07") is set only for
+//  recurring instances, used to detect what's already logged.
+// ============================================================
+const EXP = {
+  EXPENSE_ID:    0,
+  CATALOG_ID:    1,
+  CATALOG_NAME:  2,
+  CATEGORY:      3,
+  AMOUNT:        4,
+  CURRENCY:      5,
+  DATE:          6,
+  PAID_BY:       7,
+  PAID_BY_NAME:  8,
+  PERIOD_KEY:    9,
+  NOTES:         10,
+  CREATED_BY:    11,
+  CREATED_AT:    12
+};
+
+// ============================================================
+//  COLUMN INDEXES — Expense_Split (0-based)
+//  Mirrors Revenue_Distribution's shape.
+// ============================================================
+const ESPL = {
+  SPLIT_ID:    0,
+  EXPENSE_ID:  1,
+  CATALOG_ID:  2,
+  PERSON_ID:   3,
+  PERSON_NAME: 4,
+  PERCENT:     5,
+  AMOUNT:      6,
+  CURRENCY:    7,
+  CREATED_BY:  8,
+  CREATED_AT:  9
+};
+
+// ============================================================
+//  COLUMN INDEXES — Drawings (0-based)
+//  A partner pulling their own already-earned balance out.
+//  Always 100% to one person — no split table needed.
+// ============================================================
+const DRW = {
+  DRAWING_ID:  0,
+  PERSON_ID:   1,
+  PERSON_NAME: 2,
+  AMOUNT:      3,
+  CURRENCY:    4,
+  DATE:        5,
+  METHOD:      6,
+  NOTES:       7,
+  CREATED_BY:  8,
+  CREATED_AT:  9
+};
+
+// ============================================================
 //  MENU
 // ============================================================
 function onOpen() {
@@ -231,7 +338,9 @@ function onOpen() {
     .addItem('Accounts',    'openAccountsModule')
     .addItem('Quotations',  'openQuotationsModule')
     .addItem('Projects',    'openProjectsModule')
-    .addItem('Team',       'openTeamModule')
+    .addItem('Team',        'openTeamModule')
+    .addItem('Expenses',    'openExpensesModule')
+    .addItem('Drawings',    'openDrawingsModule')
     .addToUi();
 }
 
@@ -257,6 +366,18 @@ function openTeamModule() {
   const html = HtmlService.createHtmlOutputFromFile('TeamForm')
     .setWidth(960).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, 'Team');
+}
+
+function openExpensesModule() {
+  const html = HtmlService.createHtmlOutputFromFile('ExpensesForm')
+    .setWidth(1000).setHeight(700);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Expenses');
+}
+
+function openDrawingsModule() {
+  const html = HtmlService.createHtmlOutputFromFile('DrawingsForm')
+    .setWidth(880).setHeight(640);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Drawings');
 }
 
 // ============================================================
