@@ -1,459 +1,371 @@
-// ============================================================
-//  CONSTANTS
-// ============================================================
-const CLIENTS_FOLDER_ID  = '19iNsbyldpjF8pVuc9WUGIHB8bibYbu0J';
-const LEADS_FOLDER_ID    = '1DbnsDxGgymXsFMnCK8uUIUP0UFXuMv3z';
-const ARCHIVED_FOLDER_ID = '1TQAW86XAPJB2PdXWYYQoTNSdRwpahY-l';
-const RUYA_TEAM_FOLDER_ID = '1S_nrzYMIJdpwBb84t-73D-NU7WDt33Nc';
-const RUYA_QUOTATIONS_PIPELINE_ID  = '14_BP1bYHWJ3hqXwHE5WfYxp6hskjqWqj';
-const RUYA_QUOTATIONS_CONFIRMED_ID = '1StmfEKC-cUVK-Y-5WrJI1avmgvXQBe5s';
-const RUYA_QUOTATIONS_FULFILLED_ID = '1OBZ6QVCq_oG-b0nFK3Ejmaol8Iz7JjTn';
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
+    .view { display: none; padding: 20px 24px 100px; }
+    .view.active { display: block; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
+    .topbar-title { font-size: 16px; font-weight: 700; }
+    .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover:not(:disabled) { background: #f0f2fa; }
+    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
+    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
+    .btn-danger { background: #fff; color: #c0392b; border-color: #c0392b; }
+    .btn-danger:hover:not(:disabled) { background: #fdecea; }
+    .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
+    .btn-ghost:hover { text-decoration: underline; }
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
+    .btn-primary .spinner, .btn-danger .spinner { border-top-color: #fff; }
+    .btn.loading .spinner { display: inline-block; }
+    .btn.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
+    .proc-bar.active { transform: scaleX(0.85); }
+    .proc-bar.done { transform: scaleX(1); transition: transform 0.15s ease; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; }
+    .toast-info { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
+    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
+    .toast-error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+    .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .list-count { font-size: 13px; color: #666; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
+    thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    tbody tr:nth-child(odd) { background: #fff; }
+    tbody tr:nth-child(even) { background: #f8f9ff; }
+    tbody tr:hover { background: #eef0fd; cursor: pointer; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
+    .col-date { width: 110px; color: #666; }
+    .col-partner { width: 110px; }
+    .col-acts { width: 160px; text-align: right; white-space: nowrap; }
+    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; }
+    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
+    .btn-sm-primary:hover { background: #eef0fd; }
+    .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
+    .btn-sm-danger:hover { background: #fdecea; }
+    .partner-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: #fff3cd; color: #856404; }
+    .balances-panel { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; border: 1px solid #e2e4ef; }
+    .balances-panel h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+    .balances-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+    .balance-card { background: #f8f9ff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 12px 16px; min-width: 160px; }
+    .balance-card-name { font-size: 12px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+    .balance-card-currency { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .balance-card-net { font-size: 18px; font-weight: 700; }
+    .balance-card-net.positive { color: #1e8a4a; }
+    .balance-card-net.negative { color: #c0392b; }
+    .balance-card-breakdown { font-size: 11px; color: #888; margin-top: 6px; line-height: 1.6; }
+    .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
+    h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
+    input { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; }
+    input:focus { outline: none; border-color: #4361ee; }
+    input:disabled { background: #f0f2fa; color: #666; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0; }
+    .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
+    .checkbox-hint { font-size: 11px; color: #888; margin-top: 4px; }
+    .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; margin-bottom: 14px; }
+    .meta-row strong { color: #555; }
+    .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
+    .spacer { flex: 1; }
+    .folder-link { display: inline-flex; align-items: center; gap: 5px; color: #4361ee; font-size: 12px; font-weight: 600; text-decoration: none; padding: 5px 12px; border: 1px solid #4361ee; border-radius: 5px; }
+    .folder-link:hover { background: #eef0fd; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 360px; width: 90%; }
+    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .dialog p { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
 
-// ============================================================
-//  COMPANY ACCOUNT — the shared pooled account. Not a separate
-//  entity with its own money; it's only ever partner balances.
-//  Used as a special PaidBy value meaning "no one personally
-//  fronted cash — the split directly debits each partner's
-//  notional balance in the pool."
-// ============================================================
-const COMPANY_ACCOUNT_ID   = 'COMPANY';
-const COMPANY_ACCOUNT_NAME = 'Company Account';
+<div class="proc-bar" id="procBar"></div>
+<div class="toast" id="toast"></div>
 
-// ============================================================
-//  COLUMN INDEXES — Payments (0-based)
-// ============================================================
-const PAY = {
-  PAYMENT_ID:   0,
-  PROJECT_ID:   1,
-  QUOTATION_ID: 2,
-  ACCOUNT_NAME: 3,
-  PROJECT_NAME: 4,
-  AMOUNT:       5,
-  DATE:         6,
-  METHOD:       7,
-  NOTES:        8,
-  RECORDED_BY:  9,
-  RECORDED_AT:  10
-};
+<div class="topbar">
+  <div class="topbar-title">Team</div>
+</div>
 
-// ============================================================
-//  COLUMN INDEXES — Revenue_Distribution (0-based)
-// ============================================================
-const DIST = {
-  DISTRIBUTION_ID: 0,
-  PROJECT_ID:      1,
-  QUOTATION_ID:    2,
-  ACCOUNT_NAME:    3,
-  PROJECT_NAME:    4,
-  PERSON_ID:       5,
-  PERSON_NAME:     6,
-  PERCENT:         7,
-  AMOUNT:          8,
-  CURRENCY:        9,
-  NOTES:           10,
-  CREATED_BY:      11,
-  CREATED_AT:      12
-};
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div class="balances-panel hidden" id="balancesPanel">
+    <h3>Partner Balances</h3>
+    <div class="balances-grid" id="balancesGrid"></div>
+  </div>
+  <div class="list-toolbar">
+    <div class="list-count" id="listCount">Loading...</div>
+    <button class="btn btn-primary" onclick="showNew()"><span class="btn-label">+ Add Team Member</span></button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th class="col-partner">Partner</th><th class="col-date">Added</th><th class="col-acts"></th>
+        </tr>
+      </thead>
+      <tbody id="listBody">
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-// ============================================================
-//  PAYMENT METHODS — hardcoded (small, stable list)
-// ============================================================
-const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', 'Other'];
+<!-- FORM VIEW -->
+<div class="view" id="viewForm">
+  <div class="meta-row" id="metaRow" style="display:none;">
+    <span><strong>ID:</strong> <span id="metaId"></span></span>
+    <span><strong>Added:</strong> <span id="metaCreatedAt"></span></span>
+  </div>
+  <div class="section">
+    <h3>Team Member Details</h3>
+    <div class="row2">
+      <div class="field"><label>Full Name</label><input type="text" id="tmName" placeholder="e.g. Sarah Ahmed"></div>
+      <div class="field"><label>Email</label><input type="email" id="tmEmail" placeholder="e.g. sarah@gmail.com"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Phone Number</label><input type="text" id="tmPhone" placeholder="e.g. +20 100 000 0000"></div>
+      <div class="field"><label>Role</label><input type="text" id="tmRole" placeholder="e.g. Editor, Motion Designer"></div>
+    </div>
+    <div class="field">
+      <div class="checkbox-row">
+        <input type="checkbox" id="tmIsPartner">
+        <label for="tmIsPartner">Partner (Owner)</label>
+      </div>
+      <div class="checkbox-hint">Partners can appear in Expense and Drawing splits. Doesn't affect their Role text.</div>
+    </div>
+  </div>
+</div>
 
-function getPaymentMethods() {
-  return PAYMENT_METHODS;
+<!-- FORM ACTIONS -->
+<div class="form-actions hidden" id="formActions">
+  <button class="btn btn-ghost" onclick="showList()">← Back</button>
+  <div class="spacer"></div>
+  <a id="folderLink" class="folder-link hidden" href="#" target="_blank">📁 Open Folder</a>
+  <button class="btn btn-danger hidden" id="btnDelete" onclick="askDelete()"><span class="btn-label">Remove</span></button>
+  <button class="btn hidden" id="btnEdit" onclick="enterEditMode()"><span class="btn-label">Edit</span></button>
+  <button class="btn btn-primary hidden" id="btnSave" onclick="saveForm()"><div class="spinner"></div><span class="btn-label">Save</span></button>
+</div>
+
+<!-- DELETE DIALOG -->
+<div class="overlay" id="overlayDelete">
+  <div class="dialog">
+    <h4>Remove Team Member</h4>
+    <p>This removes them from the Team sheet and archives their Drive folder (it won't be deleted). Continue?</p>
+    <div class="dialog-btns">
+      <button class="btn" onclick="closeDialog('overlayDelete')">Cancel</button>
+      <button class="btn btn-danger" id="btnDeleteConfirm" onclick="confirmDelete()"><div class="spinner"></div><span class="btn-label">Yes, Remove</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allTeam = [];
+let currentMode = 'list';
+let currentId = null;
+let currentData = null;
+
+function startProcessing(btn, msg) {
+  document.getElementById('procBar').className = 'proc-bar active';
+  showToast(msg || 'Processing...', 'info', 0);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+}
+function stopProcessing(btn) {
+  const bar = document.getElementById('procBar');
+  bar.className = 'proc-bar done';
+  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
+  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+}
+let toastTimer = null;
+function showToast(msg, type, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast toast-' + (type||'info'); t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3000);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
+
+function init() {
+  google.script.run.withSuccessHandler(renderList)
+    .withFailureHandler(err => showToast('Error: ' + err.message, 'error'))
+    .getTeam();
+  loadBalances();
 }
 
-// ============================================================
-//  EXPENSE FREQUENCIES — hardcoded for now; only Monthly is
-//  needed today, kept as a list so it's a one-line extension
-//  later (e.g. Weekly, Yearly) without touching the schema.
-// ============================================================
-const EXPENSE_FREQUENCIES = ['Monthly'];
+function loadBalances() {
+  google.script.run
+    .withSuccessHandler(renderBalances)
+    .withFailureHandler(() => {}) // balances are a nice-to-have; fail quietly
+    .getPartnerBalances();
+}
+function renderBalances(balances) {
+  const panel = document.getElementById('balancesPanel');
+  const grid  = document.getElementById('balancesGrid');
+  if (!balances || !balances.length) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  grid.innerHTML = balances.map(b => `
+    <div class="balance-card">
+      <div class="balance-card-name">${escHtml(b.personName)}</div>
+      <div class="balance-card-currency">${escHtml(b.currency)}</div>
+      <div class="balance-card-net ${b.net >= 0 ? 'positive' : 'negative'}">${escHtml(b.currency)} ${fmt(b.net)}</div>
+      <div class="balance-card-breakdown">
+        Revenue share: +${fmt(b.revenueShare)}<br>
+        Expense share: -${fmt(b.expenseShare)}<br>
+        Fronted (owed back): +${fmt(b.frontedAmount)}<br>
+        Drawings: -${fmt(b.drawings)}
+      </div>
+    </div>`).join('');
+}
+function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-function getExpenseFrequencies() {
-  return EXPENSE_FREQUENCIES;
+function renderList(team) {
+  allTeam = team || [];
+  hideToast();
+  document.getElementById('listCount').textContent = allTeam.length + ' team member' + (allTeam.length !== 1 ? 's' : '');
+  const tbody = document.getElementById('listBody');
+  if (!allTeam.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No team members yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allTeam.map(t => `
+    <tr onclick="openTeam('${escHtml(t.id)}')">
+      <td><strong>${escHtml(t.name)}</strong></td>
+      <td style="color:#666;">${escHtml(t.email)}</td>
+      <td>${escHtml(t.phone || '—')}</td>
+      <td>${escHtml(t.role || '—')}</td>
+      <td class="col-partner">${t.isPartner ? '<span class="partner-badge">★ Partner</span>' : '—'}</td>
+      <td class="col-date">${t.createdAt || '—'}</td>
+      <td class="col-acts" onclick="event.stopPropagation()">
+        <button class="btn-sm btn-sm-primary" onclick="openTeam('${escHtml(t.id)}')">Open →</button>
+        <button class="btn-sm btn-sm-danger" onclick="quickDelete('${escHtml(t.id)}')">Remove</button>
+      </td>
+    </tr>`).join('');
 }
 
-// ============================================================
-//  COLUMN INDEXES — Team (0-based)
-//
-//  Col 7 (H) added: IsPartner — checkbox, marks whether this
-//  team member is a business Partner (Owner). Used to filter
-//  who can appear in Expense/Drawing splits. Kept separate from
-//  the free-text Role field so filtering never depends on exact
-//  wording. Added at the very end so no existing index shifts.
-// ============================================================
-const TM = {
-  TEAM_ID:    0,
-  NAME:       1,
-  PHONE:      2,
-  EMAIL:      3,
-  ROLE:       4,
-  FOLDER_URL: 5,
-  CREATED_AT: 6,
-  IS_PARTNER: 7
-};
-// ============================================================
-//  COLUMN INDEXES — Accounts (0-based)
-// ============================================================
-const A = {
-  ACCOUNT_ID:    0,
-  ACCOUNT_NAME:  1,
-  SOURCE:        2,
-  CHANNEL:       3,
-  COUNTRY:       4,
-  INDUSTRY:      5,
-  IS_REGISTERED: 6,
-  STATUS:        7,
-  CREATED_BY:    8,
-  CREATED_AT:    9,
-  FOLDER_URL:    10,
-  NOTES:         11
-};
-
-// ============================================================
-//  COLUMN INDEXES — Quotations (0-based)
-//
-//  Col 27 (AB) added: IncludeBankDetails — checkbox, per-quotation
-//  toggle for whether the Payment Details section renders in the PDF.
-//  Added at the very end so no existing index shifts.
-// ============================================================
-const Q = {
-  QUOTATION_ID:         0,
-  CURRENT_VERSION:      1,
-  ACCOUNT_ID:           2,
-  ACCOUNT_NAME:         3,
-  PROJECT_NAME:         4,
-  PROJECT_DESC:         5,
-  DATE_ISSUED:          6,
-  MIN_DAYS:             7,
-  MAX_DAYS:             8,
-  DELIVERY_DEADLINE:    9,
-  PRICING_MODE:         10,
-  CURRENCY:             11,
-  SUBTOTAL:             12,
-  DISCOUNTED:           13,
-  DISCOUNT_PERCENT:     14,
-  DISCOUNT_AMOUNT:      15,
-  TAXED:                16,
-  TAX_PERCENT:          17,
-  TAX_AMOUNT:           18,
-  TOTAL:                19,
-  STATUS:               20,
-  NOTES:                21,
-  FOLDER_URL:           22,
-  CREATED_BY:           23,
-  CREATED_AT:           24,
-  LAST_UPDATED_BY:      25,
-  LAST_UPDATED_AT:      26,
-  INCLUDE_BANK_DETAILS: 27
-};
-
-// ============================================================
-//  COLUMN INDEXES — Quote_Items (0-based)
-// ============================================================
-const QI = {
-  ITEM_ID:         0,
-  QUOTATION_ID:    1,
-  ITEM_INDEX:      2,
-  ITEM_NAME:       3,
-  QUANTITY:        4,
-  DESCRIPTION:     5,
-  NOTES:           6,
-  UNIT_PRICE:      7,
-  SUBTOTAL:        8,
-  STATUS:          9,
-  LAST_UPDATED_BY: 10,
-  LAST_UPDATED_AT: 11
-};
-
-// ============================================================
-//  COLUMN INDEXES — Projects (0-based)
-//
-//  Sheet headers (row 1):
-//  Project ID | Quotation ID | Account ID | Account Name |
-//  Project Name | Project Description | Delivery Deadline |
-//  Due Date | Status | Internal Notes | Created At |
-//  Completed At | Total Amount | Currency |
-//  Total Commission | Remaining Amount
-// ============================================================
-const P = {
-  PROJECT_ID:        0,
-  QUOTATION_ID:      1,
-  ACCOUNT_ID:        2,
-  ACCOUNT_NAME:      3,
-  PROJECT_NAME:      4,
-  PROJECT_DESC:      5,
-  DELIVERY_DEADLINE: 6,
-  DUE_DATE:          7,
-  STATUS:            8,
-  INTERNAL_NOTES:    9,
-  CREATED_AT:        10,
-  COMPLETED_AT:      11,
-  TOTAL_AMOUNT:      12,
-  CURRENCY:          13,
-  TOTAL_COMMISSION:  14,
-  REMAINING_AMOUNT:  15
-};
-
-// ============================================================
-//  COLUMN INDEXES — Project_Items (0-based)
-//
-//  Sheet headers (row 1):
-//  Item ID | Project ID | Quotation ID | Account Name |
-//  Project Name | Project Description | Item Name |
-//  Quantity | Description | Notes | Created At
-// ============================================================
-const PI = {
-  ITEM_ID:     0,
-  PROJECT_ID:  1,
-  QUOTATION_ID:2,
-  ACCOUNT_NAME:3,
-  PROJECT_NAME:4,
-  PROJECT_DESC:5,
-  ITEM_NAME:   6,
-  QUANTITY:    7,
-  DESCRIPTION: 8,
-  NOTES:       9,
-  CREATED_AT:  10
-};
-
-// ============================================================
-//  COLUMN INDEXES — Bank_Details (0-based)
-//
-//  Sheet headers (row 1):
-//  Label | Account Name | Bank Name | IBAN | SWIFT Code |
-//  Nationality | Branch Name | Branch Code | Address |
-//  Instapay Payment Address | Instapay Mobile Number
-//
-//  Only row 2 (the first data row) is read — one active bank
-//  details set is assumed for now.
-// ============================================================
-const BD = {
-  LABEL:            0,
-  ACCOUNT_NAME:     1,
-  BANK_NAME:        2,
-  IBAN:             3,
-  SWIFT_CODE:       4,
-  NATIONALITY:      5,
-  BRANCH_NAME:      6,
-  BRANCH_CODE:      7,
-  ADDRESS:          8,
-  INSTAPAY_ADDRESS: 9,
-  INSTAPAY_MOBILE:  10
-};
-
-// ============================================================
-//  COLUMN INDEXES — Expense_Catalog (0-based)
-//
-//  The master list of expense TYPES — both recurring and
-//  one-time. Doubles as the "template" for recurring expenses:
-//  Last* fields always reflect the most recently logged
-//  instance, and are only ever used as a pre-fill suggestion —
-//  never an authority. The real price history lives in Expenses.
-// ============================================================
-const EC = {
-  CATALOG_ID:        0,
-  NAME:              1,
-  CATEGORY:          2,
-  VENDOR:            3,
-  IS_RECURRING:      4,
-  FREQUENCY:         5,
-  LAST_AMOUNT:       6,
-  LAST_CURRENCY:     7,
-  LAST_PAID_BY:      8,
-  LAST_PAID_BY_NAME: 9,
-  LAST_SPLIT_JSON:   10,
-  STATUS:            11,
-  NOTES:             12,
-  CREATED_BY:        13,
-  CREATED_AT:        14
-};
-
-// ============================================================
-//  COLUMN INDEXES — Expenses (0-based)
-//
-//  One row = one real transaction in time (= the price history
-//  for its CatalogId). PeriodKey ("2026-07") is set only for
-//  recurring instances, used to detect what's already logged.
-// ============================================================
-const EXP = {
-  EXPENSE_ID:    0,
-  CATALOG_ID:    1,
-  CATALOG_NAME:  2,
-  CATEGORY:      3,
-  AMOUNT:        4,
-  CURRENCY:      5,
-  DATE:          6,
-  PAID_BY:       7,
-  PAID_BY_NAME:  8,
-  PERIOD_KEY:    9,
-  NOTES:         10,
-  CREATED_BY:    11,
-  CREATED_AT:    12
-};
-
-// ============================================================
-//  COLUMN INDEXES — Expense_Split (0-based)
-//  Mirrors Revenue_Distribution's shape.
-// ============================================================
-const ESPL = {
-  SPLIT_ID:    0,
-  EXPENSE_ID:  1,
-  CATALOG_ID:  2,
-  PERSON_ID:   3,
-  PERSON_NAME: 4,
-  PERCENT:     5,
-  AMOUNT:      6,
-  CURRENCY:    7,
-  CREATED_BY:  8,
-  CREATED_AT:  9
-};
-
-// ============================================================
-//  COLUMN INDEXES — Drawings (0-based)
-//  A partner pulling their own already-earned balance out.
-//  Always 100% to one person — no split table needed.
-// ============================================================
-const DRW = {
-  DRAWING_ID:  0,
-  PERSON_ID:   1,
-  PERSON_NAME: 2,
-  AMOUNT:      3,
-  CURRENCY:    4,
-  DATE:        5,
-  METHOD:      6,
-  NOTES:       7,
-  CREATED_BY:  8,
-  CREATED_AT:  9
-};
-
-// ============================================================
-//  MENU
-// ============================================================
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('CRM System')
-    .addItem('Accounts',    'openAccountsModule')
-    .addItem('Quotations',  'openQuotationsModule')
-    .addItem('Projects',    'openProjectsModule')
-    .addItem('Team',        'openTeamModule')
-    .addItem('Expenses',    'openExpensesModule')
-    .addItem('Drawings',    'openDrawingsModule')
-    .addToUi();
+function showList() {
+  switchView('list');
+  document.getElementById('formActions').classList.add('hidden');
+  document.getElementById('metaRow').style.display = 'none';
+  google.script.run.withSuccessHandler(renderList).getTeam();
+  loadBalances();
 }
 
-function openAccountsModule() {
-  const html = HtmlService.createHtmlOutputFromFile('AccountsForm')
-    .setWidth(960).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Accounts');
+function openTeam(id) {
+  const t = allTeam.find(x => x.id === id);
+  if (!t) return;
+  currentData = t; currentId = id; currentMode = 'view';
+  document.getElementById('metaRow').style.display = 'flex';
+  document.getElementById('metaId').textContent = t.id;
+  document.getElementById('metaCreatedAt').textContent = t.createdAt || '—';
+  document.getElementById('tmName').value = t.name;
+  document.getElementById('tmEmail').value = t.email;
+  document.getElementById('tmPhone').value = t.phone || '';
+  document.getElementById('tmRole').value = t.role || '';
+  document.getElementById('tmIsPartner').checked = !!t.isPartner;
+  setReadOnly(true);
+  switchView('form');
+  showFormActions('view', t);
 }
 
-function openQuotationsModule() {
-  const html = HtmlService.createHtmlOutputFromFile('QuotationsForm')
-    .setWidth(960).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Quotations');
+function showNew() {
+  currentMode = 'new'; currentId = null; currentData = null;
+  ['tmName','tmEmail','tmPhone','tmRole'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tmIsPartner').checked = false;
+  document.getElementById('metaRow').style.display = 'none';
+  setReadOnly(false);
+  switchView('form');
+  showFormActions('new');
 }
 
-function openProjectsModule() {
-  const html = HtmlService.createHtmlOutputFromFile('ProjectsForm')
-    .setWidth(1100).setHeight(720);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Projects');
+function enterEditMode() {
+  currentMode = 'edit';
+  setReadOnly(false);
+  showFormActions('edit', currentData);
 }
 
-function openTeamModule() {
-  const html = HtmlService.createHtmlOutputFromFile('TeamForm')
-    .setWidth(960).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Team');
-}
-
-function openExpensesModule() {
-  const html = HtmlService.createHtmlOutputFromFile('ExpensesForm')
-    .setWidth(1000).setHeight(700);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Expenses');
-}
-
-function openDrawingsModule() {
-  const html = HtmlService.createHtmlOutputFromFile('DrawingsForm')
-    .setWidth(880).setHeight(640);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Drawings');
-}
-
-// ============================================================
-//  SHEET HELPER
-// ============================================================
-function getSheet(name) {
-  return SpreadsheetApp.getActive().getSheetByName(name);
-}
-
-// ============================================================
-//  DRIVE HELPER
-// ============================================================
-function moveToArchived(fileOrFolderUrl) {
-  if (!fileOrFolderUrl) return;
-  try {
-    const id           = fileOrFolderUrl.match(/[-\w]{25,}/)[0];
-    const item         = DriveApp.getFileById(id);
-    const archivedRoot = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
-    const parents      = item.getParents();
-    archivedRoot.addFile(item);
-    while (parents.hasNext()) parents.next().removeFile(item);
-  } catch(e) {
-    Logger.log('moveToArchived error: ' + e);
+function showFormActions(mode, t) {
+  const bar = document.getElementById('formActions');
+  const btnSave = document.getElementById('btnSave');
+  const btnEdit = document.getElementById('btnEdit');
+  const btnDel = document.getElementById('btnDelete');
+  const fl = document.getElementById('folderLink');
+  bar.classList.remove('hidden');
+  [btnSave, btnEdit, btnDel].forEach(b => b.classList.add('hidden'));
+  if (mode === 'new') {
+    btnSave.querySelector('.btn-label').textContent = 'Add Team Member';
+    btnSave.classList.remove('hidden');
+    fl.classList.add('hidden');
+  } else if (mode === 'view') {
+    btnEdit.classList.remove('hidden');
+    btnDel.classList.remove('hidden');
+    if (t && t.folderUrl) { fl.href = t.folderUrl; fl.classList.remove('hidden'); } else fl.classList.add('hidden');
+  } else if (mode === 'edit') {
+    btnSave.querySelector('.btn-label').textContent = 'Save Changes';
+    btnSave.classList.remove('hidden');
+    if (t && t.folderUrl) { fl.href = t.folderUrl; fl.classList.remove('hidden'); }
   }
 }
 
-// ============================================================
-//  LOGGING HELPER
-// ============================================================
-function writeLog(sheetName, module, recordId, recordLabel,
-                  accountId, accountName, fieldChanged,
-                  oldValue, newValue, notes) {
-  const sheet = getSheet(sheetName);
-  if (!sheet) return;
-  sheet.appendRow([
-    Utilities.getUuid(),
-    module,
-    String(recordId     || ''),
-    String(recordLabel  || ''),
-    String(accountId    || ''),
-    String(accountName  || ''),
-    String(fieldChanged || ''),
-    oldValue !== null && oldValue !== undefined ? String(oldValue) : '',
-    newValue !== null && newValue !== undefined ? String(newValue) : '',
-    Session.getActiveUser().getEmail(),
-    new Date(),
-    String(notes || '')
-  ]);
+function switchView(name) {
+  document.getElementById('viewList').classList.toggle('active', name === 'list');
+  document.getElementById('viewForm').classList.toggle('active', name === 'form');
+}
+function setReadOnly(on) {
+  ['tmName','tmEmail','tmPhone','tmRole','tmIsPartner'].forEach(id => document.getElementById(id).disabled = on);
 }
 
-// ============================================================
-//  DROPDOWN OPTIONS
-// ============================================================
-function getDropdownOptions(sheetName) {
-  try {
-    const sheet = getSheet(sheetName);
-    if (!sheet) return [];
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return [];
-    return sheet.getRange(2, 2, lastRow - 1, 1)
-      .getValues().flat().filter(v => v);
-  } catch(e) {
-    Logger.log('getDropdownOptions error: ' + e);
-    return [];
+function saveForm() {
+  const name = document.getElementById('tmName').value.trim();
+  const email = document.getElementById('tmEmail').value.trim();
+  if (!name) { showToast('Please enter a name.', 'error'); return; }
+  if (!email) { showToast('Please enter an email.', 'error'); return; }
+  const data = {
+    name, email,
+    phone: document.getElementById('tmPhone').value.trim(),
+    role: document.getElementById('tmRole').value.trim(),
+    isPartner: document.getElementById('tmIsPartner').checked
+  };
+  const btn = document.getElementById('btnSave');
+  if (currentMode === 'new') {
+    startProcessing(btn, 'Adding team member...');
+    google.script.run
+      .withSuccessHandler(res => { stopProcessing(btn); if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; } showToast('Team member added!', 'success'); setTimeout(showList, 1200); })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+      .createTeam(data);
+  } else {
+    data.id = currentId;
+    startProcessing(btn, 'Saving...');
+    google.script.run
+      .withSuccessHandler(res => { stopProcessing(btn); if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; } showToast('Saved.', 'success'); setTimeout(showList, 1200); })
+      .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+      .editTeam(data);
   }
 }
 
-// ============================================================
-//  HELPER — extract plain URL from formula or raw string
-// ============================================================
-function extractUrl(cellValue) {
-  if (!cellValue) return '';
-  const str = String(cellValue);
-  if (str.toUpperCase().startsWith('=HYPERLINK')) {
-    const match = str.match(/\"(https?:\/\/[^\"]+)\"/);
-    return match ? match[1] : '';
-  }
-  return str;
+function askDelete() { document.getElementById('overlayDelete').classList.add('open'); }
+function quickDelete(id) { currentId = id; document.getElementById('overlayDelete').classList.add('open'); }
+function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+function confirmDelete() {
+  const btn = document.getElementById('btnDeleteConfirm');
+  closeDialog('overlayDelete');
+  startProcessing(btn, 'Removing...');
+  google.script.run
+    .withSuccessHandler(res => { stopProcessing(btn); if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; } showToast('Removed.', 'success'); setTimeout(showList, 1000); })
+    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
+    .deleteTeam(currentId);
 }
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>
