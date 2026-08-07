@@ -33,7 +33,9 @@ const PAY = {
   METHOD:       7,
   NOTES:        8,
   RECORDED_BY:  9,
-  RECORDED_AT:  10
+  RECORDED_AT:  10,
+  EGP_EQUIVALENT: 11,
+  EXCHANGE_RATE:  12
 };
 
 // ============================================================
