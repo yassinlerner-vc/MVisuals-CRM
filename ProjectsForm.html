@@ -367,7 +367,7 @@ function renderItemsRef(items) {
       <thead><tr><th>Item</th><th>Qty</th><th>Description</th><th>Notes</th></tr></thead>
       <tbody>
         ${items.map(i => `<tr>
-          <td><strong>${esc(i.itemName)}</strong></td>
+          <td><strong>${esc(i.displayValue || i.itemName)}</strong></td>
           <td>${i.quantity}</td>
           <td style="color:#555;">${esc(i.description || '—')}</td>
           <td style="color:#888;font-style:italic;">${esc(i.notes || '—')}</td>
@@ -506,7 +506,7 @@ function renderDistribution(detail) {
 }
 
 function enterDistEdit() {
-  draftDistribution = currentDetail.distribution.map(d => ({ personId: d.personId, personName: d.personName, amount: d.amount }));
+  draftDistribution = currentDetail.distribution.map(d => ({ personId: d.personId, personName: d.personName, percent: d.percent }));
   distEditing = true;
   renderDistEditor(currentDetail);
 }
@@ -515,15 +515,15 @@ function renderDistEditor(detail) {
   const area = document.getElementById('distributionArea');
   const p = detail.project;
   const members = detail.teamMembers || [];
-  const sum = draftDistribution.reduce((s, r) => s + r.amount, 0);
-  const diff = p.totalAmount - sum;
+  const sum = draftDistribution.reduce((s, r) => s + r.percent, 0);
+  const diff = 100 - sum;
   const matchClass = Math.abs(diff) < 0.5 ? 'match' : 'mismatch';
 
   const rowsHtml = draftDistribution.map((r, idx) => `
     <tr>
       <td><strong>${esc(r.personName)}</strong></td>
-      <td class="col-amt">${esc(p.currency)} ${fmt(r.amount)}</td>
-      <td class="col-pct">${p.totalAmount ? ((r.amount / p.totalAmount) * 100).toFixed(1) : '0.0'}%</td>
+      <td class="col-amt">${esc(p.currency)} ${fmt(p.totalAmount * r.percent / 100)}</td>
+      <td class="col-pct">${r.percent.toFixed(1)}%</td>
       <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="removeDistRow(${idx})">Remove</button></td>
     </tr>`).join('');
 
@@ -533,13 +533,14 @@ function renderDistEditor(detail) {
       <tbody>${rowsHtml || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
     </table>
     <div class="dist-progress ${matchClass}">
-      Distributed: <strong>${esc(p.currency)} ${fmt(sum)}</strong> / ${esc(p.currency)} ${fmt(p.totalAmount)}
-      ${Math.abs(diff) >= 0.5 ? ` — ${diff > 0 ? esc(p.currency) + ' ' + fmt(diff) + ' remaining' : 'over by ' + esc(p.currency) + ' ' + fmt(-diff)}` : ' ✓'}
+      Distributed: <strong>${sum.toFixed(1)}%</strong> (${esc(p.currency)} ${fmt(p.totalAmount * sum / 100)}) / 100% (${esc(p.currency)} ${fmt(p.totalAmount)})
+      ${Math.abs(diff) >= 0.5 ? ` — ${diff > 0 ? diff.toFixed(1) + '% remaining' : 'over by ' + (-diff).toFixed(1) + '%'}` : ' ✓'}
     </div>
     <div class="inline-row">
       <select id="distPersonSelect">${members.map(m => `<option value="${esc(m.id)}" data-name="${esc(m.name)}">${esc(m.name)}${m.role ? ' (' + esc(m.role) + ')' : ''}</option>`).join('')}</select>
-      <input type="text" id="distAmountInput" placeholder="Amount" inputmode="decimal">
+      <input type="text" id="distPercentInput" placeholder="%" inputmode="decimal">
       <button class="btn-sm btn-sm-primary" onclick="addDistRow()">+ Add</button>
+      <button class="btn-sm" onclick="distributeRest()">Distribute Rest to Selected</button>
     </div>
     <div class="dialog-btns" style="margin-top:16px;">
       <button class="btn" onclick="cancelDistEdit()">Cancel</button>
@@ -551,13 +552,26 @@ function renderDistEditor(detail) {
 
 function addDistRow() {
   const sel = document.getElementById('distPersonSelect');
-  const amtEl = document.getElementById('distAmountInput');
+  const pctEl = document.getElementById('distPercentInput');
   if (!sel.options.length) { showToast('No team members found. Add some in the Team module first.', 'error'); return; }
-  const amount = safe(amtEl.value);
-  if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+  const percent = safe(pctEl.value);
+  if (!percent || percent <= 0) { showToast('Enter a valid percentage.', 'error'); return; }
   const personId = sel.value;
   const personName = sel.options[sel.selectedIndex].dataset.name;
-  draftDistribution.push({ personId, personName, amount });
+  const existing = draftDistribution.find(r => r.personId === personId);
+  if (existing) { existing.percent += percent; } else { draftDistribution.push({ personId, personName, percent }); }
+  renderDistEditor(currentDetail);
+}
+function distributeRest() {
+  const sel = document.getElementById('distPersonSelect');
+  if (!sel.options.length) { showToast('No team members found. Add some in the Team module first.', 'error'); return; }
+  const sum = draftDistribution.reduce((s, r) => s + r.percent, 0);
+  const remaining = Math.round((100 - sum) * 10) / 10;
+  if (remaining <= 0) { showToast('No remaining percentage to distribute.', 'error'); return; }
+  const personId = sel.value;
+  const personName = sel.options[sel.selectedIndex].dataset.name;
+  const existing = draftDistribution.find(r => r.personId === personId);
+  if (existing) { existing.percent += remaining; } else { draftDistribution.push({ personId, personName, percent: remaining }); }
   renderDistEditor(currentDetail);
 }
 function removeDistRow(idx) {
