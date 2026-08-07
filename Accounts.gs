@@ -39,7 +39,7 @@ function getAccounts() {
       folderUrl:    extractUrl(row[A.FOLDER_URL]),
       notes:        row[A.NOTES]
     }))
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => b.id.localeCompare(a.id));
 }
 
 // ============================================================
