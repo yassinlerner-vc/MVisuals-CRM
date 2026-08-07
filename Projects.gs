@@ -151,11 +151,12 @@ function getProjectDetail(projectId) {
   const items = piSheet ? piSheet.getDataRange().getValues().slice(1)
     .filter(row => String(row[PI.PROJECT_ID]) === String(projectId))
     .map(row => ({
-      itemId:      String(row[PI.ITEM_ID]),
-      itemName:    String(row[PI.ITEM_NAME]),
-      quantity:    Number(row[PI.QUANTITY] || 0),
-      description: String(row[PI.DESCRIPTION] || ''),
-      notes:       String(row[PI.NOTES] || '')
+      itemId:       String(row[PI.ITEM_ID]),
+      itemName:     String(row[PI.ITEM_NAME]),
+      displayValue: String(row[PI.DISPLAY_VALUE] || ''),
+      quantity:     Number(row[PI.QUANTITY] || 0),
+      description:  String(row[PI.DESCRIPTION] || ''),
+      notes:        String(row[PI.NOTES] || '')
     })) : [];
 
   // ── Payments ─────────────────────────────────────────────
@@ -286,9 +287,11 @@ function deletePayment(paymentId) {
 // ============================================================
 //  REVENUE DISTRIBUTION — SAVE
 //  Only allowed once the project is fully paid. Replaces any
-//  existing distribution rows for this project. Row amounts
-//  must sum to the project total (small rounding tolerance).
-//  rows: [{ personId, personName, amount }]
+//  existing distribution rows for this project. Rows carry a
+//  PERCENT per person (not an amount) — percentages must sum
+//  to 100 (small rounding tolerance). Amount is computed here,
+//  server-side, from percent × project total.
+//  rows: [{ personId, personName, percent }]
 // ============================================================
 function saveDistribution(projectId, rows) {
   const pSheet    = getSheet('Projects');
@@ -317,13 +320,14 @@ function saveDistribution(projectId, rows) {
     return { success: false, error: 'Project must be fully paid before distributing revenue.' };
   }
 
-  const sum = (rows || []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  if (Math.abs(sum - totalAmount) > 0.5) {
-    return { success: false, error: 'Distributed amounts (' + sum.toFixed(2) +
-      ') must add up to the project total (' + totalAmount.toFixed(2) + ').' };
-  }
   if (!rows || !rows.length) {
     return { success: false, error: 'Add at least one person to distribute to.' };
+  }
+
+  const pctSum = rows.reduce((s, r) => s + (Number(r.percent) || 0), 0);
+  if (Math.abs(pctSum - 100) > 0.5) {
+    return { success: false, error: 'Distributed percentages (' + pctSum.toFixed(1) +
+      '%) must add up to 100%.' };
   }
 
   // Clear any existing distribution rows for this project
@@ -336,8 +340,8 @@ function saveDistribution(projectId, rows) {
   const now  = new Date();
 
   rows.forEach(r => {
-    const amount  = Number(r.amount) || 0;
-    const percent = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+    const percent = Number(r.percent) || 0;
+    const amount  = totalAmount * percent / 100;
     distSheet.appendRow([
       Utilities.getUuid(), projectId, quotationId, accountName, projectName,
       r.personId || '', r.personName || '', percent, amount,
@@ -348,7 +352,7 @@ function saveDistribution(projectId, rows) {
   writeLog('Revenue_Distribution_Log', 'Revenue_Distribution', projectId,
     projectId + ' — ' + projectName, '', accountName,
     'Distribution', '',
-    JSON.stringify(rows.map(r => ({ name: r.personName, amount: r.amount }))),
+    JSON.stringify(rows.map(r => ({ name: r.personName, percent: r.percent }))),
     'Revenue distributed by ' + user);
 
   return { success: true };
