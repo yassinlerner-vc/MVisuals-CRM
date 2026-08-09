@@ -868,7 +868,7 @@ function generateQuotationHTML(data) {
     ? `${data.minDays}–${data.maxDays} working days`
     : (data.deliveryDeadline || '—');
 
-  // ── Terms block (always included, page-break protected) ────
+  // ── Terms block (page-broken to always start fresh — see below) ──
   const terms = getQuotationTerms();
   const termsRows = terms.map(t => `
     <tr>
@@ -920,6 +920,13 @@ function generateQuotationHTML(data) {
       </div>`;
     }
   }
+
+  // ── Terms + Payment Details always start on a fresh page,
+  //    right after the items/notes on the previous page ──
+  const termsAndPaymentPage = (termsBlock || paymentBlock)
+    ? `<div style="page-break-before: always;">${termsBlock}${paymentBlock}</div>`
+    : '';
+
 const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
   const ICON_MAIL = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`;
   const ICON_INSTAGRAM = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/></svg>`;
@@ -941,7 +948,7 @@ const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" 
     font-size: 12px;
     color: #1a1a2e;
     background: #fff;
-    padding: 32px 40px;
+    padding: 32px 40px 110px;
   }
   .avoid-break { page-break-inside: avoid; break-inside: avoid; }
   .header { display: table; width: 100%; margin-bottom: 24px; }
@@ -954,10 +961,10 @@ const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" 
   .info-grid { display: table; width: 100%; margin-bottom: 28px; }
   .info-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 20px; }
   .info-col:last-child { padding-right: 0; }
-  .info-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 4px; }
+  .info-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 4px; }
   .info-value { font-size: 12px; color: #1a1a2e; line-height: 1.5; }
   .info-value.large { font-size: 14px; font-weight: 600; }
-  .section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 8px; }
+  .section-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 8px; }
   .section-block { margin-top: 28px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0; }
   thead th { background: none; color: #888; padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e4ef; }
@@ -974,22 +981,26 @@ const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" 
   .pay-label { font-weight: 700; color: #1a1a2e; width: 22%; }
   .pay-value { color: #444; width: 28%; }
   .notes-box { background: #f8f9ff; border-left: 3px solid ${accent}; padding: 10px 14px; font-size: 11px; color: #555; margin-top: 24px; line-height: 1.5; }
-  .footer {
-  margin-top: 32px;
-  padding-top: 12px;
-  border-top: 1px solid #e8eaf0;
-  font-size: 10px;
-  color: #888;
-  text-align: center;      /* ← centers the inline items */
-  white-space: nowrap;     /* ← already there, keeps it on one line */
-  overflow: hidden;        /* ← extra safety: clips instead of wrapping if it ever overflows */
-}
-  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e8eaf0; font-size: 10px; color: #888; white-space: nowrap; }
-  .footer-heading { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-right: 12px; vertical-align: middle; }
-  .footer-heading-findus { margin-left: 28px; }
-  .footer-item { display: inline-block; font-size: 10px; color: #888; margin-right: 16px; vertical-align: middle; }
-  .footer-item svg { vertical-align: -2px; margin-right: 4px; }
-  .footer-note { margin-top: 10px; font-size: 10px; color: #aaa; }
+
+  /* ── Footer: fixed to the bottom of every page, full width,
+     Contact block on the left, Find Us block on the right ── */
+  .footer-fixed { position: fixed; left: 40px; right: 40px; bottom: 20px; }
+  .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid #e8eaf0;
+    font-size: 10px;
+    color: #888;
+  }
+  .footer-side { display: flex; align-items: center; white-space: nowrap; }
+  .footer-side-right { justify-content: flex-end; }
+  .footer-heading { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-right: 12px; vertical-align: middle; }
+  .footer-item { display: inline-flex; align-items: center; font-size: 10px; color: #888; margin-right: 16px; }
+  .footer-item:last-child { margin-right: 0; }
+  .footer-item svg { margin-right: 4px; vertical-align: -2px; }
+  .footer-note { margin-top: 6px; font-size: 9px; color: #aaa; text-align: center; }
 </style>
 </head>
 <body>
@@ -1049,19 +1060,23 @@ ${data.notes ? `
   ${esc(data.notes)}
 </div>` : ''}
 
-${termsBlock}
+${termsAndPaymentPage}
 
-${paymentBlock}
-
-<div class="footer">
-  <span class="footer-heading">Contact</span>
-  ${branding.phone ? `<span class="footer-item">${ICON_PHONE}${esc(branding.phone)}</span>` : ''}
-  ${branding.email ? `<span class="footer-item">${ICON_MAIL}${esc(branding.email)}</span>` : ''}
-  <span class="footer-heading footer-heading-findus">Find Us</span>
-  ${instagramHandle ? `<span class="footer-item">${ICON_INSTAGRAM}${esc(instagramHandle)}</span>` : ''}
-  ${branding.website ? `<span class="footer-item">${ICON_GLOBE}${esc(branding.website)}</span>` : ''}
+<div class="footer-fixed">
+  <div class="footer-row">
+    <div class="footer-side footer-side-left">
+      <span class="footer-heading">Contact</span>
+      ${branding.phone ? `<span class="footer-item">${ICON_PHONE}${esc(branding.phone)}</span>` : ''}
+      ${branding.email ? `<span class="footer-item">${ICON_MAIL}${esc(branding.email)}</span>` : ''}
+    </div>
+    <div class="footer-side footer-side-right">
+      <span class="footer-heading">Find Us</span>
+      ${instagramHandle ? `<span class="footer-item">${ICON_INSTAGRAM}${esc(instagramHandle)}</span>` : ''}
+      ${branding.website ? `<span class="footer-item">${ICON_GLOBE}${esc(branding.website)}</span>` : ''}
+    </div>
+  </div>
+  ${footerNoteHtml}
 </div>
-${footerNoteHtml}
 
 </body>
 </html>`;
