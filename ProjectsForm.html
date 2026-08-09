@@ -204,6 +204,11 @@
   <div class="dialog">
     <h4>Record Payment</h4>
     <div class="field"><label>Amount</label><input type="text" id="payAmount" inputmode="decimal" placeholder="0.00"></div>
+    <div class="field hidden" id="payEgpWrap">
+      <label id="payEgpLabel">EGP Equivalent Received</label>
+      <input type="text" id="payEgpEquivalent" inputmode="decimal" placeholder="0.00">
+      <div id="payRateDisplay" style="font-size:11px;color:#888;margin-top:4px;"></div>
+    </div>
     <div class="row2">
       <div class="field"><label>Date</label><input type="date" id="payDate"></div>
       <div class="field"><label>Method</label><select id="payMethod"></select></div>
@@ -383,6 +388,7 @@ function renderPayments(detail) {
   const p = detail.project;
   const remaining = detail.remainingToPay;
   const isFull = detail.isFullyPaid;
+  const isForeign = p.currency !== 'EGP';
 
   document.getElementById('paidBanner').innerHTML = `
     <div class="paid-banner">
@@ -397,11 +403,18 @@ function renderPayments(detail) {
   } else {
     wrap.innerHTML = `
       <table class="payments-table">
-        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th>Recorded By</th><th class="col-acts"></th></tr></thead>
+        <thead><tr>
+          <th>Date</th><th>Amount</th>
+          ${isForeign ? '<th>EGP Equiv.</th><th>Rate</th>' : ''}
+          <th>Method</th><th>Notes</th><th>Recorded By</th><th class="col-acts"></th>
+        </tr></thead>
         <tbody>
           ${detail.payments.map(pm => `<tr>
             <td>${pm.date || '—'}</td>
             <td class="col-amt">${esc(p.currency)} ${fmt(pm.amount)}</td>
+            ${isForeign ? `
+            <td class="col-amt">${pm.egpEquivalent ? 'EGP ' + fmt(pm.egpEquivalent) : '—'}</td>
+            <td style="color:#888;font-size:12px;">${pm.exchangeRate ? pm.exchangeRate.toFixed(4) : '—'}</td>` : ''}
             <td>${esc(pm.method || '—')}</td>
             <td style="color:#555;">${esc(pm.notes || '—')}</td>
             <td style="color:#888;font-size:12px;">${esc(pm.recordedBy)}</td>
@@ -416,8 +429,13 @@ function renderPayments(detail) {
 
 function openAddPayment() {
   document.getElementById('payAmount').value = '';
+  document.getElementById('payEgpEquivalent').value = '';
+  document.getElementById('payRateDisplay').textContent = '';
   document.getElementById('payDate').valueAsDate = new Date();
   document.getElementById('payNotes').value = '';
+  const isForeign = currentDetail.project.currency !== 'EGP';
+  document.getElementById('payEgpWrap').classList.toggle('hidden', !isForeign);
+  document.getElementById('payEgpLabel').textContent = 'EGP Equivalent Received (' + currentDetail.project.currency + ' → EGP)';
   const sel = document.getElementById('payMethod');
   if (!sel.options.length) {
     google.script.run.withSuccessHandler(methods => {
@@ -426,13 +444,26 @@ function openAddPayment() {
   }
   document.getElementById('overlayPayment').classList.add('open');
 }
+function updatePayRateDisplay() {
+  const amount = safe(document.getElementById('payAmount').value);
+  const egp = safe(document.getElementById('payEgpEquivalent').value);
+  const el = document.getElementById('payRateDisplay');
+  if (amount > 0 && egp > 0) {
+    el.textContent = 'Exchange rate: 1 ' + currentDetail.project.currency + ' = ' + (egp / amount).toFixed(4) + ' EGP';
+  } else {
+    el.textContent = '';
+  }
+}
 function submitPayment() {
   const amount = safe(document.getElementById('payAmount').value);
   const date   = document.getElementById('payDate').value;
   const method = document.getElementById('payMethod').value;
+  const isForeign = currentDetail.project.currency !== 'EGP';
+  const egpEquivalent = isForeign ? safe(document.getElementById('payEgpEquivalent').value) : '';
   if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
   if (!date)   { showToast('Select a date.', 'error'); return; }
   if (!method) { showToast('Select a payment method.', 'error'); return; }
+  if (isForeign && (!egpEquivalent || egpEquivalent <= 0)) { showToast('Enter the EGP equivalent received.', 'error'); return; }
 
   const btn = document.getElementById('btnPaymentSave');
   startProcessing(btn, 'Saving payment...');
@@ -446,7 +477,7 @@ function submitPayment() {
     })
     .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
     .recordPayment(currentProjectId, {
-      amount, date, method,
+      amount, date, method, egpEquivalent,
       notes: document.getElementById('payNotes').value
     });
 }
@@ -610,6 +641,8 @@ function statusKey(s) { return String(s||'').toLowerCase().replace(/\s+/g, '-');
 function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+document.getElementById('payAmount').addEventListener('input', updatePayRateDisplay);
+document.getElementById('payEgpEquivalent').addEventListener('input', updatePayRateDisplay);
 
 init();
 </script>
