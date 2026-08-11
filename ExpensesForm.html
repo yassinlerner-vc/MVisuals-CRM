@@ -187,7 +187,7 @@
   <div class="section">
     <h3>First Instance</h3>
     <div class="row3">
-      <div class="field"><label>Amount</label><input type="text" id="newAmount" inputmode="decimal" placeholder="0.00" oninput="renderNewSplitEditor()"></div>
+      <div class="field"><label>Amount</label><input type="text" id="newAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
       <div class="field"><label>Currency</label><select id="newCurrency" onchange="renderNewSplitEditor()"></select></div>
       <div class="field"><label>Date</label><input type="date" id="newDate"></div>
     </div>
@@ -210,7 +210,7 @@
   <div class="section">
     <h3>Instance Details</h3>
     <div class="row3">
-      <div class="field"><label>Amount</label><input type="text" id="instAmount" inputmode="decimal" placeholder="0.00" oninput="renderInstSplitEditor()"></div>
+      <div class="field"><label>Amount</label><input type="text" id="instAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
       <div class="field"><label>Currency</label><select id="instCurrency" onchange="renderInstSplitEditor()"></select></div>
       <div class="field"><label>Date</label><input type="date" id="instDate"></div>
     </div>
@@ -288,6 +288,61 @@ let instPeriodKey  = '';
 let deleteExpenseIdPending = null;
 
 /* ══════════════════════════════════════════════════════
+   CALCULATOR-STYLE AMOUNT INPUTS
+   Same pattern as Quotations' subtotal field — digit-by-digit
+   entry, comma-formatted display, no way to type invalid
+   characters. Tracks any number of fields independently by id.
+══════════════════════════════════════════════════════ */
+const _amountCents = {};
+function initAmountInput(id) {
+  _amountCents[id] = 0;
+  const el = document.getElementById(id);
+  el.value = '';
+  el.addEventListener('keydown', function(e) {
+    const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+    if (allowed.includes(e.key)) {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        _amountCents[id] = Math.floor(_amountCents[id] / 10);
+        renderAmountInput(id);
+      }
+      return;
+    }
+    if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
+    e.preventDefault();
+    const next = _amountCents[id] * 10 + parseInt(e.key, 10);
+    if (next > 99999999999) return;
+    _amountCents[id] = next;
+    renderAmountInput(id);
+  });
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+    for (const d of digits) {
+      const next = _amountCents[id] * 10 + parseInt(d, 10);
+      if (next <= 99999999999) _amountCents[id] = next;
+    }
+    renderAmountInput(id);
+  });
+  el.addEventListener('focus', () => {
+    setTimeout(() => el.setSelectionRange(el.value.length, el.value.length), 0);
+  });
+}
+function renderAmountInput(id) {
+  document.getElementById(id).value = fmt(_amountCents[id] / 100);
+  onAmountInputChange(id);
+}
+function getAmountValue(id) { return (_amountCents[id] || 0) / 100; }
+function setAmountValue(id, val) {
+  _amountCents[id] = Math.round((Number(val) || 0) * 100);
+  document.getElementById(id).value = fmt(_amountCents[id] / 100);
+}
+function onAmountInputChange(id) {
+  if (id === 'newAmount')  renderNewSplitEditor();
+  if (id === 'instAmount') renderInstSplitEditor();
+}
+
+/* ══════════════════════════════════════════════════════
    PROCESSING / TOAST
 ══════════════════════════════════════════════════════ */
 function startProcessing(btn, msg) {
@@ -315,6 +370,8 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 ══════════════════════════════════════════════════════ */
 function init() {
   showToast('Loading…', 'info', 0);
+  initAmountInput('newAmount');
+  initAmountInput('instAmount');
   google.script.run.withSuccessHandler(d => { partnersList = d || []; }).getPartners();
   google.script.run.withSuccessHandler(d => { paidByOptions = d || []; populatePaidBySelects(); }).getPaidByOptions();
   google.script.run.withSuccessHandler(loadCurrencies).getSettings();
@@ -400,7 +457,8 @@ function showList() {
    NEW EXPENSE
 ══════════════════════════════════════════════════════ */
 function showNewExpense() {
-  ['newName','newCategory','newVendor','newAmount','newNotes'].forEach(id => document.getElementById(id).value = '');
+  ['newName','newCategory','newVendor','newNotes'].forEach(id => document.getElementById(id).value = '');
+  setAmountValue('newAmount', 0);
   document.getElementById('newIsRecurring').checked = false;
   document.getElementById('newFrequencyField').classList.add('hidden');
   document.getElementById('newDate').valueAsDate = new Date();
@@ -437,7 +495,7 @@ function submitNewExpense() {
     name, category: document.getElementById('newCategory').value,
     vendor: document.getElementById('newVendor').value,
     isRecurring, frequency: document.getElementById('newFrequency').value,
-    amount: safe(document.getElementById('newAmount').value),
+    amount: getAmountValue('newAmount'),
     currency: document.getElementById('newCurrency').value,
     date: document.getElementById('newDate').value,
     paidById: document.getElementById('newPaidBy').value,
@@ -491,7 +549,7 @@ function openInstanceForm(catalogId, isReview) {
   document.getElementById('instPeriodWrap').classList.toggle('hidden', !entry.isRecurring);
   document.getElementById('instPeriod').textContent = instPeriodKey;
 
-  document.getElementById('instAmount').value = entry.lastAmount || '';
+  setAmountValue('instAmount', entry.lastAmount || 0);
   setSelectValue('instCurrency', entry.lastCurrency || currencies[0]);
   document.getElementById('instDate').valueAsDate = new Date();
   setSelectValue('instPaidBy', entry.lastPaidById || (paidByOptions[0] ? paidByOptions[0].id : ''));
@@ -522,7 +580,7 @@ function splitInstEvenly() { instDraftSplit = evenSplit(); renderInstSplitEditor
 function submitInstance() {
   const data = {
     catalogId: currentCatalog.id,
-    amount: safe(document.getElementById('instAmount').value),
+    amount: getAmountValue('instAmount'),
     currency: document.getElementById('instCurrency').value,
     date: document.getElementById('instDate').value,
     paidById: document.getElementById('instPaidBy').value,
@@ -640,7 +698,7 @@ function confirmDeleteInstance() {
 ══════════════════════════════════════════════════════ */
 function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, removeFnName, evenFnName) {
   const area = document.getElementById(areaId);
-  const amount = safe(document.getElementById(amountId).value);
+  const amount = getAmountValue(amountId);
   const cur = document.getElementById(currencyId).value;
   const sum = draft.reduce((s, r) => s + r.percent, 0);
   const matchClass = Math.abs(sum - 100) < 0.5 ? 'match' : 'mismatch';
