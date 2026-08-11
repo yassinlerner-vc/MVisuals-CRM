@@ -203,10 +203,10 @@
 <div class="overlay" id="overlayPayment">
   <div class="dialog">
     <h4>Record Payment</h4>
-    <div class="field"><label>Amount</label><input type="text" id="payAmount" inputmode="decimal" placeholder="0.00"></div>
+    <div class="field"><label>Amount</label><input type="text" id="payAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
     <div class="field hidden" id="payEgpWrap">
       <label id="payEgpLabel">EGP Equivalent Received</label>
-      <input type="text" id="payEgpEquivalent" inputmode="decimal" placeholder="0.00">
+      <input type="text" id="payEgpEquivalent" inputmode="numeric" autocomplete="off" placeholder="0.00">
       <div id="payRateDisplay" style="font-size:11px;color:#888;margin-top:4px;"></div>
     </div>
     <div class="row2">
@@ -250,6 +250,60 @@ let draftDistribution = [];
 let distEditing = false;
 
 /* ══════════════════════════════════════════════════════
+   CALCULATOR-STYLE AMOUNT INPUTS
+   Same pattern as Quotations' subtotal field — digit-by-digit
+   entry, comma-formatted display, no way to type invalid
+   characters. Tracks any number of fields independently by id.
+══════════════════════════════════════════════════════ */
+const _amountCents = {};
+function initAmountInput(id) {
+  _amountCents[id] = 0;
+  const el = document.getElementById(id);
+  el.value = '';
+  el.addEventListener('keydown', function(e) {
+    const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+    if (allowed.includes(e.key)) {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        _amountCents[id] = Math.floor(_amountCents[id] / 10);
+        renderAmountInput(id);
+      }
+      return;
+    }
+    if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
+    e.preventDefault();
+    const next = _amountCents[id] * 10 + parseInt(e.key, 10);
+    if (next > 99999999999) return;
+    _amountCents[id] = next;
+    renderAmountInput(id);
+  });
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+    for (const d of digits) {
+      const next = _amountCents[id] * 10 + parseInt(d, 10);
+      if (next <= 99999999999) _amountCents[id] = next;
+    }
+    renderAmountInput(id);
+  });
+  el.addEventListener('focus', () => {
+    setTimeout(() => el.setSelectionRange(el.value.length, el.value.length), 0);
+  });
+}
+function renderAmountInput(id) {
+  document.getElementById(id).value = fmt(_amountCents[id] / 100);
+  onAmountInputChange(id);
+}
+function getAmountValue(id) { return (_amountCents[id] || 0) / 100; }
+function setAmountValue(id, val) {
+  _amountCents[id] = Math.round((Number(val) || 0) * 100);
+  document.getElementById(id).value = fmt(_amountCents[id] / 100);
+}
+function onAmountInputChange(id) {
+  if (id === 'payAmount' || id === 'payEgpEquivalent') updatePayRateDisplay();
+}
+
+/* ══════════════════════════════════════════════════════
    PROCESSING / TOAST
 ══════════════════════════════════════════════════════ */
 function startProcessing(btn, msg) {
@@ -277,6 +331,8 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 ══════════════════════════════════════════════════════ */
 function init() {
   showToast('Loading…', 'info', 0);
+  initAmountInput('payAmount');
+  initAmountInput('payEgpEquivalent');
   google.script.run
     .withSuccessHandler(renderList)
     .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
@@ -428,8 +484,8 @@ function renderPayments(detail) {
 }
 
 function openAddPayment() {
-  document.getElementById('payAmount').value = '';
-  document.getElementById('payEgpEquivalent').value = '';
+  setAmountValue('payAmount', 0);
+  setAmountValue('payEgpEquivalent', 0);
   document.getElementById('payRateDisplay').textContent = '';
   document.getElementById('payDate').valueAsDate = new Date();
   document.getElementById('payNotes').value = '';
@@ -445,8 +501,8 @@ function openAddPayment() {
   document.getElementById('overlayPayment').classList.add('open');
 }
 function updatePayRateDisplay() {
-  const amount = safe(document.getElementById('payAmount').value);
-  const egp = safe(document.getElementById('payEgpEquivalent').value);
+  const amount = getAmountValue('payAmount');
+  const egp = getAmountValue('payEgpEquivalent');
   const el = document.getElementById('payRateDisplay');
   if (amount > 0 && egp > 0) {
     el.textContent = 'Exchange rate: 1 ' + currentDetail.project.currency + ' = ' + (egp / amount).toFixed(4) + ' EGP';
@@ -455,11 +511,11 @@ function updatePayRateDisplay() {
   }
 }
 function submitPayment() {
-  const amount = safe(document.getElementById('payAmount').value);
+  const amount = getAmountValue('payAmount');
   const date   = document.getElementById('payDate').value;
   const method = document.getElementById('payMethod').value;
   const isForeign = currentDetail.project.currency !== 'EGP';
-  const egpEquivalent = isForeign ? safe(document.getElementById('payEgpEquivalent').value) : '';
+  const egpEquivalent = isForeign ? getAmountValue('payEgpEquivalent') : '';
   if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
   if (!date)   { showToast('Select a date.', 'error'); return; }
   if (!method) { showToast('Select a payment method.', 'error'); return; }
@@ -641,8 +697,6 @@ function statusKey(s) { return String(s||'').toLowerCase().replace(/\s+/g, '-');
 function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-document.getElementById('payAmount').addEventListener('input', updatePayRateDisplay);
-document.getElementById('payEgpEquivalent').addEventListener('input', updatePayRateDisplay);
 
 init();
 </script>
