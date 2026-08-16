@@ -84,6 +84,7 @@
     .checkbox-row { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
     .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #4361ee; cursor: pointer; flex-shrink: 0; }
     .checkbox-row label { margin: 0; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #1a1a2e; cursor: pointer; }
+    .field-hint { font-size: 11px; color: #888; margin-top: 4px; }
 
     .meta-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; margin-bottom: 14px; }
     .meta-row strong { color: #555; }
@@ -165,7 +166,7 @@
   </div>
 </div>
 
-<!-- ═══ NEW EXPENSE VIEW ═══ -->
+<!-- ═══ NEW EXPENSE VIEW — catalog metadata only, no payment info ═══ -->
 <div class="view" id="viewNew">
   <div class="section">
     <h3>Expense Details</h3>
@@ -182,25 +183,12 @@
       <label>Frequency</label>
       <select id="newFrequency"></select>
     </div>
-  </div>
-
-  <div class="section">
-    <h3>First Instance</h3>
-    <div class="row3">
-      <div class="field"><label>Amount</label><input type="text" id="newAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
-      <div class="field"><label>Currency</label><select id="newCurrency" onchange="renderNewSplitEditor()"></select></div>
-      <div class="field"><label>Date</label><input type="date" id="newDate"></div>
-    </div>
-    <div class="field" style="max-width:280px;">
-      <label>Paid By</label>
-      <select id="newPaidBy"></select>
-    </div>
-    <div class="field"><label>Split</label><div id="newSplitArea"></div></div>
     <div class="field"><label>Notes</label><textarea id="newNotes" placeholder="Optional..."></textarea></div>
+    <p class="field-hint">This just registers the expense — you'll log the actual payment (amount, date, who paid) on the next screen, or later from "Log Expense".</p>
   </div>
 </div>
 
-<!-- ═══ LOG INSTANCE VIEW (Log Expense / Review / Log New Instance) ═══ -->
+<!-- ═══ LOG INSTANCE VIEW (first log after creation / Log Expense / Review / Log New Instance) ═══ -->
 <div class="view" id="viewInstance">
   <div class="meta-row" id="instMetaRow">
     <span><strong>Expense:</strong> <span id="instCatalogName"></span></span>
@@ -211,8 +199,13 @@
     <h3>Instance Details</h3>
     <div class="row3">
       <div class="field"><label>Amount</label><input type="text" id="instAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
-      <div class="field"><label>Currency</label><select id="instCurrency" onchange="renderInstSplitEditor()"></select></div>
+      <div class="field"><label>Currency</label><select id="instCurrency" onchange="renderInstSplitEditor(); toggleInstEgpVisibility();"></select></div>
       <div class="field"><label>Date</label><input type="date" id="instDate"></div>
+    </div>
+    <div class="field hidden" id="instEgpWrap">
+      <label id="instEgpLabel">EGP Equivalent Paid</label>
+      <input type="text" id="instEgpEquivalent" inputmode="numeric" autocomplete="off" placeholder="0.00">
+      <div id="instRateDisplay" style="font-size:11px;color:#888;margin-top:4px;"></div>
     </div>
     <div class="field" style="max-width:280px;">
       <label>Paid By</label>
@@ -281,7 +274,6 @@ let currentCatalog = null;     // catalog entry currently open (history/instance
 let partnersList   = [];
 let paidByOptions  = [];
 let currencies     = [];
-let newDraftSplit  = [];
 let instDraftSplit = [];
 let instIsReview   = false;
 let instPeriodKey  = '';
@@ -289,9 +281,10 @@ let deleteExpenseIdPending = null;
 
 /* ══════════════════════════════════════════════════════
    CALCULATOR-STYLE AMOUNT INPUTS
-   Same pattern as Quotations' subtotal field — digit-by-digit
-   entry, comma-formatted display, no way to type invalid
-   characters. Tracks any number of fields independently by id.
+   Same pattern as Quotations' subtotal field / Projects'
+   payment amount field — digit-by-digit entry, comma-formatted
+   display, no way to type invalid characters. Tracks any number
+   of fields independently by id.
 ══════════════════════════════════════════════════════ */
 const _amountCents = {};
 function initAmountInput(id) {
@@ -338,8 +331,8 @@ function setAmountValue(id, val) {
   document.getElementById(id).value = fmt(_amountCents[id] / 100);
 }
 function onAmountInputChange(id) {
-  if (id === 'newAmount')  renderNewSplitEditor();
-  if (id === 'instAmount') renderInstSplitEditor();
+  if (id === 'instAmount') { renderInstSplitEditor(); updateInstRateDisplay(); }
+  if (id === 'instEgpEquivalent') updateInstRateDisplay();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -370,8 +363,8 @@ function hideToast() { document.getElementById('toast').style.display = 'none'; 
 ══════════════════════════════════════════════════════ */
 function init() {
   showToast('Loading…', 'info', 0);
-  initAmountInput('newAmount');
   initAmountInput('instAmount');
+  initAmountInput('instEgpEquivalent');
   google.script.run.withSuccessHandler(d => { partnersList = d || []; }).getPartners();
   google.script.run.withSuccessHandler(d => { paidByOptions = d || []; populatePaidBySelects(); }).getPaidByOptions();
   google.script.run.withSuccessHandler(loadCurrencies).getSettings();
@@ -394,18 +387,14 @@ function loadCurrencies(settings) {
   populateCurrencySelects();
 }
 function populateCurrencySelects() {
-  ['newCurrency', 'instCurrency'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '';
-    currencies.forEach(c => sel.add(new Option(c, c)));
-  });
+  const sel = document.getElementById('instCurrency');
+  sel.innerHTML = '';
+  currencies.forEach(c => sel.add(new Option(c, c)));
 }
 function populatePaidBySelects() {
-  ['newPaidBy', 'instPaidBy'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '';
-    paidByOptions.forEach(o => sel.add(new Option(o.name, o.id)));
-  });
+  const sel = document.getElementById('instPaidBy');
+  sel.innerHTML = '';
+  paidByOptions.forEach(o => sel.add(new Option(o.name, o.id)));
 }
 
 /* ══════════════════════════════════════════════════════
@@ -430,11 +419,13 @@ function renderList(catalog) {
     return;
   }
   tbody.innerHTML = filtered.map(c => {
+    // Status badge is fully server-computed now (c.reviewStatus is always
+    // populated — 'Logged' / 'Needs Review' / 'Not Logged') so this is the
+    // single source of truth for both recurring and one-time expenses.
     let statusHtml = '';
     if (c.status === 'Archived') statusHtml = '<span class="badge badge-archived">Archived</span>';
     else if (c.status === 'Paused') statusHtml = '<span class="badge badge-paused">Paused</span>';
-    else if (c.isRecurring) statusHtml = `<span class="badge badge-${c.reviewStatus === 'Logged' ? 'logged' : 'needs-review'}">${esc(c.reviewStatus)}</span>`;
-    else statusHtml = c.lastLoggedDate ? '<span class="badge badge-logged">Logged</span>' : '<span class="badge badge-needs-review">Not Logged</span>';
+    else statusHtml = `<span class="badge ${c.reviewStatus === 'Logged' ? 'badge-logged' : 'badge-needs-review'}">${esc(c.reviewStatus)}</span>`;
     return `<tr onclick="openHistory('${esc(c.id)}')">
       <td><strong>${esc(c.name)}</strong></td>
       <td>${esc(c.category || '—')}</td>
@@ -454,16 +445,16 @@ function showList() {
 }
 
 /* ══════════════════════════════════════════════════════
-   NEW EXPENSE
+   NEW EXPENSE — catalog metadata only. Creating an expense
+   never logs a payment by itself anymore; on success we hand
+   straight into the Log Instance screen (via openInstanceForm)
+   so the first payment can be logged immediately if it's ready,
+   or skipped with Back to log later from the list.
 ══════════════════════════════════════════════════════ */
 function showNewExpense() {
   ['newName','newCategory','newVendor','newNotes'].forEach(id => document.getElementById(id).value = '');
-  setAmountValue('newAmount', 0);
   document.getElementById('newIsRecurring').checked = false;
   document.getElementById('newFrequencyField').classList.add('hidden');
-  document.getElementById('newDate').valueAsDate = new Date();
-  newDraftSplit = [];
-  renderNewSplitEditor();
   switchView('new');
   document.getElementById('topbarTitle').textContent = 'New Expense';
   document.getElementById('formActions').classList.remove('hidden');
@@ -474,18 +465,6 @@ function showNewExpense() {
 function toggleNewFrequency() {
   document.getElementById('newFrequencyField').classList.toggle('hidden', !document.getElementById('newIsRecurring').checked);
 }
-function renderNewSplitEditor() { renderSplitEditor('newSplitArea', newDraftSplit, 'newAmount', 'newCurrency', 'addNewSplitRow', 'removeNewSplitRow', 'splitNewEvenly'); }
-function addNewSplitRow() {
-  const sel = document.getElementById('newSplitPersonSelect');
-  const pctEl = document.getElementById('newSplitPercentInput');
-  if (!sel || !sel.options.length) { showToast('No Partners found. Mark someone as a Partner in Team first.', 'error'); return; }
-  const pct = safe(pctEl.value);
-  if (!pct || pct <= 0) { showToast('Enter a valid %.', 'error'); return; }
-  newDraftSplit.push({ personId: sel.value, personName: sel.options[sel.selectedIndex].dataset.name, percent: pct });
-  renderNewSplitEditor();
-}
-function removeNewSplitRow(idx) { newDraftSplit.splice(idx, 1); renderNewSplitEditor(); }
-function splitNewEvenly() { newDraftSplit = evenSplit(); renderNewSplitEditor(); }
 
 function submitNewExpense() {
   const name = document.getElementById('newName').value.trim();
@@ -495,15 +474,8 @@ function submitNewExpense() {
     name, category: document.getElementById('newCategory').value,
     vendor: document.getElementById('newVendor').value,
     isRecurring, frequency: document.getElementById('newFrequency').value,
-    amount: getAmountValue('newAmount'),
-    currency: document.getElementById('newCurrency').value,
-    date: document.getElementById('newDate').value,
-    paidById: document.getElementById('newPaidBy').value,
-    paidByName: selectedText('newPaidBy'),
-    splits: newDraftSplit,
     notes: document.getElementById('newNotes').value
   };
-  if (!data.date) { showToast('Select a date.', 'error'); return; }
   const btn = document.getElementById('btnSaveNew');
   startProcessing(btn, 'Creating expense...');
   google.script.run
@@ -511,7 +483,17 @@ function submitNewExpense() {
       stopProcessing(btn);
       if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
       showToast('Expense created.', 'success');
-      setTimeout(showList, 1000);
+      // Refresh the catalog so the new entry is available, then hand
+      // straight into logging its first instance.
+      google.script.run
+        .withSuccessHandler(catalog => {
+          allCatalog = catalog || [];
+          const entry = allCatalog.find(c => c.id === res.catalogId);
+          if (entry) openInstanceForm(entry.id, false);
+          else showList();
+        })
+        .withFailureHandler(() => showList())
+        .getExpenseCatalog();
     })
     .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
     .createExpenseCatalogEntry(data);
@@ -554,6 +536,10 @@ function openInstanceForm(catalogId, isReview) {
   document.getElementById('instDate').valueAsDate = new Date();
   setSelectValue('instPaidBy', entry.lastPaidById || (paidByOptions[0] ? paidByOptions[0].id : ''));
   document.getElementById('instNotes').value = '';
+  // EGP equivalent is intentionally never prefilled from a prior instance —
+  // exchange rates fluctuate, so every log gets a fresh entry.
+  setAmountValue('instEgpEquivalent', 0);
+  toggleInstEgpVisibility();
   instDraftSplit = (entry.lastSplit || []).map(s => ({ personId: s.personId, personName: s.personName, percent: s.percent }));
   renderInstSplitEditor();
 
@@ -564,6 +550,26 @@ function openInstanceForm(catalogId, isReview) {
   document.getElementById('btnSaveNew').classList.add('hidden');
   document.getElementById('btnSaveInstance').classList.remove('hidden');
 }
+
+function toggleInstEgpVisibility() {
+  const cur = document.getElementById('instCurrency').value;
+  const isForeign = cur !== 'EGP';
+  document.getElementById('instEgpWrap').classList.toggle('hidden', !isForeign);
+  document.getElementById('instEgpLabel').textContent = 'EGP Equivalent Paid (' + cur + ' → EGP)';
+  if (!isForeign) document.getElementById('instRateDisplay').textContent = '';
+  else updateInstRateDisplay();
+}
+function updateInstRateDisplay() {
+  const amount = getAmountValue('instAmount');
+  const egp = getAmountValue('instEgpEquivalent');
+  const el = document.getElementById('instRateDisplay');
+  if (amount > 0 && egp > 0) {
+    el.textContent = 'Exchange rate: 1 ' + document.getElementById('instCurrency').value + ' = ' + (egp / amount).toFixed(4) + ' EGP';
+  } else {
+    el.textContent = '';
+  }
+}
+
 function renderInstSplitEditor() { renderSplitEditor('instSplitArea', instDraftSplit, 'instAmount', 'instCurrency', 'addInstSplitRow', 'removeInstSplitRow', 'splitInstEvenly'); }
 function addInstSplitRow() {
   const sel = document.getElementById('instSplitPersonSelect');
@@ -578,10 +584,16 @@ function removeInstSplitRow(idx) { instDraftSplit.splice(idx, 1); renderInstSpli
 function splitInstEvenly() { instDraftSplit = evenSplit(); renderInstSplitEditor(); }
 
 function submitInstance() {
+  const cur = document.getElementById('instCurrency').value;
+  const isForeign = cur !== 'EGP';
+  const egpEquivalent = isForeign ? getAmountValue('instEgpEquivalent') : '';
+  if (isForeign && (!egpEquivalent || egpEquivalent <= 0)) { showToast('Enter the EGP equivalent for this expense.', 'error'); return; }
+
   const data = {
     catalogId: currentCatalog.id,
     amount: getAmountValue('instAmount'),
-    currency: document.getElementById('instCurrency').value,
+    currency: cur,
+    egpEquivalent: egpEquivalent,
     date: document.getElementById('instDate').value,
     paidById: document.getElementById('instPaidBy').value,
     paidByName: selectedText('instPaidBy'),
@@ -641,14 +653,22 @@ function renderHistory(entry, history) {
     wrap.innerHTML = '<p class="empty-state">No instances logged yet.</p>';
     return;
   }
+  const hasForeign = history.some(h => h.isForeign);
   wrap.innerHTML = `
     <table class="history-table">
-      <thead><tr><th>Date</th><th>Period</th><th class="col-amt">Amount</th><th>Paid By</th><th>Split</th><th class="col-acts"></th></tr></thead>
+      <thead><tr>
+        <th>Date</th><th>Period</th><th class="col-amt">Amount</th>
+        ${hasForeign ? '<th class="col-amt">EGP Equiv.</th><th>Rate</th>' : ''}
+        <th>Paid By</th><th>Split</th><th class="col-acts"></th>
+      </tr></thead>
       <tbody>
         ${history.map(h => `<tr>
           <td>${h.date || '—'}</td>
           <td>${esc(h.periodKey || '—')}</td>
           <td class="col-amt">${esc(h.currency)} ${fmt(h.amount)}</td>
+          ${hasForeign ? `
+          <td class="col-amt">${h.isForeign ? 'EGP ' + fmt(h.egpEquivalent) : '—'}</td>
+          <td style="color:#888;font-size:12px;">${h.isForeign && h.exchangeRate ? h.exchangeRate.toFixed(4) : '—'}</td>` : ''}
           <td>${esc(h.paidByName)}</td>
           <td>${h.splits.map(s => `<span class="split-chip">${esc(s.personName)} ${s.percent.toFixed(1)}%</span>`).join('')}</td>
           <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDeleteInstance('${esc(h.expenseId)}')">Delete</button></td>
@@ -692,9 +712,8 @@ function confirmDeleteInstance() {
 }
 
 /* ══════════════════════════════════════════════════════
-   SHARED SPLIT EDITOR RENDERER
-   (both New Expense and Log/Review forms call this with
-   their own element ids so the logic isn't duplicated)
+   SHARED SPLIT EDITOR RENDERER (kept generic for possible
+   future reuse even though only the instance form uses it now)
 ══════════════════════════════════════════════════════ */
 function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, removeFnName, evenFnName) {
   const area = document.getElementById(areaId);
@@ -710,8 +729,6 @@ function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, remov
     <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="${removeFnName}(${idx})">Remove</button></td>
   </tr>`).join('');
 
-  const personIdPrefix = areaId === 'newSplitArea' ? 'newSplit' : 'instSplit';
-
   area.innerHTML = `
     <table class="dist-table">
       <thead><tr><th>Person</th><th class="col-pct">%</th><th class="col-amt">Amount</th><th class="col-acts"></th></tr></thead>
@@ -722,8 +739,8 @@ function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, remov
       ${Math.abs(sum - 100) >= 0.5 ? (sum < 100 ? ' — ' + (100 - sum).toFixed(1) + '% remaining' : ' — over by ' + (sum - 100).toFixed(1) + '%') : ' ✓'}
     </div>
     <div class="inline-row">
-      <select id="${personIdPrefix}PersonSelect">${partnersList.map(p => `<option value="${esc(p.id)}" data-name="${esc(p.name)}">${esc(p.name)}</option>`).join('')}</select>
-      <input type="text" id="${personIdPrefix}PercentInput" placeholder="%" inputmode="decimal">
+      <select id="instSplitPersonSelect">${partnersList.map(p => `<option value="${esc(p.id)}" data-name="${esc(p.name)}">${esc(p.name)}</option>`).join('')}</select>
+      <input type="text" id="instSplitPercentInput" placeholder="%" inputmode="decimal">
       <button class="btn-sm btn-sm-primary" onclick="${addFnName}()">+ Add</button>
       <button class="btn-sm" onclick="${evenFnName}()">Split Evenly (All Partners)</button>
     </div>`;
