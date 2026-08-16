@@ -69,9 +69,14 @@ function getExpenseCategories() {
 
 // ============================================================
 //  EXPENSE CATALOG — LIST
-//  For each recurring, Active entry, computes whether this
-//  period already has a confirmed instance ("Logged") or not
-//  ("Needs Review") — computed live, never stored.
+//  logStatus is now computed for EVERY entry (not just Active
+//  recurring ones), and is the single source of truth the
+//  frontend renders — no more duplicated logic client-side.
+//
+//    Recurring : 'Logged' if this period already has an
+//                instance, else 'Needs Review'.
+//    One-time  : 'Logged' if any instance has ever been logged,
+//                else 'Not Logged'.
 // ============================================================
 function getExpenseCatalog() {
   const cSheet = getSheet('Expense_Catalog');
@@ -82,11 +87,14 @@ function getExpenseCatalog() {
   const tz     = Session.getScriptTimeZone();
   const period = currentPeriodKey();
 
-  const loggedPeriods    = {}; // catalogId -> Set of periodKeys with a logged instance
-  const lastLoggedDate   = {}; // catalogId -> latest instance date (yyyy-MM-dd)
+  const loggedPeriods  = {}; // catalogId -> Set of periodKeys with a logged instance
+  const lastLoggedDate = {}; // catalogId -> latest instance date (yyyy-MM-dd)
+  const everLogged     = {}; // catalogId -> true if any instance exists at all
   eData.slice(1).forEach(row => {
     const cid = String(row[EXP.CATALOG_ID]);
-    const pk  = String(row[EXP.PERIOD_KEY] || '');
+    if (!cid) return;
+    everLogged[cid] = true;
+    const pk = String(row[EXP.PERIOD_KEY] || '');
     if (pk) {
       if (!loggedPeriods[cid]) loggedPeriods[cid] = new Set();
       loggedPeriods[cid].add(pk);
@@ -102,12 +110,15 @@ function getExpenseCatalog() {
     .map(row => {
       const catalogId   = String(row[EC.CATALOG_ID]);
       const isRecurring = !!row[EC.IS_RECURRING];
-      const status      = String(row[EC.STATUS] || 'Active');
-      let reviewStatus  = null; // only meaningful for Active recurring entries
-      if (isRecurring && status === 'Active') {
+
+      let reviewStatus;
+      if (isRecurring) {
         const logged = !!(loggedPeriods[catalogId] && loggedPeriods[catalogId].has(period));
         reviewStatus = logged ? 'Logged' : 'Needs Review';
+      } else {
+        reviewStatus = everLogged[catalogId] ? 'Logged' : 'Not Logged';
       }
+
       return {
         id:             catalogId,
         name:           row[EC.NAME],
@@ -120,7 +131,7 @@ function getExpenseCatalog() {
         lastPaidById:   row[EC.LAST_PAID_BY],
         lastPaidByName: row[EC.LAST_PAID_BY_NAME],
         lastSplit:      row[EC.LAST_SPLIT_JSON] ? JSON.parse(row[EC.LAST_SPLIT_JSON]) : [],
-        status:         status,
+        status:         String(row[EC.STATUS] || 'Active'),
         notes:          row[EC.NOTES],
         reviewStatus:   reviewStatus,
         currentPeriod:  period,
@@ -136,7 +147,8 @@ function getExpenseCatalogEntry(catalogId) {
 
 // ============================================================
 //  EXPENSE HISTORY — every logged instance for a catalog entry,
-//  newest first. This IS the price-history view.
+//  newest first. This IS the price-history view. Includes the
+//  EGP equivalent/exchange rate for foreign-currency instances.
 // ============================================================
 function getExpenseHistory(catalogId) {
   const eSheet = getSheet('Expenses');
@@ -158,25 +170,34 @@ function getExpenseHistory(catalogId) {
           percent:    Number(s[ESPL.PERCENT] || 0),
           amount:     Number(s[ESPL.AMOUNT]  || 0)
         }));
+      const currency = row[EXP.CURRENCY];
       return {
-        expenseId:   expenseId,
-        amount:      Number(row[EXP.AMOUNT] || 0),
-        currency:    row[EXP.CURRENCY],
-        date:        row[EXP.DATE] ? Utilities.formatDate(new Date(row[EXP.DATE]), tz, 'yyyy-MM-dd') : '',
-        paidById:    row[EXP.PAID_BY],
-        paidByName:  row[EXP.PAID_BY_NAME],
-        periodKey:   row[EXP.PERIOD_KEY] || '',
-        notes:       row[EXP.NOTES],
-        splits:      splits
+        expenseId:     expenseId,
+        amount:        Number(row[EXP.AMOUNT] || 0),
+        currency:      currency,
+        egpEquivalent: Number(row[EXP.EGP_EQUIVALENT] || 0),
+        exchangeRate:  Number(row[EXP.EXCHANGE_RATE]  || 0),
+        isForeign:     String(currency) !== 'EGP',
+        date:          row[EXP.DATE] ? Utilities.formatDate(new Date(row[EXP.DATE]), tz, 'yyyy-MM-dd') : '',
+        paidById:      row[EXP.PAID_BY],
+        paidByName:    row[EXP.PAID_BY_NAME],
+        periodKey:     row[EXP.PERIOD_KEY] || '',
+        notes:         row[EXP.NOTES],
+        splits:        splits
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 // ============================================================
-//  NEW EXPENSE — creates a catalog entry (empty Last* fields),
-//  then logs its first instance via logExpenseInstance, which
-//  fills those Last* fields in.
+//  NEW EXPENSE — CREATE CATALOG ENTRY ONLY
+//  No amount/date/paidBy required anymore. This just registers
+//  the expense type (name, category, vendor, recurring/frequency,
+//  notes). Logging the first (or any) paid instance is always
+//  done afterwards through logExpenseInstance — one single
+//  logging code path for both "first log" and "later log",
+//  so there's nothing to roll back and nothing to fall out of
+//  sync.
 // ============================================================
 function createExpenseCatalogEntry(formData) {
   const cSheet = getSheet('Expense_Catalog');
@@ -197,37 +218,20 @@ function createExpenseCatalogEntry(formData) {
   ]);
 
   writeLog('Expenses_Log', 'Expense_Catalog', catalogId, catalogId + ' — ' + formData.name,
-    '', '', 'Status', '', 'Created', 'Expense catalog entry created');
+    '', '', 'Status', '', 'Created', 'Expense catalog entry created (not yet logged)');
 
-  const instanceResult = logExpenseInstance({
-    catalogId:  catalogId,
-    amount:     formData.amount,
-    currency:   formData.currency,
-    date:       formData.date,
-    paidById:   formData.paidById,
-    paidByName: formData.paidByName,
-    splits:     formData.splits,
-    notes:      formData.notes,
-    periodKey:  isRecurring ? currentPeriodKey() : ''
-  });
-
-  if (!instanceResult.success) {
-    // Roll back the catalog row so we don't leave an orphaned entry with no instance
-    const data = cSheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][EC.CATALOG_ID]) === catalogId) { cSheet.deleteRow(i + 1); break; }
-    }
-    return instanceResult;
-  }
-
-  return { success: true, catalogId, expenseId: instanceResult.expenseId };
+  return { success: true, catalogId };
 }
 
 // ============================================================
-//  LOG EXPENSE INSTANCE — the shared engine behind "Log Expense",
-//  "Review" (recurring), and the first-instance call from
-//  createExpenseCatalogEntry. Writes the Expenses row + splits,
-//  then rolls the catalog's Last* fields forward.
+//  LOG EXPENSE INSTANCE — the single engine behind "Log Expense",
+//  "Review" (recurring), and logging the first instance right
+//  after creating a new catalog entry. Writes the Expenses row
+//  + splits, then rolls the catalog's Last* fields forward.
+//
+//  EGP equivalent: required whenever currency !== 'EGP' (mirrors
+//  the same rule used on Payments). For EGP-currency instances,
+//  egpEquivalent defaults to amount and exchangeRate to 1.
 // ============================================================
 function logExpenseInstance(data) {
   const cSheet = getSheet('Expense_Catalog');
@@ -243,6 +247,13 @@ function logExpenseInstance(data) {
   const splitError = validateSplits(data.splits);
   if (splitError) return { success: false, error: splitError };
 
+  const isForeign = String(data.currency) !== 'EGP';
+  let egpEquivalent = isForeign ? Number(data.egpEquivalent) || 0 : amount;
+  if (isForeign && egpEquivalent <= 0) {
+    return { success: false, error: 'Enter the EGP equivalent for this foreign-currency expense.' };
+  }
+  const exchangeRate = isForeign ? (egpEquivalent / amount) : 1;
+
   const cData = cSheet.getDataRange().getValues();
   let catalogRowIndex = -1, catalogRow = null;
   for (let i = 1; i < cData.length; i++) {
@@ -252,10 +263,10 @@ function logExpenseInstance(data) {
   }
   if (!catalogRow) return { success: false, error: 'Expense catalog entry not found.' };
 
-  const catalogName = String(catalogRow[EC.NAME]);
-  const category     = String(catalogRow[EC.CATEGORY] || '');
-  const isRecurring   = !!catalogRow[EC.IS_RECURRING];
-  const periodKey      = isRecurring ? (data.periodKey || currentPeriodKey()) : '';
+  const catalogName  = String(catalogRow[EC.NAME]);
+  const category      = String(catalogRow[EC.CATEGORY] || '');
+  const isRecurring    = !!catalogRow[EC.IS_RECURRING];
+  const periodKey       = isRecurring ? (data.periodKey || currentPeriodKey()) : '';
 
   // Guard: don't allow two confirmed instances for the same recurring period
   if (isRecurring && periodKey) {
@@ -274,7 +285,8 @@ function logExpenseInstance(data) {
     expenseId, data.catalogId, catalogName, category,
     amount, data.currency, data.date,
     data.paidById, data.paidByName, periodKey,
-    data.notes || '', user, now
+    data.notes || '', user, now,
+    egpEquivalent, exchangeRate
   ]);
 
   data.splits.forEach(s => {
@@ -286,7 +298,11 @@ function logExpenseInstance(data) {
     ]);
   });
 
-  // Roll the catalog's "last known" fields forward
+  // Roll the catalog's "last known" fields forward — used only as a
+  // prefill suggestion for next time, never an authority. EGP
+  // equivalent is intentionally NOT carried forward here since
+  // exchange rates fluctuate month to month; each log should get a
+  // fresh EGP entry rather than reusing a stale rate.
   cSheet.getRange(catalogRowIndex, EC.LAST_AMOUNT       + 1).setValue(amount);
   cSheet.getRange(catalogRowIndex, EC.LAST_CURRENCY     + 1).setValue(data.currency);
   cSheet.getRange(catalogRowIndex, EC.LAST_PAID_BY      + 1).setValue(data.paidById);
@@ -296,14 +312,18 @@ function logExpenseInstance(data) {
   writeLog('Expenses_Log', 'Expenses', expenseId, data.catalogId + ' — ' + catalogName,
     '', '', 'Amount', '', amount,
     (periodKey ? 'Recurring instance logged for ' + periodKey : 'Expense logged') +
-    ', paid by ' + data.paidByName);
+    ', paid by ' + data.paidByName +
+    (isForeign ? ' (EGP equiv. ' + egpEquivalent.toFixed(2) + ')' : ''));
 
   return { success: true, expenseId };
 }
 
 // ============================================================
 //  DELETE EXPENSE INSTANCE — removes the transaction + its
-//  splits. Does not touch the catalog entry itself.
+//  splits. Does not touch the catalog entry itself. Note: this
+//  does not roll the catalog's Last* preview fields backward —
+//  those are cosmetic prefill hints only; the real history lives
+//  in the Expenses sheet and is always accurate.
 // ============================================================
 function deleteExpenseInstance(expenseId) {
   const eSheet = getSheet('Expenses');
@@ -353,4 +373,42 @@ function setExpenseCatalogStatus(catalogId, status) {
     }
   }
   return { success: false, error: 'Expense catalog entry not found.' };
+}
+
+// ============================================================
+//  DIAGNOSTIC — run manually from the Apps Script editor
+//  (select this function → Run → View → Logs) if expense
+//  history still doesn't show up after this update. Prints the
+//  live Expenses sheet's actual header row next to what the EXP
+//  column map expects, plus a sample of CatalogId values, so any
+//  drift between the code's column indices and the real sheet
+//  layout is immediately visible.
+// ============================================================
+function debugExpensesSheet() {
+  const sheet = getSheet('Expenses');
+  if (!sheet) { Logger.log('Expenses sheet not found.'); return; }
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+
+  Logger.log('--- Live sheet headers (by column index) ---');
+  headers.forEach((h, i) => Logger.log(i + ': ' + h));
+
+  Logger.log('--- EXP map expects ---');
+  Object.keys(EXP).forEach(k => Logger.log(EXP[k] + ': ' + k));
+
+  Logger.log('--- Sample data rows (first 5) ---');
+  data.slice(1, 6).forEach((row, i) => {
+    Logger.log('Row ' + (i + 2) + ' -> ExpenseId=' + row[EXP.EXPENSE_ID] +
+      ' | CatalogId=' + row[EXP.CATALOG_ID] +
+      ' | Amount=' + row[EXP.AMOUNT] +
+      ' | Date=' + row[EXP.DATE]);
+  });
+
+  Logger.log('--- Catalog IDs currently in Expense_Catalog ---');
+  const cSheet = getSheet('Expense_Catalog');
+  if (cSheet) {
+    cSheet.getDataRange().getValues().slice(1).forEach(row => {
+      if (row[EC.CATALOG_ID]) Logger.log(row[EC.CATALOG_ID] + ' — ' + row[EC.NAME]);
+    });
+  }
 }
