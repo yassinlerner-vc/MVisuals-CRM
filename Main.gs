@@ -154,20 +154,31 @@ const Q = {
 
 // ============================================================
 //  COLUMN INDEXES — Quote_Items (0-based)
+//
+//  Sheet headers (row 1):
+//  Item ID | Quotation ID | Item Index | Display Value |
+//  Item Name | Quantity | Description | Notes | Unit Price |
+//  Subtotal | Status | Last Updated By | Last Updated At
+//
+//  ITEM_NAME is the admin-selected Category (from the Items
+//  sheet) — mandatory. DISPLAY_VALUE is optional free text the
+//  admin can enter to control what the client actually sees on
+//  the PDF; when blank, ITEM_NAME (the Category) is shown instead.
 // ============================================================
 const QI = {
   ITEM_ID:         0,
   QUOTATION_ID:    1,
   ITEM_INDEX:      2,
-  ITEM_NAME:       3,
-  QUANTITY:        4,
-  DESCRIPTION:     5,
-  NOTES:           6,
-  UNIT_PRICE:      7,
-  SUBTOTAL:        8,
-  STATUS:          9,
-  LAST_UPDATED_BY: 10,
-  LAST_UPDATED_AT: 11
+  DISPLAY_VALUE:   3,
+  ITEM_NAME:       4,
+  QUANTITY:        5,
+  DESCRIPTION:     6,
+  NOTES:           7,
+  UNIT_PRICE:      8,
+  SUBTOTAL:        9,
+  STATUS:          10,
+  LAST_UPDATED_BY: 11,
+  LAST_UPDATED_AT: 12
 };
 
 // ============================================================
@@ -204,21 +215,26 @@ const P = {
 //
 //  Sheet headers (row 1):
 //  Item ID | Project ID | Quotation ID | Account Name |
-//  Project Name | Project Description | Item Name |
-//  Quantity | Description | Notes | Created At
+//  Project Name | Project Description | Display Value |
+//  Item Name | Quantity | Description | Notes | Created At
+//
+//  ITEM_NAME is the Category carried over from the quotation.
+//  DISPLAY_VALUE is the client-facing text carried over from the
+//  quotation's Quote_Items row (falls back to Category when blank).
 // ============================================================
 const PI = {
-  ITEM_ID:     0,
-  PROJECT_ID:  1,
-  QUOTATION_ID:2,
-  ACCOUNT_NAME:3,
-  PROJECT_NAME:4,
-  PROJECT_DESC:5,
-  ITEM_NAME:   6,
-  QUANTITY:    7,
-  DESCRIPTION: 8,
-  NOTES:       9,
-  CREATED_AT:  10
+  ITEM_ID:      0,
+  PROJECT_ID:   1,
+  QUOTATION_ID: 2,
+  ACCOUNT_NAME: 3,
+  PROJECT_NAME: 4,
+  PROJECT_DESC: 5,
+  DISPLAY_VALUE:6,
+  ITEM_NAME:    7,
+  QUANTITY:     8,
+  DESCRIPTION:  9,
+  NOTES:        10,
+  CREATED_AT:   11
 };
 
 // ============================================================
@@ -279,21 +295,28 @@ const EC = {
 //  One row = one real transaction in time (= the price history
 //  for its CatalogId). PeriodKey ("2026-07") is set only for
 //  recurring instances, used to detect what's already logged.
+//
+//  Cols 13-14 (N-O) added: EgpEquivalent / ExchangeRate — mirrors
+//  the same pattern used on Payments (PAY.EGP_EQUIVALENT /
+//  PAY.EXCHANGE_RATE). For EGP-currency expenses these just equal
+//  the amount / 1. Added at the very end so no existing index shifts.
 // ============================================================
 const EXP = {
-  EXPENSE_ID:    0,
-  CATALOG_ID:    1,
-  CATALOG_NAME:  2,
-  CATEGORY:      3,
-  AMOUNT:        4,
-  CURRENCY:      5,
-  DATE:          6,
-  PAID_BY:       7,
-  PAID_BY_NAME:  8,
-  PERIOD_KEY:    9,
-  NOTES:         10,
-  CREATED_BY:    11,
-  CREATED_AT:    12
+  EXPENSE_ID:     0,
+  CATALOG_ID:     1,
+  CATALOG_NAME:   2,
+  CATEGORY:       3,
+  AMOUNT:         4,
+  CURRENCY:       5,
+  DATE:           6,
+  PAID_BY:        7,
+  PAID_BY_NAME:   8,
+  PERIOD_KEY:     9,
+  NOTES:          10,
+  CREATED_BY:     11,
+  CREATED_AT:     12,
+  EGP_EQUIVALENT: 13,
+  EXCHANGE_RATE:  14
 };
 
 // ============================================================
@@ -344,6 +367,14 @@ function onOpen() {
     .addItem('Expenses',    'openExpensesModule')
     .addItem('Drawings',    'openDrawingsModule')
     .addToUi();
+
+  // Home is always the landing tab, table freshly synced — fully
+  // automatic, no menu item. See Index.gs.
+  try {
+    refreshHome();
+  } catch (e) {
+    Logger.log('refreshHome error on open: ' + e);
+  }
 }
 
 function openAccountsModule() {
