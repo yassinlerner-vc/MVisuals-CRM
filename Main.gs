@@ -351,7 +351,9 @@ const DRW = {
   METHOD:      6,
   NOTES:       7,
   CREATED_BY:  8,
-  CREATED_AT:  9
+  CREATED_AT:  9,
+  EGP_EQUIVALENT: 10,
+  EXCHANGE_RATE:  11
 };
 
 // ============================================================
