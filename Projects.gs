@@ -18,7 +18,10 @@ function generatePaymentId() {
 // ============================================================
 //  PROJECTS — LIST
 //  Payment status is computed live from the Payments sheet,
-//  not stored, so it can never drift out of sync.
+//  not stored, so it can never drift out of sync. Overall
+//  project STATUS ('Active' / 'Fulfilled'), by contrast, IS
+//  stored — it's a real lifecycle milestone set once by
+//  fulfillProjectAndQuotation(), not something to recompute.
 // ============================================================
 function getProjects() {
   try {
@@ -83,6 +86,7 @@ function getProjects() {
           remainingToPay:   remaining,
           paymentStatus:    paymentStatus,
           isDistributed:    distributedIds.has(pid),
+          status:           String(row[P.STATUS] || 'Active'),
           createdAt:        fmtDate(row[P.CREATED_AT])
         });
       } catch(e) {
@@ -140,7 +144,8 @@ function getProjectDetail(projectId) {
         deliveryDeadline: fmtDate(row[P.DELIVERY_DEADLINE]),
         dueDate:          fmtDate(row[P.DUE_DATE]),
         totalAmount:      Number(row[P.TOTAL_AMOUNT] || 0),
-        currency:         String(row[P.CURRENCY] || 'EGP')
+        currency:         String(row[P.CURRENCY] || 'EGP'),
+        status:           String(row[P.STATUS] || 'Active')
       };
       break;
     }
@@ -163,13 +168,15 @@ function getProjectDetail(projectId) {
   const payments = paySheet ? paySheet.getDataRange().getValues().slice(1)
     .filter(row => String(row[PAY.PROJECT_ID]) === String(projectId))
     .map(row => ({
-      paymentId:  String(row[PAY.PAYMENT_ID]),
-      amount:     Number(row[PAY.AMOUNT] || 0),
-      date:       row[PAY.DATE] ? fmtDate(row[PAY.DATE]) : '',
-      method:     String(row[PAY.METHOD] || ''),
-      notes:      String(row[PAY.NOTES] || ''),
-      recordedBy: String(row[PAY.RECORDED_BY] || ''),
-      recordedAt: row[PAY.RECORDED_AT] ? fmtDate(row[PAY.RECORDED_AT]) : ''
+      paymentId:     String(row[PAY.PAYMENT_ID]),
+      amount:        Number(row[PAY.AMOUNT] || 0),
+      date:          row[PAY.DATE] ? fmtDate(row[PAY.DATE]) : '',
+      method:        String(row[PAY.METHOD] || ''),
+      notes:         String(row[PAY.NOTES] || ''),
+      recordedBy:    String(row[PAY.RECORDED_BY] || ''),
+      recordedAt:    row[PAY.RECORDED_AT] ? fmtDate(row[PAY.RECORDED_AT]) : '',
+      egpEquivalent: Number(row[PAY.EGP_EQUIVALENT] || 0),
+      exchangeRate:  Number(row[PAY.EXCHANGE_RATE]  || 0)
     }))
     .sort((a, b) => (a.date || '').localeCompare(b.date || '')) : [];
 
@@ -204,6 +211,15 @@ function getProjectDetail(projectId) {
 // ============================================================
 //  PAYMENTS — RECORD
 //  Caps total payments at the project's quotation total.
+//
+//  EGP equivalent: required whenever the project's currency
+//  isn't EGP (mirrors the same rule used on Expenses). For
+//  EGP-currency projects the EGP equivalent is just the amount
+//  itself and the rate is 1. This is what makes it possible to
+//  later distribute commission off the ACTUAL EGP collected
+//  rather than re-converting the quotation total — each
+//  installment can land at a different rate and that difference
+//  is captured here, payment by payment.
 // ============================================================
 function recordPayment(projectId, data) {
   const pSheet   = getSheet('Projects');
@@ -217,10 +233,11 @@ function recordPayment(projectId, data) {
   }
   if (!project) return { success: false, error: 'Project not found.' };
 
-  const totalAmount = Number(project[P.TOTAL_AMOUNT] || 0);
-  const quotationId = String(project[P.QUOTATION_ID] || '');
-  const accountName = String(project[P.ACCOUNT_NAME] || '');
-  const projectName = String(project[P.PROJECT_NAME] || '');
+  const totalAmount     = Number(project[P.TOTAL_AMOUNT] || 0);
+  const quotationId     = String(project[P.QUOTATION_ID] || '');
+  const accountName     = String(project[P.ACCOUNT_NAME] || '');
+  const projectName     = String(project[P.PROJECT_NAME] || '');
+  const projectCurrency = String(project[P.CURRENCY] || 'EGP');
 
   const existingPaid = paySheet.getDataRange().getValues().slice(1)
     .filter(row => String(row[PAY.PROJECT_ID]) === String(projectId))
@@ -233,6 +250,13 @@ function recordPayment(projectId, data) {
       (totalAmount - existingPaid).toFixed(2) + '.' };
   }
 
+  const isForeign = projectCurrency !== 'EGP';
+  let egpEquivalent = isForeign ? Number(data.egpEquivalent) || 0 : amount;
+  if (isForeign && egpEquivalent <= 0) {
+    return { success: false, error: 'Enter the EGP equivalent received for this payment.' };
+  }
+  const exchangeRate = isForeign ? (egpEquivalent / amount) : 1;
+
   const paymentId = generatePaymentId();
   const user = Session.getActiveUser().getEmail();
   const now  = new Date();
@@ -240,12 +264,14 @@ function recordPayment(projectId, data) {
 
   paySheet.appendRow([
     paymentId, projectId, quotationId, accountName, projectName,
-    amount, dateVal, data.method || '', data.notes || '', user, now
+    amount, dateVal, data.method || '', data.notes || '', user, now,
+    egpEquivalent, exchangeRate
   ]);
 
   writeLog('Payments_Log', 'Payments', paymentId,
     paymentId + ' — ' + projectName, '', accountName,
-    'Payment', '', amount, 'Payment of ' + amount + ' recorded by ' + user);
+    'Payment', '', amount, 'Payment of ' + amount + ' recorded by ' + user +
+    (isForeign ? ' (EGP equiv. ' + egpEquivalent.toFixed(2) + ')' : ''));
 
   return { success: true, paymentId };
 }
@@ -289,9 +315,24 @@ function deletePayment(paymentId) {
 //  Only allowed once the project is fully paid. Replaces any
 //  existing distribution rows for this project. Rows carry a
 //  PERCENT per person (not an amount) — percentages must sum
-//  to 100 (small rounding tolerance). Amount is computed here,
-//  server-side, from percent × project total.
-//  rows: [{ personId, personName, percent }]
+//  to 100 (small rounding tolerance).
+//
+//  Amount is computed server-side from percent × the ACTUAL EGP
+//  collected (summed from each payment's EGP_EQUIVALENT), NOT
+//  from the quotation's native-currency total. This is what
+//  correctly absorbs exchange-rate differences between
+//  installments — e.g. a $500 quotation paid in two USD
+//  installments at different rates might net EGP 10,000 total;
+//  that EGP 10,000 (not a fresh $500→EGP conversion) is what
+//  gets distributed. Distribution is always recorded in EGP,
+//  regardless of the project's native currency.
+//
+//  Once a distribution save succeeds, the project is by
+//  definition both fully paid (checked below) and now
+//  distributed — the two conditions "Fulfilled" requires beyond
+//  Confirmed (which is implicit; only confirmed quotations have
+//  a Project row at all). So this is the single trigger point
+//  for fulfillProjectAndQuotation().
 // ============================================================
 function saveDistribution(projectId, rows) {
   const pSheet    = getSheet('Projects');
@@ -310,14 +351,23 @@ function saveDistribution(projectId, rows) {
   const quotationId = String(project[P.QUOTATION_ID] || '');
   const accountName = String(project[P.ACCOUNT_NAME] || '');
   const projectName = String(project[P.PROJECT_NAME] || '');
-  const currency    = String(project[P.CURRENCY] || 'EGP');
 
-  const amountPaid = paySheet ? paySheet.getDataRange().getValues().slice(1)
-    .filter(row => String(row[PAY.PROJECT_ID]) === String(projectId))
-    .reduce((sum, row) => sum + (Number(row[PAY.AMOUNT]) || 0), 0) : 0;
+  const payments = paySheet ? paySheet.getDataRange().getValues().slice(1)
+    .filter(row => String(row[PAY.PROJECT_ID]) === String(projectId)) : [];
+
+  const amountPaid = payments.reduce((sum, row) => sum + (Number(row[PAY.AMOUNT]) || 0), 0);
 
   if (totalAmount <= 0 || amountPaid < totalAmount) {
     return { success: false, error: 'Project must be fully paid before distributing revenue.' };
+  }
+
+  // Actual EGP collected — summed from each payment's EGP equivalent,
+  // so exchange-rate differences between installments are absorbed
+  // correctly rather than re-converting the quotation total once.
+  const totalEgpCollected = payments.reduce((sum, row) => sum + (Number(row[PAY.EGP_EQUIVALENT]) || 0), 0);
+
+  if (totalEgpCollected <= 0) {
+    return { success: false, error: 'No EGP-equivalent payment amounts found for this project — cannot distribute.' };
   }
 
   if (!rows || !rows.length) {
@@ -341,11 +391,11 @@ function saveDistribution(projectId, rows) {
 
   rows.forEach(r => {
     const percent = Number(r.percent) || 0;
-    const amount  = totalAmount * percent / 100;
+    const amount  = totalEgpCollected * percent / 100;
     distSheet.appendRow([
       Utilities.getUuid(), projectId, quotationId, accountName, projectName,
       r.personId || '', r.personName || '', percent, amount,
-      currency, r.notes || '', user, now
+      'EGP', r.notes || '', user, now
     ]);
   });
 
@@ -353,7 +403,89 @@ function saveDistribution(projectId, rows) {
     projectId + ' — ' + projectName, '', accountName,
     'Distribution', '',
     JSON.stringify(rows.map(r => ({ name: r.personName, percent: r.percent }))),
-    'Revenue distributed by ' + user);
+    'Revenue distributed by ' + user + ' — based on EGP ' + totalEgpCollected.toFixed(2) + ' actually collected');
+
+  // Both gates are now satisfied — fully paid (checked above) and,
+  // as of this line, distributed. Fulfill as one atomic step.
+  fulfillProjectAndQuotation(projectId, quotationId);
 
   return { success: true };
+}
+
+// ============================================================
+//  FULFILLMENT — the quotation/project becomes "Fulfilled" once
+//  it's Confirmed (implicit — a Project row only exists post-
+//  confirm), fully paid, AND fully distributed. Because
+//  saveDistribution() above already refuses to run unless the
+//  project is fully paid, a successful distribution save is the
+//  ONLY point all three conditions are guaranteed true — so this
+//  is called from exactly one place, right after that save.
+//
+//  On trigger:
+//    • Quotation PDF moved Confirmed → Fulfilled (Drive)
+//    • Quotation.STATUS  → 'Fulfilled'
+//    • Project.STATUS    → 'Fulfilled', COMPLETED_AT stamped
+//    • Both changes logged
+//
+//  Idempotent — safe to call again (e.g. on a distribution edit
+//  after the fact): if the quotation is already 'Fulfilled' the
+//  PDF move/status/log are skipped so nothing double-fires or
+//  tries to move an already-moved file.
+// ============================================================
+function fulfillProjectAndQuotation(projectId, quotationId) {
+  const pSheet = getSheet('Projects');
+  const qSheet = getSheet('Quotations');
+  if (!pSheet || !qSheet) return;
+
+  const user = Session.getActiveUser().getEmail();
+  const now  = new Date();
+
+  // ── Quotation side ───────────────────────────────────────
+  const qData = qSheet.getDataRange().getValues();
+  let qRowIndex = -1, qRow = null;
+  for (let i = 1; i < qData.length; i++) {
+    if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
+      qRowIndex = i + 1; qRow = qData[i]; break;
+    }
+  }
+
+  if (qRow && qRow[Q.STATUS] !== 'Fulfilled') {
+    const pdfUrl = extractUrl(qRow[Q.FOLDER_URL]) || '';
+    try {
+      const pdfFile = getQuotationPdfFile(pdfUrl);
+      if (pdfFile) {
+        const fulfilledFolder = DriveApp.getFolderById(RUYA_QUOTATIONS_FULFILLED_ID);
+        const parents = pdfFile.getParents();
+        fulfilledFolder.addFile(pdfFile);
+        while (parents.hasNext()) parents.next().removeFile(pdfFile);
+      }
+    } catch(e) { Logger.log('Fulfillment PDF move error: ' + e); }
+
+    const oldStatus = qRow[Q.STATUS];
+    qSheet.getRange(qRowIndex, Q.STATUS          + 1).setValue('Fulfilled');
+    qSheet.getRange(qRowIndex, Q.LAST_UPDATED_BY + 1).setValue(user);
+    qSheet.getRange(qRowIndex, Q.LAST_UPDATED_AT + 1).setValue(now);
+
+    writeLog('Quotations_Log', 'Quotations', quotationId,
+      quotationId + ' — ' + qRow[Q.PROJECT_NAME], qRow[Q.ACCOUNT_ID], qRow[Q.ACCOUNT_NAME],
+      'Status', oldStatus, 'Fulfilled',
+      'Quotation fulfilled — fully paid and distributed; PDF moved to Fulfilled');
+  }
+
+  // ── Project side ─────────────────────────────────────────
+  const pData = pSheet.getDataRange().getValues();
+  for (let i = 1; i < pData.length; i++) {
+    if (String(pData[i][P.PROJECT_ID]) === String(projectId)) {
+      if (pData[i][P.STATUS] !== 'Fulfilled') {
+        const oldStatus = pData[i][P.STATUS];
+        pSheet.getRange(i + 1, P.STATUS       + 1).setValue('Fulfilled');
+        pSheet.getRange(i + 1, P.COMPLETED_AT + 1).setValue(now);
+
+        writeLog('Projects_Log', 'Projects', projectId,
+          quotationId + ' — ' + pData[i][P.PROJECT_NAME], pData[i][P.ACCOUNT_ID], pData[i][P.ACCOUNT_NAME],
+          'Status', oldStatus, 'Fulfilled', 'Project fulfilled — fully paid and distributed');
+      }
+      break;
+    }
+  }
 }
