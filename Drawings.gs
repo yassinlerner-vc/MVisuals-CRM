@@ -23,15 +23,18 @@ function getDrawings() {
   return data.slice(1)
     .filter(row => row[DRW.DRAWING_ID])
     .map(row => ({
-      id:         String(row[DRW.DRAWING_ID]),
-      personId:   row[DRW.PERSON_ID],
-      personName: row[DRW.PERSON_NAME],
-      amount:     Number(row[DRW.AMOUNT] || 0),
-      currency:   row[DRW.CURRENCY],
-      date:       row[DRW.DATE] ? Utilities.formatDate(new Date(row[DRW.DATE]), tz, 'yyyy-MM-dd') : '',
-      method:     row[DRW.METHOD],
-      notes:      row[DRW.NOTES],
-      createdAt:  row[DRW.CREATED_AT]
+      id:            String(row[DRW.DRAWING_ID]),
+      personId:      row[DRW.PERSON_ID],
+      personName:    row[DRW.PERSON_NAME],
+      amount:        Number(row[DRW.AMOUNT] || 0),
+      currency:      row[DRW.CURRENCY],
+      egpEquivalent: Number(row[DRW.EGP_EQUIVALENT] || 0),
+      exchangeRate:  Number(row[DRW.EXCHANGE_RATE]  || 0),
+      isForeign:     String(row[DRW.CURRENCY]) !== 'EGP',
+      date:          row[DRW.DATE] ? Utilities.formatDate(new Date(row[DRW.DATE]), tz, 'yyyy-MM-dd') : '',
+      method:        row[DRW.METHOD],
+      notes:         row[DRW.NOTES],
+      createdAt:     row[DRW.CREATED_AT]
         ? Utilities.formatDate(new Date(row[DRW.CREATED_AT]), tz, 'yyyy-MM-dd') : ''
     }))
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -41,6 +44,13 @@ function getDrawings() {
 //  DRAWINGS — CREATE
 //  Always 100% to one partner, always drawn from the pool —
 //  no split table, no PaidBy field needed.
+//
+//  EGP equivalent: required whenever the drawing's currency isn't
+//  EGP (mirrors the same rule used on Payments/Expenses). For
+//  EGP-currency drawings the EGP equivalent is just the amount
+//  itself and the rate is 1. This keeps the partner's ledger
+//  balance (Ledger.gs) purely EGP even when a partner draws in a
+//  foreign currency.
 // ============================================================
 function createDrawing(formData) {
   const sheet = getSheet('Drawings');
@@ -51,6 +61,13 @@ function createDrawing(formData) {
   if (!formData.personId) return { success: false, error: 'Select a partner.' };
   if (!formData.date) return { success: false, error: 'Select a date.' };
 
+  const isForeign = String(formData.currency) !== 'EGP';
+  let egpEquivalent = isForeign ? Number(formData.egpEquivalent) || 0 : amount;
+  if (isForeign && egpEquivalent <= 0) {
+    return { success: false, error: 'Enter the EGP equivalent for this drawing.' };
+  }
+  const exchangeRate = isForeign ? (egpEquivalent / amount) : 1;
+
   const drawingId = generateDrawingId();
   const now  = new Date();
   const user = Session.getActiveUser().getEmail();
@@ -58,12 +75,14 @@ function createDrawing(formData) {
   sheet.appendRow([
     drawingId, formData.personId, formData.personName,
     amount, formData.currency, formData.date,
-    formData.method || '', formData.notes || '', user, now
+    formData.method || '', formData.notes || '', user, now,
+    egpEquivalent, exchangeRate
   ]);
 
   writeLog('Drawings_Log', 'Drawings', drawingId,
     drawingId + ' — ' + formData.personName, '', '',
-    'Amount', '', amount, 'Drawing recorded by ' + user);
+    'Amount', '', amount, 'Drawing recorded by ' + user +
+    (isForeign ? ' (EGP equiv. ' + egpEquivalent.toFixed(2) + ')' : ''));
 
   return { success: true, drawingId };
 }
