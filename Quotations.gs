@@ -114,7 +114,7 @@ function getQuotationPdfFile(pdfUrl) {
 /** Maps a quotation's Status to its current Drive stage folder. */
 function getQuotationStageFolder(status) {
   if (status === 'Confirmed')  return DriveApp.getFolderById(RUYA_QUOTATIONS_CONFIRMED_ID);
-  if (status === 'Fully Paid') return DriveApp.getFolderById(RUYA_QUOTATIONS_FULFILLED_ID);
+  if (status === 'Fulfilled') return DriveApp.getFolderById(RUYA_QUOTATIONS_FULFILLED_ID);
   return DriveApp.getFolderById(RUYA_QUOTATIONS_PIPELINE_ID); // Drafted / default
 }
 
@@ -556,9 +556,10 @@ function deleteQuotation(quotationId) {
   let qRowIndex = -1, pdfUrl = '', accountId = '', accountName = '', projectName = '', version = 1;
   for (let i = 1; i < qData.length; i++) {
     if (String(qData[i][Q.QUOTATION_ID]) === String(quotationId)) {
-      if (qData[i][Q.STATUS] === 'Confirmed') {
-        return { success: false, error: 'Cannot delete a confirmed quotation.' };
-      }
+      if (qData[i][Q.STATUS] === 'Confirmed' || qData[i][Q.STATUS] === 'Fulfilled') {
+  return { success: false, error: 'Cannot delete a ' +
+    (qData[i][Q.STATUS] === 'Fulfilled' ? 'fulfilled' : 'confirmed') + ' quotation.' };
+}
       qRowIndex   = i + 1;
       pdfUrl      = extractUrl(qData[i][Q.FOLDER_URL]) || '';
       accountId   = qData[i][Q.ACCOUNT_ID];
@@ -636,9 +637,10 @@ function confirmQuotation(quotationId) {
       qRowIndex = i + 1; qRow = qData[i]; break;
     }
   }
-  if (!qRow)                          return { success: false, error: 'Quotation not found.' };
-  if (qRow[Q.STATUS] === 'Confirmed') return { success: false, error: 'Already confirmed.' };
-
+  if (!qRow) return { success: false, error: 'Quotation not found.' };
+if (qRow[Q.STATUS] === 'Confirmed' || qRow[Q.STATUS] === 'Fulfilled') {
+  return { success: false, error: 'Already confirmed.' };
+}
   const accountId   = qRow[Q.ACCOUNT_ID];
   const accountName = qRow[Q.ACCOUNT_NAME];
   const projectName = qRow[Q.PROJECT_NAME];
@@ -762,15 +764,42 @@ function confirmQuotation(quotationId) {
 function getBranding() {
   const sheet = getSheet('Branding');
   const row   = sheet ? (sheet.getDataRange().getValues()[1] || []) : [];
+
+  const websiteText  = String(row[5] || '');
+  const phoneText    = String(row[7] || '');
+  const emailText    = String(row[8] || '');
+  const instagramText = String(row[9] || '');
+
   return {
     companyName:  String(row[1] || 'Ruya Studios'),
     primaryColor: String(row[2] || '#4A1D13'),
     accentColor:  String(row[3] || '#4A1D13'),
-    website:      String(row[5] || ''),
-    footerNote:   String(row[6] || ''),
-    phone:        String(row[7] || ''),
-    email:        String(row[8] || ''),
-    instagram:    String(row[9] || '')
+
+    // Visible text in the PDF.
+    website: websiteText,
+    phone: phoneText,
+    email: emailText,
+    instagram: instagramText,
+
+    // Actual destinations used by clickable PDF links.
+    websiteUrl: websiteText
+      ? 'https://www.ruyastudios.com/'
+      : '',
+
+    instagramUrl: instagramText
+      ? 'https://www.instagram.com/ruyastudios.co/'
+      : '',
+
+    // WhatsApp number in international digits-only format.
+    phoneUrl: phoneText
+      ? 'https://wa.me/201158541967'
+      : '',
+
+    emailUrl: emailText
+      ? 'mailto:' + emailText
+      : '',
+
+    footerNote: String(row[6] || '')
   };
 }
 
@@ -928,15 +957,80 @@ function generateQuotationHTML(data) {
     : '';
 
 const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+const ICON_WHATSAPP = `
+<svg width="10" height="10" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round">
+  <path d="M20.52 3.48A11.78 11.78 0 0 0 12.08 0
+           C5.56 0 .26 5.3 .26 11.82
+           c0 2.08 .54 4.11 1.57 5.9L.17 24
+           l6.45-1.63a11.8 11.8 0 0 0 5.46 1.34h.01
+           c6.52 0 11.82-5.3 11.82-11.82
+           0-3.16-1.23-6.13-3.39-8.41Z"/>
+  <path d="M8.7 6.9c-.22-.49-.45-.5-.66-.51
+           h-.56c-.2 0-.53.08-.81.4
+           -.28.31-1.06 1.04-1.06 2.54
+           s1.09 2.95 1.21 3.15
+           c.15.2 2.1 3.37 5.18 4.59
+           2.56 1.01 3.08.81 3.63.76
+           .55-.05 1.77-.72 2.02-1.41
+           .25-.69.25-1.28.17-1.41
+           -.07-.13-.28-.2-.58-.35
+           -.3-.15-1.77-.87-2.04-.97
+           -.27-.1-.47-.15-.67.15
+           -.2.3-.77.97-.94 1.17
+           -.17.2-.35.22-.65.07
+           -.3-.15-1.26-.46-2.4-1.47
+           -.89-.79-1.49-1.77-1.66-2.07
+           -.17-.3-.02-.46.13-.61
+           .13-.13.3-.35.45-.52
+           .15-.17.2-.3.3-.5
+           .1-.2.05-.37-.02-.52
+           -.07-.15-.62-1.49-.85-2.04Z"/>
+</svg>`;
   const ICON_MAIL = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`;
   const ICON_INSTAGRAM = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/></svg>`;
   const ICON_GLOBE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
   // ── Footer ───────────────────────────────────────────────
   const instagramHandle = branding.instagram
-    ? '@' + String(branding.instagram).replace(/^@/, '') : '';
-  const footerNoteHtml = branding.footerNote
-    ? `<div class="footer-note">${esc(branding.footerNote)}</div>` : '';
+  ? String(branding.instagram).replace(/^@/, '')
+  : '';
 
+const emailHtml = branding.email
+  ? pdfLink(
+      branding.emailUrl,
+      `${ICON_MAIL}${esc(branding.email)}`,
+      'footer-item'
+    )
+  : '';
+
+const instagramHtml = branding.instagram
+  ? pdfLink(
+      branding.instagramUrl,
+      `${ICON_INSTAGRAM}${esc(instagramHandle)}`,
+      'footer-item'
+    )
+  : '';
+
+const phoneHtml = branding.phone
+  ? pdfLink(
+      branding.phoneUrl,
+      `${ICON_WHATSAPP}${esc(branding.phone)}`,
+      'footer-item'
+    )
+  : '';
+
+const websiteHtml = branding.website
+  ? pdfLink(
+      branding.websiteUrl,
+      `${ICON_GLOBE}${esc(branding.website)}`,
+      'footer-item'
+    )
+  : '';
+
+const footerNoteHtml = branding.footerNote
+  ? `<div class="footer-note">${esc(branding.footerNote)}</div>`
+  : '';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -997,7 +1091,7 @@ const ICON_PHONE = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" 
   .footer-side { display: flex; align-items: center; white-space: nowrap; }
   .footer-side-right { justify-content: flex-end; }
   .footer-heading { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-right: 12px; vertical-align: middle; }
-  .footer-item { display: inline-flex; align-items: center; font-size: 10px; color: #888; margin-right: 16px; }
+  .footer-item { display: inline-flex; align-items: center; font-size: 10px; color: #888; text-decoration: underline; margin-right: 16px; }
   .footer-item:last-child { margin-right: 0; }
   .footer-item svg { margin-right: 4px; vertical-align: -2px; }
   .footer-note { margin-top: 6px; font-size: 9px; color: #aaa; text-align: center; }
@@ -1065,15 +1159,16 @@ ${termsAndPaymentPage}
 <div class="footer-fixed">
   <div class="footer-row">
     <div class="footer-side footer-side-left">
-      <span class="footer-heading">Contact</span>
-      ${branding.phone ? `<span class="footer-item">${ICON_PHONE}${esc(branding.phone)}</span>` : ''}
-      ${branding.email ? `<span class="footer-item">${ICON_MAIL}${esc(branding.email)}</span>` : ''}
-    </div>
-    <div class="footer-side footer-side-right">
-      <span class="footer-heading">Find Us</span>
-      ${instagramHandle ? `<span class="footer-item">${ICON_INSTAGRAM}${esc(instagramHandle)}</span>` : ''}
-      ${branding.website ? `<span class="footer-item">${ICON_GLOBE}${esc(branding.website)}</span>` : ''}
-    </div>
+  <span class="footer-heading">Contact</span>
+  ${phoneHtml}
+  ${emailHtml}
+</div>
+
+<div class="footer-side footer-side-right">
+  <span class="footer-heading">Find Us</span>
+  ${instagramHtml}
+  ${websiteHtml}
+</div>
   </div>
   ${footerNoteHtml}
 </div>
@@ -1088,4 +1183,17 @@ function esc(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+function escAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, '&#39;');
+}
+function pdfLink(url, content, className) {
+  if (!url || !content) return '';
+
+  return `<a href="${escAttr(url)}" class="${className || ''}">${content}</a>`;
 }
