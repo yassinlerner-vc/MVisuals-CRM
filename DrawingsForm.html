@@ -83,7 +83,7 @@
   </div>
   <div class="table-wrap">
     <table>
-      <thead>
+      <thead id="listHead">
         <tr><th class="col-date">Date</th><th>Partner</th><th class="col-amt">Amount</th><th>Method</th><th>Notes</th><th class="col-acts"></th></tr>
       </thead>
       <tbody id="listBody">
@@ -100,8 +100,13 @@
     <div class="field" style="max-width:280px;"><label>Partner</label><select id="drwPerson"></select></div>
     <div class="row3">
       <div class="field"><label>Amount</label><input type="text" id="drwAmount" inputmode="decimal" placeholder="0.00"></div>
-      <div class="field"><label>Currency</label><select id="drwCurrency"></select></div>
+      <div class="field"><label>Currency</label><select id="drwCurrency" onchange="toggleDrwEgpVisibility()"></select></div>
       <div class="field"><label>Date</label><input type="date" id="drwDate"></div>
+    </div>
+    <div class="field hidden" id="drwEgpWrap">
+      <label id="drwEgpLabel">EGP Equivalent</label>
+      <input type="text" id="drwEgpEquivalent" inputmode="decimal" placeholder="0.00">
+      <div id="drwRateDisplay" style="font-size:11px;color:#888;margin-top:4px;"></div>
     </div>
     <div class="field" style="max-width:280px;"><label>Method</label><select id="drwMethod"></select></div>
     <div class="field"><label>Notes</label><textarea id="drwNotes" placeholder="Optional..."></textarea></div>
@@ -172,9 +177,19 @@ function renderList(drawings) {
   allDrawings = drawings || [];
   hideToast();
   document.getElementById('listCount').textContent = allDrawings.length + ' drawing' + (allDrawings.length !== 1 ? 's' : '');
+
+  const hasForeign = allDrawings.some(d => d.isForeign);
+  document.getElementById('listHead').innerHTML = `
+    <tr>
+      <th class="col-date">Date</th><th>Partner</th><th class="col-amt">Amount</th>
+      ${hasForeign ? '<th class="col-amt">EGP Equiv.</th><th>Rate</th>' : ''}
+      <th>Method</th><th>Notes</th><th class="col-acts"></th>
+    </tr>`;
+
   const tbody = document.getElementById('listBody');
+  const colCount = hasForeign ? 8 : 6;
   if (!allDrawings.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#888;">No drawings recorded yet.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:32px;color:#888;">No drawings recorded yet.</td></tr>`;
     return;
   }
   tbody.innerHTML = allDrawings.map(d => `
@@ -182,6 +197,9 @@ function renderList(drawings) {
       <td class="col-date">${d.date || '—'}</td>
       <td><strong>${escHtml(d.personName)}</strong></td>
       <td class="col-amt">${escHtml(d.currency)} ${fmt(d.amount)}</td>
+      ${hasForeign ? `
+      <td class="col-amt">${d.isForeign ? 'EGP ' + fmt(d.egpEquivalent) : '—'}</td>
+      <td style="color:#888;font-size:12px;">${d.isForeign && d.exchangeRate ? d.exchangeRate.toFixed(4) : '—'}</td>` : ''}
       <td>${escHtml(d.method || '—')}</td>
       <td style="color:#555;">${escHtml(d.notes || '—')}</td>
       <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDelete('${escHtml(d.id)}')">Delete</button></td>
@@ -203,25 +221,51 @@ function showNew() {
   curSel.innerHTML = '';
   currencies.forEach(c => curSel.add(new Option(c, c)));
   document.getElementById('drwAmount').value = '';
+  document.getElementById('drwEgpEquivalent').value = '';
+  document.getElementById('drwRateDisplay').textContent = '';
   document.getElementById('drwNotes').value = '';
   document.getElementById('drwDate').valueAsDate = new Date();
   switchView('new');
   document.getElementById('formActions').classList.remove('hidden');
+  toggleDrwEgpVisibility();
+}
+
+function toggleDrwEgpVisibility() {
+  const cur = document.getElementById('drwCurrency').value;
+  const isForeign = cur !== 'EGP';
+  document.getElementById('drwEgpWrap').classList.toggle('hidden', !isForeign);
+  document.getElementById('drwEgpLabel').textContent = 'EGP Equivalent (' + cur + ' → EGP)';
+  if (!isForeign) document.getElementById('drwRateDisplay').textContent = '';
+  else updateDrwRateDisplay();
+}
+function updateDrwRateDisplay() {
+  const amount = safe(document.getElementById('drwAmount').value);
+  const egp = safe(document.getElementById('drwEgpEquivalent').value);
+  const el = document.getElementById('drwRateDisplay');
+  if (amount > 0 && egp > 0) {
+    el.textContent = 'Exchange rate: 1 ' + document.getElementById('drwCurrency').value + ' = ' + (egp / amount).toFixed(4) + ' EGP';
+  } else {
+    el.textContent = '';
+  }
 }
 
 function submitDrawing() {
   const sel = document.getElementById('drwPerson');
+  const currency = document.getElementById('drwCurrency').value;
+  const isForeign = currency !== 'EGP';
   const data = {
     personId: sel.value,
     personName: sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '',
     amount: safe(document.getElementById('drwAmount').value),
-    currency: document.getElementById('drwCurrency').value,
+    currency: currency,
+    egpEquivalent: isForeign ? safe(document.getElementById('drwEgpEquivalent').value) : '',
     date: document.getElementById('drwDate').value,
     method: document.getElementById('drwMethod').value,
     notes: document.getElementById('drwNotes').value
   };
   if (!data.amount || data.amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
   if (!data.date) { showToast('Select a date.', 'error'); return; }
+  if (isForeign && (!data.egpEquivalent || data.egpEquivalent <= 0)) { showToast('Enter the EGP equivalent for this drawing.', 'error'); return; }
   const btn = document.getElementById('btnSave');
   startProcessing(btn, 'Recording...');
   google.script.run
@@ -259,6 +303,9 @@ function switchView(name) {
 function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('drwAmount').addEventListener('input', updateDrwRateDisplay);
+document.getElementById('drwEgpEquivalent').addEventListener('input', updateDrwRateDisplay);
 
 init();
 </script>
