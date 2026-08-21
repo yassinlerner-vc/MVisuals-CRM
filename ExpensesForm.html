@@ -270,7 +270,7 @@
 ══════════════════════════════════════════════════════ */
 let allCatalog     = [];
 let activeTab      = 'all';
-let currentCatalog = null;     // catalog entry currently open (history/instance)
+let currentCatalog = null;
 let partnersList   = [];
 let paidByOptions  = [];
 let currencies     = [];
@@ -279,13 +279,6 @@ let instIsReview   = false;
 let instPeriodKey  = '';
 let deleteExpenseIdPending = null;
 
-/* ══════════════════════════════════════════════════════
-   CALCULATOR-STYLE AMOUNT INPUTS
-   Same pattern as Quotations' subtotal field / Projects'
-   payment amount field — digit-by-digit entry, comma-formatted
-   display, no way to type invalid characters. Tracks any number
-   of fields independently by id.
-══════════════════════════════════════════════════════ */
 const _amountCents = {};
 function initAmountInput(id) {
   _amountCents[id] = 0;
@@ -332,12 +325,9 @@ function setAmountValue(id, val) {
 }
 function onAmountInputChange(id) {
   if (id === 'instAmount') { renderInstSplitEditor(); updateInstRateDisplay(); }
-  if (id === 'instEgpEquivalent') updateInstRateDisplay();
+  if (id === 'instEgpEquivalent') { renderInstSplitEditor(); updateInstRateDisplay(); }
 }
 
-/* ══════════════════════════════════════════════════════
-   PROCESSING / TOAST
-══════════════════════════════════════════════════════ */
 function startProcessing(btn, msg) {
   document.getElementById('procBar').className = 'proc-bar active';
   showToast(msg || 'Loading…', 'info', 0);
@@ -358,9 +348,6 @@ function showToast(msg, type, duration) {
 }
 function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
-/* ══════════════════════════════════════════════════════
-   INIT
-══════════════════════════════════════════════════════ */
 function init() {
   showToast('Loading…', 'info', 0);
   initAmountInput('instAmount');
@@ -397,9 +384,6 @@ function populatePaidBySelects() {
   paidByOptions.forEach(o => sel.add(new Option(o.name, o.id)));
 }
 
-/* ══════════════════════════════════════════════════════
-   LIST
-══════════════════════════════════════════════════════ */
 function setTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
@@ -419,9 +403,6 @@ function renderList(catalog) {
     return;
   }
   tbody.innerHTML = filtered.map(c => {
-    // Status badge is fully server-computed now (c.reviewStatus is always
-    // populated — 'Logged' / 'Needs Review' / 'Not Logged') so this is the
-    // single source of truth for both recurring and one-time expenses.
     let statusHtml = '';
     if (c.status === 'Archived') statusHtml = '<span class="badge badge-archived">Archived</span>';
     else if (c.status === 'Paused') statusHtml = '<span class="badge badge-paused">Paused</span>';
@@ -444,13 +425,6 @@ function showList() {
   google.script.run.withSuccessHandler(renderList).getExpenseCatalog();
 }
 
-/* ══════════════════════════════════════════════════════
-   NEW EXPENSE — catalog metadata only. Creating an expense
-   never logs a payment by itself anymore; on success we hand
-   straight into the Log Instance screen (via openInstanceForm)
-   so the first payment can be logged immediately if it's ready,
-   or skipped with Back to log later from the list.
-══════════════════════════════════════════════════════ */
 function showNewExpense() {
   ['newName','newCategory','newVendor','newNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('newIsRecurring').checked = false;
@@ -483,8 +457,6 @@ function submitNewExpense() {
       stopProcessing(btn);
       if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
       showToast('Expense created.', 'success');
-      // Refresh the catalog so the new entry is available, then hand
-      // straight into logging its first instance.
       google.script.run
         .withSuccessHandler(catalog => {
           allCatalog = catalog || [];
@@ -499,9 +471,6 @@ function submitNewExpense() {
     .createExpenseCatalogEntry(data);
 }
 
-/* ══════════════════════════════════════════════════════
-   LOG EXPENSE PICKER
-══════════════════════════════════════════════════════ */
 function showLogPicker() {
   const sel = document.getElementById('pickerSelect');
   sel.innerHTML = '';
@@ -516,9 +485,6 @@ function confirmPicker() {
 }
 function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
 
-/* ══════════════════════════════════════════════════════
-   LOG / REVIEW INSTANCE FORM
-══════════════════════════════════════════════════════ */
 function openInstanceForm(catalogId, isReview) {
   const entry = allCatalog.find(c => c.id === catalogId);
   if (!entry) { showToast('Expense not found.', 'error'); return; }
@@ -536,8 +502,6 @@ function openInstanceForm(catalogId, isReview) {
   document.getElementById('instDate').valueAsDate = new Date();
   setSelectValue('instPaidBy', entry.lastPaidById || (paidByOptions[0] ? paidByOptions[0].id : ''));
   document.getElementById('instNotes').value = '';
-  // EGP equivalent is intentionally never prefilled from a prior instance —
-  // exchange rates fluctuate, so every log gets a fresh entry.
   setAmountValue('instEgpEquivalent', 0);
   toggleInstEgpVisibility();
   instDraftSplit = (entry.lastSplit || []).map(s => ({ personId: s.personId, personName: s.personName, percent: s.percent }));
@@ -570,7 +534,16 @@ function updateInstRateDisplay() {
   }
 }
 
-function renderInstSplitEditor() { renderSplitEditor('instSplitArea', instDraftSplit, 'instAmount', 'instCurrency', 'addInstSplitRow', 'removeInstSplitRow', 'splitInstEvenly'); }
+// Split amounts always preview in EGP now — using the EGP-equivalent
+// basis for foreign-currency expenses (or the amount itself when the
+// expense is already in EGP) — since Expense_Split is always written
+// in EGP (see Expenses.gs logExpenseInstance).
+function renderInstSplitEditor() {
+  const cur = document.getElementById('instCurrency').value;
+  const isForeign = cur !== 'EGP';
+  const egpBasis = isForeign ? getAmountValue('instEgpEquivalent') : getAmountValue('instAmount');
+  renderSplitEditor('instSplitArea', instDraftSplit, egpBasis, 'addInstSplitRow', 'removeInstSplitRow', 'splitInstEvenly');
+}
 function addInstSplitRow() {
   const sel = document.getElementById('instSplitPersonSelect');
   const pctEl = document.getElementById('instSplitPercentInput');
@@ -615,9 +588,6 @@ function submitInstance() {
     .logExpenseInstance(data);
 }
 
-/* ══════════════════════════════════════════════════════
-   HISTORY
-══════════════════════════════════════════════════════ */
 function openHistory(catalogId) {
   const entry = allCatalog.find(c => c.id === catalogId);
   if (!entry) return;
@@ -692,9 +662,6 @@ function togglePause() {
     .setExpenseCatalogStatus(currentCatalog.id, newStatus);
 }
 
-/* ══════════════════════════════════════════════════════
-   DELETE INSTANCE
-══════════════════════════════════════════════════════ */
 function askDeleteInstance(expenseId) { deleteExpenseIdPending = expenseId; document.getElementById('overlayDeleteInstance').classList.add('open'); }
 function confirmDeleteInstance() {
   const btn = document.getElementById('btnDeleteInstanceConfirm');
@@ -711,27 +678,25 @@ function confirmDeleteInstance() {
     .deleteExpenseInstance(deleteExpenseIdPending);
 }
 
-/* ══════════════════════════════════════════════════════
-   SHARED SPLIT EDITOR RENDERER (kept generic for possible
-   future reuse even though only the instance form uses it now)
-══════════════════════════════════════════════════════ */
-function renderSplitEditor(areaId, draft, amountId, currencyId, addFnName, removeFnName, evenFnName) {
+// Always renders/prices in EGP — Expense_Split is always written in
+// EGP regardless of the expense's native currency. Caller passes a
+// plain EGP number (egpBasis).
+function renderSplitEditor(areaId, draft, egpBasis, addFnName, removeFnName, evenFnName) {
   const area = document.getElementById(areaId);
-  const amount = getAmountValue(amountId);
-  const cur = document.getElementById(currencyId).value;
+  const amount = egpBasis || 0;
   const sum = draft.reduce((s, r) => s + r.percent, 0);
   const matchClass = Math.abs(sum - 100) < 0.5 ? 'match' : 'mismatch';
 
   const rows = draft.map((r, idx) => `<tr>
     <td><strong>${esc(r.personName)}</strong></td>
     <td class="col-pct">${r.percent.toFixed(1)}%</td>
-    <td class="col-amt">${esc(cur)} ${fmt(amount * r.percent / 100)}</td>
+    <td class="col-amt">EGP ${fmt(amount * r.percent / 100)}</td>
     <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="${removeFnName}(${idx})">Remove</button></td>
   </tr>`).join('');
 
   area.innerHTML = `
     <table class="dist-table">
-      <thead><tr><th>Person</th><th class="col-pct">%</th><th class="col-amt">Amount</th><th class="col-acts"></th></tr></thead>
+      <thead><tr><th>Person</th><th class="col-pct">%</th><th class="col-amt">Amount (EGP)</th><th class="col-acts"></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
     </table>
     <div class="dist-progress ${matchClass}">
@@ -756,9 +721,6 @@ function evenSplit() {
   return rows;
 }
 
-/* ══════════════════════════════════════════════════════
-   VIEW HELPERS
-══════════════════════════════════════════════════════ */
 function switchView(name) {
   ['viewList','viewNew','viewInstance','viewHistory'].forEach(id => {
     document.getElementById(id).classList.toggle('active', id === 'view' + name.charAt(0).toUpperCase() + name.slice(1));
@@ -773,9 +735,6 @@ function selectedText(id) {
   return el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : '';
 }
 
-/* ══════════════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════════════ */
 function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
