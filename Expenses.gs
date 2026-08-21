@@ -69,14 +69,6 @@ function getExpenseCategories() {
 
 // ============================================================
 //  EXPENSE CATALOG — LIST
-//  logStatus is now computed for EVERY entry (not just Active
-//  recurring ones), and is the single source of truth the
-//  frontend renders — no more duplicated logic client-side.
-//
-//    Recurring : 'Logged' if this period already has an
-//                instance, else 'Needs Review'.
-//    One-time  : 'Logged' if any instance has ever been logged,
-//                else 'Not Logged'.
 // ============================================================
 function getExpenseCatalog() {
   const cSheet = getSheet('Expense_Catalog');
@@ -87,9 +79,9 @@ function getExpenseCatalog() {
   const tz     = Session.getScriptTimeZone();
   const period = currentPeriodKey();
 
-  const loggedPeriods  = {}; // catalogId -> Set of periodKeys with a logged instance
-  const lastLoggedDate = {}; // catalogId -> latest instance date (yyyy-MM-dd)
-  const everLogged     = {}; // catalogId -> true if any instance exists at all
+  const loggedPeriods  = {};
+  const lastLoggedDate = {};
+  const everLogged     = {};
   eData.slice(1).forEach(row => {
     const cid = String(row[EXP.CATALOG_ID]);
     if (!cid) return;
@@ -146,9 +138,7 @@ function getExpenseCatalogEntry(catalogId) {
 }
 
 // ============================================================
-//  EXPENSE HISTORY — every logged instance for a catalog entry,
-//  newest first. This IS the price-history view. Includes the
-//  EGP equivalent/exchange rate for foreign-currency instances.
+//  EXPENSE HISTORY
 // ============================================================
 function getExpenseHistory(catalogId) {
   const eSheet = getSheet('Expenses');
@@ -191,13 +181,6 @@ function getExpenseHistory(catalogId) {
 
 // ============================================================
 //  NEW EXPENSE — CREATE CATALOG ENTRY ONLY
-//  No amount/date/paidBy required anymore. This just registers
-//  the expense type (name, category, vendor, recurring/frequency,
-//  notes). Logging the first (or any) paid instance is always
-//  done afterwards through logExpenseInstance — one single
-//  logging code path for both "first log" and "later log",
-//  so there's nothing to roll back and nothing to fall out of
-//  sync.
 // ============================================================
 function createExpenseCatalogEntry(formData) {
   const cSheet = getSheet('Expense_Catalog');
@@ -224,14 +207,10 @@ function createExpenseCatalogEntry(formData) {
 }
 
 // ============================================================
-//  LOG EXPENSE INSTANCE — the single engine behind "Log Expense",
-//  "Review" (recurring), and logging the first instance right
-//  after creating a new catalog entry. Writes the Expenses row
-//  + splits, then rolls the catalog's Last* fields forward.
-//
-//  EGP equivalent: required whenever currency !== 'EGP' (mirrors
-//  the same rule used on Payments). For EGP-currency instances,
-//  egpEquivalent defaults to amount and exchangeRate to 1.
+//  LOG EXPENSE INSTANCE
+//  EGP equivalent: required whenever currency !== 'EGP'. For
+//  EGP-currency instances, egpEquivalent defaults to amount and
+//  exchangeRate to 1.
 // ============================================================
 function logExpenseInstance(data) {
   const cSheet = getSheet('Expense_Catalog');
@@ -268,7 +247,6 @@ function logExpenseInstance(data) {
   const isRecurring    = !!catalogRow[EC.IS_RECURRING];
   const periodKey       = isRecurring ? (data.periodKey || currentPeriodKey()) : '';
 
-  // Guard: don't allow two confirmed instances for the same recurring period
   if (isRecurring && periodKey) {
     const eDataCheck = eSheet.getDataRange().getValues();
     const dup = eDataCheck.slice(1).some(row =>
@@ -289,20 +267,20 @@ function logExpenseInstance(data) {
     egpEquivalent, exchangeRate
   ]);
 
+  // Split amounts are computed from the EGP equivalent, not the native
+  // amount, and CURRENCY is always written as 'EGP' — so the Team
+  // ledger never has to mix currencies when summing expense shares.
+  // For EGP-currency expenses egpEquivalent === amount already, so
+  // this is a no-op change for those rows.
   data.splits.forEach(s => {
     const pct = Number(s.percent) || 0;
     sSheet.appendRow([
       Utilities.getUuid(), expenseId, data.catalogId,
-      s.personId, s.personName, pct, amount * pct / 100,
-      data.currency, user, now
+      s.personId, s.personName, pct, egpEquivalent * pct / 100,
+      'EGP', user, now
     ]);
   });
 
-  // Roll the catalog's "last known" fields forward — used only as a
-  // prefill suggestion for next time, never an authority. EGP
-  // equivalent is intentionally NOT carried forward here since
-  // exchange rates fluctuate month to month; each log should get a
-  // fresh EGP entry rather than reusing a stale rate.
   cSheet.getRange(catalogRowIndex, EC.LAST_AMOUNT       + 1).setValue(amount);
   cSheet.getRange(catalogRowIndex, EC.LAST_CURRENCY     + 1).setValue(data.currency);
   cSheet.getRange(catalogRowIndex, EC.LAST_PAID_BY      + 1).setValue(data.paidById);
@@ -319,11 +297,7 @@ function logExpenseInstance(data) {
 }
 
 // ============================================================
-//  DELETE EXPENSE INSTANCE — removes the transaction + its
-//  splits. Does not touch the catalog entry itself. Note: this
-//  does not roll the catalog's Last* preview fields backward —
-//  those are cosmetic prefill hints only; the real history lives
-//  in the Expenses sheet and is always accurate.
+//  DELETE EXPENSE INSTANCE
 // ============================================================
 function deleteExpenseInstance(expenseId) {
   const eSheet = getSheet('Expenses');
@@ -376,13 +350,7 @@ function setExpenseCatalogStatus(catalogId, status) {
 }
 
 // ============================================================
-//  DIAGNOSTIC — run manually from the Apps Script editor
-//  (select this function → Run → View → Logs) if expense
-//  history still doesn't show up after this update. Prints the
-//  live Expenses sheet's actual header row next to what the EXP
-//  column map expects, plus a sample of CatalogId values, so any
-//  drift between the code's column indices and the real sheet
-//  layout is immediately visible.
+//  DIAGNOSTIC
 // ============================================================
 function debugExpensesSheet() {
   const sheet = getSheet('Expenses');
