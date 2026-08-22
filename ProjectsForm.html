@@ -571,13 +571,15 @@ function renderDistribution(detail) {
   }
 
   if (detail.distribution.length && !distEditing) {
+    const isForeign = p.currency !== 'EGP';
     area.innerHTML = `
+      ${isForeign ? `<p class="locked-note" style="padding-top:0;margin-bottom:10px;">Distributed from EGP ${fmt(detail.totalEgpCollected)} actually collected (project total ${esc(p.currency)} ${fmt(p.totalAmount)}).</p>` : ''}
       <table class="dist-table">
-        <thead><tr><th>Person</th><th class="col-amt">Amount</th><th class="col-pct">%</th></tr></thead>
+        <thead><tr><th>Person</th><th class="col-amt">Amount (EGP)</th><th class="col-pct">%</th></tr></thead>
         <tbody>
           ${detail.distribution.map(d => `<tr>
             <td><strong>${esc(d.personName)}</strong></td>
-            <td class="col-amt">${esc(p.currency)} ${fmt(d.amount)}</td>
+            <td class="col-amt">EGP ${fmt(d.amount)}</td>
             <td class="col-pct">${d.percent.toFixed(1)}%</td>
           </tr>`).join('')}
         </tbody>
@@ -603,6 +605,8 @@ function enterDistEdit() {
 function renderDistEditor(detail) {
   const area = document.getElementById('distributionArea');
   const p = detail.project;
+  const egpPool = detail.totalEgpCollected || 0;
+  const isForeign = p.currency !== 'EGP';
   const members = detail.teamMembers || [];
   const sum = draftDistribution.reduce((s, r) => s + r.percent, 0);
   const diff = 100 - sum;
@@ -611,18 +615,19 @@ function renderDistEditor(detail) {
   const rowsHtml = draftDistribution.map((r, idx) => `
     <tr>
       <td><strong>${esc(r.personName)}</strong></td>
-      <td class="col-amt">${esc(p.currency)} ${fmt(p.totalAmount * r.percent / 100)}</td>
+      <td class="col-amt">EGP ${fmt(egpPool * r.percent / 100)}</td>
       <td class="col-pct">${r.percent.toFixed(1)}%</td>
       <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="removeDistRow(${idx})">Remove</button></td>
     </tr>`).join('');
 
   area.innerHTML = `
+    ${isForeign ? `<p class="locked-note" style="padding-top:0;margin-bottom:10px;">Distributing EGP ${fmt(egpPool)} actually collected (project total ${esc(p.currency)} ${fmt(p.totalAmount)}) — not a fresh conversion of the quotation total.</p>` : ''}
     <table class="dist-table">
-      <thead><tr><th>Person</th><th class="col-amt">Amount</th><th class="col-pct">%</th><th class="col-acts"></th></tr></thead>
+      <thead><tr><th>Person</th><th class="col-amt">Amount (EGP)</th><th class="col-pct">%</th><th class="col-acts"></th></tr></thead>
       <tbody>${rowsHtml || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
     </table>
     <div class="dist-progress ${matchClass}">
-      Distributed: <strong>${sum.toFixed(1)}%</strong> (${esc(p.currency)} ${fmt(p.totalAmount * sum / 100)}) / 100% (${esc(p.currency)} ${fmt(p.totalAmount)})
+      Distributed: <strong>${sum.toFixed(1)}%</strong> (EGP ${fmt(egpPool * sum / 100)}) / 100% (EGP ${fmt(egpPool)})
       ${Math.abs(diff) >= 0.5 ? ` — ${diff > 0 ? diff.toFixed(1) + '% remaining' : 'over by ' + (-diff).toFixed(1) + '%'}` : ' ✓'}
     </div>
     <div class="inline-row">
