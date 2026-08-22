@@ -184,6 +184,13 @@ function getProjectDetail(projectId) {
   const remainingToPay = Math.max(0, project.totalAmount - amountPaid);
   const isFullyPaid    = project.totalAmount > 0 && amountPaid >= project.totalAmount;
 
+  // Total EGP actually collected — same figure saveDistribution() uses to
+  // compute amounts. Sent to the frontend so the distribution editor/table
+  // can preview and label against the real EGP pool instead of the
+  // project's native-currency total (which is what was being shown before,
+  // even though the stored distribution amounts are always EGP).
+  const totalEgpCollected = payments.reduce((sum, p) => sum + (p.egpEquivalent || 0), 0);
+
   // ── Distribution ─────────────────────────────────────────
   const distribution = distSheet ? distSheet.getDataRange().getValues().slice(1)
     .filter(row => String(row[DIST.PROJECT_ID]) === String(projectId))
@@ -205,7 +212,7 @@ function getProjectDetail(projectId) {
       role: String(row[TM.ROLE])
     })) : [];
 
-  return { project, items, payments, distribution, teamMembers, amountPaid, remainingToPay, isFullyPaid };
+  return { project, items, payments, distribution, teamMembers, amountPaid, remainingToPay, isFullyPaid, totalEgpCollected };
 }
 
 // ============================================================
