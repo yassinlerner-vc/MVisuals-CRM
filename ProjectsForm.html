@@ -47,6 +47,7 @@
     .badge-partially-paid { background: #fff3cd; color: #856404; }
     .badge-fully-paid { background: #d1f2e1; color: #0f5132; }
     .badge-distributed { background: #e8ecfd; color: #2f4bcc; }
+    .badge-fulfilled { background: #d1f2e1; color: #0f5132; }
 
     .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; }
@@ -362,7 +363,7 @@ function renderList(projects) {
     return `<tr onclick="openProject('${esc(p.projectId)}')">
       <td class="col-id">${esc(p.quotationId)}</td>
       <td><strong>${esc(p.accountName)}</strong></td>
-      <td>${esc(p.projectName)}${p.isDistributed ? ' <span class="badge badge-distributed">Distributed</span>' : ''}</td>
+      <td>${esc(p.projectName)}${p.status === 'Fulfilled' ? ' <span class="badge badge-fulfilled">✓ Fulfilled</span>' : (p.isDistributed ? ' <span class="badge badge-distributed">Distributed</span>' : '')}</td>
       <td class="col-amt">${esc(p.currency)} ${fmt(p.totalAmount)}</td>
       <td class="col-amt">${esc(p.currency)} ${fmt(p.amountPaid)}</td>
       <td class="col-status"><span class="badge badge-${sk}">${esc(p.paymentStatus)}</span></td>
@@ -409,6 +410,7 @@ function renderProjectDetail(detail) {
       <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
       <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
       <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
+      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value">${p.status === 'Fulfilled' ? '<span class="badge badge-fulfilled">✓ Fulfilled</span>' : esc(p.status)}</div></div>
       ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
     </div>`;
 
