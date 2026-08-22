@@ -172,13 +172,14 @@ function getQuotationById(quotationId) {
               && r[QI.STATUS] !== 'Deleted')
     .sort((a, b) => a[QI.ITEM_INDEX] - b[QI.ITEM_INDEX])
     .map(r => ({
-      itemId:      r[QI.ITEM_ID],
-      name:        r[QI.ITEM_NAME],
-      quantity:    r[QI.QUANTITY],
-      description: r[QI.DESCRIPTION],
-      notes:       r[QI.NOTES],
-      unitPrice:   r[QI.UNIT_PRICE],
-      subtotal:    r[QI.SUBTOTAL]
+      itemId:       r[QI.ITEM_ID],
+      name:         r[QI.ITEM_NAME],
+      displayValue: r[QI.DISPLAY_VALUE] || '',
+      quantity:     r[QI.QUANTITY],
+      description:  r[QI.DESCRIPTION],
+      notes:        r[QI.NOTES],
+      unitPrice:    r[QI.UNIT_PRICE],
+      subtotal:     r[QI.SUBTOTAL]
     }));
 
   return {
@@ -343,7 +344,7 @@ function createQuotation(data) {
   data.items.forEach((item, index) => {
     iSheet.appendRow([
       Utilities.getUuid(), quotationId, index + 1,
-      item.name, item.quantity, item.description, item.notes,
+      item.displayValue || '', item.name, item.quantity, item.description, item.notes,
       data.pricingMode === 'Itemized' ? item.unitPrice : '',
       data.pricingMode === 'Itemized' ? item.subtotal  : '',
       'Active', user, now
@@ -499,15 +500,15 @@ function editQuotation(data) {
     const unitPrice    = data.pricingMode === 'Itemized' ? item.unitPrice : '';
     const itemSubtotal = data.pricingMode === 'Itemized' ? item.subtotal  : '';
     if (existing) {
-      iSheet.getRange(existing.sheetRow, 1, 1, 12).setValues([[
+      iSheet.getRange(existing.sheetRow, 1, 1, 13).setValues([[
         existing.data[QI.ITEM_ID], data.id, itemIndex,
-        item.name, item.quantity, item.description, item.notes,
+        item.displayValue || '', item.name, item.quantity, item.description, item.notes,
         unitPrice, itemSubtotal, 'Active', user, now
       ]]);
     } else {
       iSheet.appendRow([
         Utilities.getUuid(), data.id, itemIndex,
-        item.name, item.quantity, item.description, item.notes,
+        item.displayValue || '', item.name, item.quantity, item.description, item.notes,
         unitPrice, itemSubtotal, 'Active', user, now
       ]);
     }
@@ -732,10 +733,12 @@ if (qRow[Q.STATUS] === 'Confirmed' || qRow[Q.STATUS] === 'Fulfilled') {
       accountName,                  // Account Name
       projectName,                  // Project Name
       projectDesc,                  // Project Description
+      item[QI.DISPLAY_VALUE],       // Display Value
       item[QI.ITEM_NAME],           // Item Name
       item[QI.QUANTITY],            // Quantity
       item[QI.DESCRIPTION],         // Description
       item[QI.NOTES],               // Notes
+      now                           // Created At
     ]);
   });
 
@@ -861,7 +864,7 @@ function generateQuotationHTML(data) {
   const itemsRows = (data.items || []).map((item, i) => `
     <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8f9ff'};">
       <td style="text-align:center;color:#888;">${i + 1}</td>
-      <td><strong>${esc(item.name)}</strong></td>
+      <td><strong>${esc(item.displayValue || item.name)}</strong></td>
       <td style="text-align:center;">${esc(String(item.quantity || ''))}</td>
       <td style="color:#555;">${esc(item.description || '')}</td>
       ${showPricing ? `
