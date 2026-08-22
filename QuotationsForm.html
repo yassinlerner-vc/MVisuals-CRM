@@ -42,6 +42,7 @@
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
     .badge-drafted   { background: #fff3cd; color: #856404; }
     .badge-confirmed { background: #d1f2e1; color: #0f5132; }
+    .badge-fulfilled { background: #e8ecfd; color: #2f4bcc; }
     .badge-deleted   { background: #f8d7da; color: #842029; }
     .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .list-count { font-size: 13px; color: #666; }
@@ -94,6 +95,7 @@
     .items-table tbody td input, .items-table tbody td select { padding: 5px 7px; font-size: 13px; }
     .col-num { width: 32px; text-align: center; color: #888; font-size: 12px; }
     .col-item { min-width: 130px; }
+    .col-display { min-width: 140px; }
     .col-qty  { width: 60px; }
     .col-desc { min-width: 140px; }
     .col-notes { min-width: 110px; }
@@ -203,6 +205,7 @@
           <tr>
             <th class="col-num">#</th>
             <th class="col-item">Item</th>
+            <th class="col-display">Display Value</th>
             <th class="col-qty">Qty</th>
             <th class="col-desc">Description</th>
             <th class="col-notes">Notes</th>
@@ -539,7 +542,7 @@ function showFormActions(mode) {
     if (isAdmin) {
       btnEdit.classList.remove('hidden');
       const q = allQuotations[currentIndex];
-      if (q && q.status !== 'Confirmed') {
+      if (q && q.status !== 'Confirmed' && q.status !== 'Fulfilled') {
         btnDel.classList.remove('hidden');
         btnConf.classList.remove('hidden');
       }
@@ -633,7 +636,8 @@ function saveForm() {
 function collectFormData() {
   const rows  = document.querySelectorAll('#itemsBody tr');
   const items = Array.from(rows).map(row => ({
-    name: row.querySelector('.item-sel').value, quantity: safe(row.querySelector('.item-qty').value),
+    name: row.querySelector('.item-sel').value, displayValue: row.querySelector('.item-display').value,
+    quantity: safe(row.querySelector('.item-qty').value),
     description: row.querySelector('.item-desc').value, notes: row.querySelector('.item-notes').value,
     unitPrice: safe(row.querySelector('.item-price').value), subtotal: safe(row.querySelector('.item-subtotal').value)
   }));
@@ -682,6 +686,7 @@ function addRow(prefill) {
   tr.innerHTML = `
     <td class="col-num row-num"></td>
     <td class="col-item"><select class="item-sel"></select></td>
+    <td class="col-display"><input type="text" class="item-display" placeholder="Blank = show category" value="${escHtml(prefill ? prefill.displayValue : '')}"></td>
     <td class="col-qty"><input type="number" class="item-qty" value="${prefill ? (prefill.quantity || 1) : 1}" min="1" step="1"></td>
     <td class="col-desc"><input type="text" class="item-desc" value="${escHtml(prefill ? prefill.description : '')}"></td>
     <td class="col-notes"><input type="text" class="item-notes" value="${escHtml(prefill ? prefill.notes : '')}"></td>
