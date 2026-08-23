@@ -1,711 +1,331 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <base target="_top">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 14px; }
-    .view { display: none; padding: 20px 24px 100px; }
-    .view.active { display: block; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e2e4ef; position: sticky; top: 0; z-index: 10; }
-    .topbar-title { font-size: 16px; font-weight: 700; }
+// ============================================================
+//  ACCOUNTS — GENERATE ID
+// ============================================================
+function generateAccountId() {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  let maxNum  = 0;
+  data.slice(1).forEach(row => {
+    const match = String(row[A.ACCOUNT_ID] || '').match(/^ACC(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  });
+  return 'ACC' + String(maxNum + 1).padStart(6, '0');
+}
 
-    .btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #1a1a2e; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; }
-    .btn:hover:not(:disabled) { background: #f0f2fa; }
-    .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
-    .btn-primary { background: #4361ee; color: #fff; border-color: #4361ee; }
-    .btn-primary:hover:not(:disabled) { background: #2f4bcc; }
-    .btn-success { background: #1e8a4a; color: #fff; border-color: #1e8a4a; }
-    .btn-success:hover:not(:disabled) { background: #166b39; }
-    .btn-danger { background: #fff; color: #c0392b; border-color: #c0392b; }
-    .btn-danger:hover:not(:disabled) { background: #fdecea; }
-    .btn-ghost { background: none; border: none; color: #4361ee; font-weight: 600; font-size: 13px; cursor: pointer; padding: 7px 4px; }
-    .btn-ghost:hover { text-decoration: underline; }
-    .btn-sm { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; display: inline-flex; align-items: center; gap: 4px; }
-    .btn-sm-primary { border-color: #4361ee; color: #4361ee; }
-    .btn-sm-primary:hover { background: #eef0fd; }
-    .btn-sm-danger { border-color: #c0392b; color: #c0392b; }
-    .btn-sm-danger:hover { background: #fdecea; }
+// ============================================================
+//  ACCOUNTS — LIST
+// ============================================================
+function getAccounts() {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  return data.slice(1)
+    .filter(row => row[A.ACCOUNT_ID] && row[A.STATUS] !== 'Archived')
+    .map(row => ({
+      id:           String(row[A.ACCOUNT_ID]),
+      name:         row[A.ACCOUNT_NAME],
+      source:       row[A.SOURCE],
+      channel:      row[A.CHANNEL],
+      country:      row[A.COUNTRY],
+      industry:     row[A.INDUSTRY],
+      isRegistered: row[A.IS_REGISTERED],
+      status:       row[A.STATUS],
+      createdBy:    row[A.CREATED_BY],
+      createdAt: formatAccountDate(row[A.CREATED_AT]),
+      folderUrl:    extractUrl(row[A.FOLDER_URL]),
+      notes:        row[A.NOTES]
+    }))
+    .sort((a, b) => b.id.localeCompare(a.id));
+}
 
-    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
-    .btn-primary .spinner, .btn-success .spinner { border-top-color: #fff; }
-    .btn-danger .spinner { border-color: rgba(195,57,43,0.3); border-top-color: #c0392b; }
-    .btn.loading .spinner { display: inline-block; }
-    .btn.loading .btn-label { opacity: 0.7; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+// ============================================================
+//  ACCOUNTS — GET SINGLE
+// ============================================================
+function getAccountById(accountId) {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][A.ACCOUNT_ID]) === String(accountId)) {
+      const row = data[i];
+      return {
+        id:           String(row[A.ACCOUNT_ID]),
+        name:         row[A.ACCOUNT_NAME],
+        source:       row[A.SOURCE],
+        channel:      row[A.CHANNEL],
+        country:      row[A.COUNTRY],
+        industry:     row[A.INDUSTRY],
+        isRegistered: row[A.IS_REGISTERED],
+        status:       row[A.STATUS],
+        createdBy:    row[A.CREATED_BY],
+        createdAt: formatAccountDate(row[A.CREATED_AT]),
+        folderUrl:    extractUrl(row[A.FOLDER_URL]),
+        notes:        row[A.NOTES]
+      };
+    }
+  }
+  return null;
+}
 
-    .proc-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: #4361ee; z-index: 999; transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
-    .proc-bar.active { transform: scaleX(0.85); }
-    .proc-bar.done { transform: scaleX(1); transition: transform 0.15s ease; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 998; display: none; white-space: nowrap; }
-    .toast-info { background: #e8ecfd; color: #2f4bcc; border: 1px solid #c5cdf9; }
-    .toast-success { background: #d1f2e1; color: #0f5132; border: 1px solid #a3cfbb; }
-    .toast-error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+// ============================================================
+//  ACCOUNTS — GET ROW (used internally + by Quotations)
+// ============================================================
+function getAccountRow(accountId) {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][A.ACCOUNT_ID]) === String(accountId)) {
+      return { row: i + 1, data: data[i] };
+    }
+  }
+  return null;
+}
 
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .badge-unpaid { background: #f8d7da; color: #842029; }
-    .badge-partially-paid { background: #fff3cd; color: #856404; }
-    .badge-fully-paid { background: #d1f2e1; color: #0f5132; }
-    .badge-distributed { background: #e8ecfd; color: #2f4bcc; }
-    .badge-fulfilled { background: #d1f2e1; color: #0f5132; }
+// ============================================================
+//  ACCOUNTS — CREATE
+//  Creates account folder in Leads with 2 standard subfolders:
+//  Brand Assets, Projects
+// ============================================================
+function createAccount(formData) {
+  const sheet     = getSheet('Accounts');
+  const accountId = generateAccountId();
+  const now       = new Date();
+  const user      = Session.getActiveUser().getEmail();
 
-    .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-tab { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #d0d3e0; background: #fff; color: #888; }
-    .filter-tab.active { background: #4361ee; color: #fff; border-color: #4361ee; }
-    .filter-tab:hover:not(.active) { background: #f0f2fa; color: #4361ee; }
+  // Create account folder inside Leads
+  const leadsFolder   = DriveApp.getFolderById(LEADS_FOLDER_ID);
+  const accountFolder = leadsFolder.createFolder(accountId + ' - ' + formData.name);
 
-    .list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .list-count { font-size: 13px; color: #666; }
-    .table-wrap { overflow-x: auto; }
-    table.main-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e4ef; }
-    table.main-table thead th { background: #4361ee; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    table.main-table tbody tr:nth-child(odd) { background: #fff; }
-    table.main-table tbody tr:nth-child(even) { background: #f8f9ff; }
-    table.main-table tbody tr:hover { background: #eef0fd; cursor: pointer; }
-    table.main-table tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e4ef; vertical-align: middle; }
-    .col-id { width: 90px; font-weight: 700; color: #4361ee; }
-    .col-amt { width: 110px; text-align: right; }
-    .col-status { width: 130px; }
-    .col-date { width: 100px; color: #666; }
-    .col-acts { width: 90px; text-align: right; }
+  // Create standard subfolders
+  accountFolder.createFolder('Brand Assets');
+  accountFolder.createFolder('Projects');
 
-    .section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid #e2e4ef; }
-    h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4361ee; margin-bottom: 12px; }
+  const folderUrl = accountFolder.getUrl();
 
-    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .meta-cell { font-size: 12px; }
-    .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 3px; }
-    .meta-value { color: #1a1a2e; font-weight: 600; }
+  sheet.appendRow([
+    accountId,
+    formData.name,
+    formData.source,
+    formData.channel,
+    formData.country,
+    formData.industry,
+    formData.isRegistered,
+    'Lead',
+    user,
+    now,
+    folderUrl,
+    formData.notes || ''
+  ]);
 
-    .items-ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .items-ref-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
-    .items-ref-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: top; }
+  writeLog('Accounts_Log', 'Accounts', accountId,
+    accountId + ' — ' + formData.name,
+    accountId, formData.name,
+    'Status', '', 'Lead', 'Account created');
 
-    .paid-banner { display: flex; align-items: center; justify-content: space-between; background: #f8f9ff; border: 1px solid #e2e4ef; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
-    .paid-banner-stat { text-align: center; }
-    .paid-banner-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 2px; }
-    .paid-banner-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .paid-banner-value.green { color: #1e8a4a; }
-    .paid-banner-value.orange { color: #856404; }
+  return { success: true, accountId, accountName: formData.name, folderUrl };
+}
 
-    .payments-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
-    .payments-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
-    .payments-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
-    .payments-table .col-amt { text-align: right; font-weight: 600; }
-    .payments-table .col-acts { text-align: right; }
+// ============================================================
+//  ACCOUNTS — EDIT
+// ============================================================
+function editAccount(formData) {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  const user  = Session.getActiveUser().getEmail();
+  const now   = new Date();
 
-    .dist-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
-    .dist-table th { background: #f0f2fa; color: #555; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e4ef; }
-    .dist-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2fa; vertical-align: middle; }
-    .dist-table .col-amt { text-align: right; font-weight: 600; }
-    .dist-table .col-pct { text-align: right; color: #888; font-size: 12px; }
-    .dist-table .col-acts { text-align: right; }
-    .dist-progress { font-size: 12px; color: #666; margin: 8px 0 12px; }
-    .dist-progress strong { color: #1a1a2e; }
-    .dist-progress.match strong { color: #1e8a4a; }
-    .dist-progress.mismatch strong { color: #c0392b; }
+  let rowIndex = -1, oldRow = null;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][A.ACCOUNT_ID]) === String(formData.id)) {
+      rowIndex = i + 1;
+      oldRow   = data[i];
+      break;
+    }
+  }
+  if (rowIndex === -1) return { success: false, error: 'Account not found.' };
 
-    .inline-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
-    .inline-row select { min-width: 180px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
-    .inline-row input { width: 120px; padding: 6px 9px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; }
+  // Log field-level changes
+  const fields = [
+    { key: 'AccountName', old: oldRow[A.ACCOUNT_NAME],  nw: formData.name     },
+    { key: 'Source',      old: oldRow[A.SOURCE],         nw: formData.source   },
+    { key: 'Channel',     old: oldRow[A.CHANNEL],        nw: formData.channel  },
+    { key: 'Country',     old: oldRow[A.COUNTRY],        nw: formData.country  },
+    { key: 'Industry',    old: oldRow[A.INDUSTRY],       nw: formData.industry },
+    { key: 'IsRegistered',old: oldRow[A.IS_REGISTERED],  nw: formData.isRegistered },
+    { key: 'Notes',       old: oldRow[A.NOTES],          nw: formData.notes    }
+  ];
 
-    .locked-note { font-size: 12px; color: #888; padding: 10px 0; }
+  fields.forEach(f => {
+    if (String(f.old) !== String(f.nw)) {
+      writeLog('Accounts_Log', 'Accounts',
+        formData.id, formData.id + ' — ' + formData.name,
+        formData.id, formData.name,
+        f.key, f.old, f.nw, '');
+    }
+  });
 
-    .form-actions { display: flex; gap: 8px; align-items: center; padding: 12px 24px; background: #fff; border-top: 1px solid #e2e4ef; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9; }
-    .spacer { flex: 1; }
-    .hidden { display: none !important; }
+  // Update row — preserve ID, status, createdBy, createdAt, folderUrl
+  sheet.getRange(rowIndex, A.ACCOUNT_NAME  + 1).setValue(formData.name);
+  sheet.getRange(rowIndex, A.SOURCE        + 1).setValue(formData.source);
+  sheet.getRange(rowIndex, A.CHANNEL       + 1).setValue(formData.channel);
+  sheet.getRange(rowIndex, A.COUNTRY       + 1).setValue(formData.country);
+  sheet.getRange(rowIndex, A.INDUSTRY      + 1).setValue(formData.industry);
+  sheet.getRange(rowIndex, A.IS_REGISTERED + 1).setValue(formData.isRegistered);
+  sheet.getRange(rowIndex, A.NOTES         + 1).setValue(formData.notes || '');
 
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
-    .overlay.open { display: flex; }
-    .dialog { background: #fff; border-radius: 10px; padding: 24px 28px; max-width: 400px; width: 92%; }
-    .dialog h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
-    .dialog p { font-size: 13px; color: #555; margin-bottom: 16px; line-height: 1.5; }
-    .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-    .field { margin-bottom: 12px; }
-    .field:last-child { margin-bottom: 0; }
-    label { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-bottom: 4px; }
-    input, select, textarea { width: 100%; padding: 7px 10px; font-size: 13px; border: 1px solid #d0d3e0; border-radius: 5px; background: #fff; color: #1a1a2e; font-family: inherit; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #4361ee; }
-    textarea { resize: vertical; min-height: 50px; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .empty-state { text-align: center; padding: 40px; color: #888; font-size: 13px; }
-  </style>
-</head>
-<body>
-
-<div class="proc-bar" id="procBar"></div>
-<div class="toast" id="toast"></div>
-
-<div class="topbar">
-  <div class="topbar-title" id="topbarTitle">Projects</div>
-</div>
-
-<!-- ═══ LIST VIEW ═══ -->
-<div class="view active" id="viewList">
-  <div class="list-toolbar">
-    <div class="list-count" id="listCount">Loading...</div>
-  </div>
-  <div class="filter-tabs">
-    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
-    <button class="filter-tab" data-filter="Unpaid" onclick="setFilter('Unpaid')">🔴 Unpaid</button>
-    <button class="filter-tab" data-filter="Partially Paid" onclick="setFilter('Partially Paid')">🟡 Partially Paid</button>
-    <button class="filter-tab" data-filter="Fully Paid" onclick="setFilter('Fully Paid')">🟢 Fully Paid</button>
-  </div>
-  <div class="table-wrap">
-    <table class="main-table" id="listTable">
-      <thead>
-        <tr>
-          <th class="col-id">Quotation</th>
-          <th>Client</th>
-          <th>Project</th>
-          <th class="col-amt">Total</th>
-          <th class="col-amt">Paid</th>
-          <th class="col-status">Status</th>
-          <th class="col-acts"></th>
-        </tr>
-      </thead>
-      <tbody id="listBody">
-        <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ═══ PROJECT DETAIL VIEW ═══ -->
-<div class="view" id="viewProject">
-  <div class="section" id="projectSummary"></div>
-
-  <div class="section">
-    <h3>Scope of Work</h3>
-    <div id="itemsRefTable"></div>
-  </div>
-
-  <div class="section">
-    <h3>Payments</h3>
-    <div id="paidBanner"></div>
-    <div id="paymentsTableWrap"></div>
-    <button class="btn btn-primary" id="btnAddPayment" onclick="openAddPayment()">+ Record Payment</button>
-  </div>
-
-  <div class="section">
-    <h3>Revenue Distribution</h3>
-    <div id="distributionArea"></div>
-  </div>
-</div>
-
-<!-- ═══ FORM ACTIONS ═══ -->
-<div class="form-actions hidden" id="formActions">
-  <button class="btn btn-ghost" onclick="showList()">← Back</button>
-  <div class="spacer"></div>
-</div>
-
-<!-- ═══ RECORD PAYMENT DIALOG ═══ -->
-<div class="overlay" id="overlayPayment">
-  <div class="dialog">
-    <h4>Record Payment</h4>
-    <div class="field"><label>Amount</label><input type="text" id="payAmount" inputmode="numeric" autocomplete="off" placeholder="0.00"></div>
-    <div class="field hidden" id="payEgpWrap">
-      <label id="payEgpLabel">EGP Equivalent Received</label>
-      <input type="text" id="payEgpEquivalent" inputmode="numeric" autocomplete="off" placeholder="0.00">
-      <div id="payRateDisplay" style="font-size:11px;color:#888;margin-top:4px;"></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>Date</label><input type="date" id="payDate"></div>
-      <div class="field"><label>Method</label><select id="payMethod"></select></div>
-    </div>
-    <div class="field"><label>Notes</label><textarea id="payNotes" placeholder="Optional..."></textarea></div>
-    <div class="dialog-btns">
-      <button class="btn" onclick="closeDialog('overlayPayment')">Cancel</button>
-      <button class="btn btn-primary" id="btnPaymentSave" onclick="submitPayment()">
-        <div class="spinner"></div><span class="btn-label">Save Payment</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ DELETE PAYMENT DIALOG ═══ -->
-<div class="overlay" id="overlayDeletePayment">
-  <div class="dialog">
-    <h4>Delete Payment</h4>
-    <p>This removes the payment record. It cannot be undone.</p>
-    <div class="dialog-btns">
-      <button class="btn" onclick="closeDialog('overlayDeletePayment')">Cancel</button>
-      <button class="btn btn-danger" id="btnDeletePaymentConfirm" onclick="confirmDeletePayment()">
-        <div class="spinner"></div><span class="btn-label">Yes, Delete</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ══════════════════════════════════════════════════════
-   STATE
-══════════════════════════════════════════════════════ */
-let allProjects   = [];
-let activeFilter  = 'all';
-let currentDetail = null;
-let currentProjectId = null;
-let deletePaymentId  = null;
-let draftDistribution = [];
-let distEditing = false;
-
-/* ══════════════════════════════════════════════════════
-   CALCULATOR-STYLE AMOUNT INPUTS
-   Same pattern as Quotations' subtotal field — digit-by-digit
-   entry, comma-formatted display, no way to type invalid
-   characters. Tracks any number of fields independently by id.
-══════════════════════════════════════════════════════ */
-const _amountCents = {};
-function initAmountInput(id) {
-  _amountCents[id] = 0;
-  const el = document.getElementById(id);
-  el.value = '';
-  el.addEventListener('keydown', function(e) {
-    const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-    if (allowed.includes(e.key)) {
-      if (e.key === 'Backspace' || e.key === 'Delete') {
-        e.preventDefault();
-        _amountCents[id] = Math.floor(_amountCents[id] / 10);
-        renderAmountInput(id);
+  // Rename Drive folder to reflect new name if name changed
+  if (String(oldRow[A.ACCOUNT_NAME]) !== String(formData.name)) {
+    try {
+      const folderUrl = extractUrl(oldRow[A.FOLDER_URL]);
+      if (folderUrl) {
+        const folderId = folderUrl.match(/[-\w]{25,}/)[0];
+        DriveApp.getFolderById(folderId)
+          .setName(formData.id + ' - ' + formData.name);
       }
-      return;
+    } catch(e) { Logger.log('Folder rename error: ' + e); }
+  }
+
+  return { success: true };
+}
+
+// ============================================================
+//  ACCOUNTS — DELETE (soft — sets status to Archived,
+//             moves folder to Deleted/Archived Drive folder)
+// ============================================================
+function deleteAccount(accountId) {
+  const sheet = getSheet('Accounts');
+  const data  = sheet.getDataRange().getValues();
+  const user  = Session.getActiveUser().getEmail();
+  const now   = new Date();
+
+  let rowIndex = -1, oldRow = null;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][A.ACCOUNT_ID]) === String(accountId)) {
+      rowIndex = i + 1;
+      oldRow   = data[i];
+      break;
     }
-    if (!/^\d$/.test(e.key)) { e.preventDefault(); return; }
-    e.preventDefault();
-    const next = _amountCents[id] * 10 + parseInt(e.key, 10);
-    if (next > 99999999999) return;
-    _amountCents[id] = next;
-    renderAmountInput(id);
-  });
-  el.addEventListener('paste', e => {
-    e.preventDefault();
-    const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
-    for (const d of digits) {
-      const next = _amountCents[id] * 10 + parseInt(d, 10);
-      if (next <= 99999999999) _amountCents[id] = next;
+  }
+  if (rowIndex === -1) return { success: false, error: 'Account not found.' };
+  if (oldRow[A.STATUS] === 'Archived') {
+    return { success: false, error: 'Account is already archived.' };
+  }
+
+  // Move account folder to Deleted/Archived
+  const folderUrl = extractUrl(oldRow[A.FOLDER_URL]);
+  if (folderUrl) {
+    try {
+      const folderId      = folderUrl.match(/[-\w]{25,}/)[0];
+      const folder        = DriveApp.getFolderById(folderId);
+      const archivedRoot  = DriveApp.getFolderById(ARCHIVED_FOLDER_ID);
+      const parents       = folder.getParents();
+      archivedRoot.addFile(folder);
+      while (parents.hasNext()) parents.next().removeFile(folder);
+    } catch(e) { Logger.log('Archive folder error: ' + e); }
+  }
+
+  // Soft delete — update status only
+  sheet.getRange(rowIndex, A.STATUS + 1).setValue('Archived');
+
+  writeLog('Accounts_Log', 'Accounts', accountId,
+    accountId + ' — ' + oldRow[A.ACCOUNT_NAME],
+    accountId, oldRow[A.ACCOUNT_NAME],
+    'Status', oldRow[A.STATUS], 'Archived', 'Account archived');
+
+  return { success: true };
+}
+
+// ============================================================
+//  ACCOUNTS — PROMOTE TO CLIENT (called by Quotations on confirm)
+// ============================================================
+function promoteAccountToClient(accountId) {
+  const sheet = getSheet('Accounts');
+  const found = getAccountRow(accountId);
+  if (!found) return;
+
+  const { row, data } = found;
+  if (data[A.STATUS] === 'Client') return;
+
+  // Move account folder from Leads to Clients
+  const folderUrl = extractUrl(data[A.FOLDER_URL]);
+  if (folderUrl) {
+    try {
+      const folderId      = folderUrl.match(/[-\w]{25,}/)[0];
+      const folder        = DriveApp.getFolderById(folderId);
+      const clientsFolder = DriveApp.getFolderById(CLIENTS_FOLDER_ID);
+      const parents       = folder.getParents();
+      clientsFolder.addFolder(folder);
+      while (parents.hasNext()) parents.next().removeFolder(folder);
+    } catch(e) { Logger.log('Promote folder error: ' + e); }
+  }
+
+  sheet.getRange(row, A.STATUS + 1).setValue('Client');
+
+  writeLog('Accounts_Log', 'Accounts', accountId,
+    accountId + ' — ' + data[A.ACCOUNT_NAME],
+    accountId, data[A.ACCOUNT_NAME],
+    'Status', data[A.STATUS], 'Client',
+    'Promoted on quotation confirmation');
+}
+
+// ============================================================
+//  ACCOUNTS — MIGRATE EXISTING (kept for safety — backfills
+//  accounts that never got an ID/folder)
+// ============================================================
+function migrateExistingAccounts() {
+  const sheet        = getSheet('Accounts');
+  const leadsFolder  = DriveApp.getFolderById(LEADS_FOLDER_ID);
+  if (!sheet || !leadsFolder) {
+    SpreadsheetApp.getUi().alert('Accounts sheet or Leads folder missing.');
+    return;
+  }
+
+  const data    = sheet.getDataRange().getValues();
+  let   updated = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row         = data[i];
+    const existingId  = row[A.ACCOUNT_ID];
+    const accountName = row[A.ACCOUNT_NAME];
+    if (!existingId && accountName) {
+      const accountId     = generateAccountId();
+      const accountFolder = leadsFolder.createFolder(accountId + ' - ' + accountName);
+      accountFolder.createFolder('Brand Assets');
+      accountFolder.createFolder('Projects');
+      sheet.getRange(i + 1, A.ACCOUNT_ID  + 1).setValue(accountId);
+      sheet.getRange(i + 1, A.FOLDER_URL  + 1).setValue(accountFolder.getUrl());
+      sheet.getRange(i + 1, A.STATUS      + 1).setValue(row[A.STATUS] || 'Lead');
+      updated++;
     }
-    renderAmountInput(id);
-  });
-  el.addEventListener('focus', () => {
-    setTimeout(() => el.setSelectionRange(el.value.length, el.value.length), 0);
-  });
-}
-function renderAmountInput(id) {
-  document.getElementById(id).value = fmt(_amountCents[id] / 100);
-  onAmountInputChange(id);
-}
-function getAmountValue(id) { return (_amountCents[id] || 0) / 100; }
-function setAmountValue(id, val) {
-  _amountCents[id] = Math.round((Number(val) || 0) * 100);
-  document.getElementById(id).value = fmt(_amountCents[id] / 100);
-}
-function onAmountInputChange(id) {
-  if (id === 'payAmount' || id === 'payEgpEquivalent') updatePayRateDisplay();
-}
-
-/* ══════════════════════════════════════════════════════
-   PROCESSING / TOAST
-══════════════════════════════════════════════════════ */
-function startProcessing(btn, msg) {
-  document.getElementById('procBar').className = 'proc-bar active';
-  showToast(msg || 'Loading…', 'info', 0);
-  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
-}
-function stopProcessing(btn) {
-  const bar = document.getElementById('procBar');
-  bar.className = 'proc-bar done';
-  setTimeout(() => { bar.className = 'proc-bar'; }, 400);
-  if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
-}
-let toastTimer = null;
-function showToast(msg, type, duration) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast toast-' + (type||'info'); t.style.display = 'block';
-  if (toastTimer) clearTimeout(toastTimer);
-  if (duration !== 0) toastTimer = setTimeout(() => { t.style.display = 'none'; }, duration || 3500);
-}
-function hideToast() { document.getElementById('toast').style.display = 'none'; }
-
-/* ══════════════════════════════════════════════════════
-   INIT
-══════════════════════════════════════════════════════ */
-function init() {
-  showToast('Loading…', 'info', 0);
-  initAmountInput('payAmount');
-  initAmountInput('payEgpEquivalent');
-  google.script.run
-    .withSuccessHandler(renderList)
-    .withFailureHandler(err => showToast('Load error: ' + err.message, 'error'))
-    .getProjects();
-}
-
-/* ══════════════════════════════════════════════════════
-   LIST
-══════════════════════════════════════════════════════ */
-function setFilter(f) {
-  activeFilter = f;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
-  renderList(allProjects);
-}
-function renderList(projects) {
-  allProjects = projects || [];
-  hideToast();
-  const filtered = activeFilter === 'all' ? allProjects : allProjects.filter(p => p.paymentStatus === activeFilter);
-  document.getElementById('listCount').textContent = filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
-  const tbody = document.getElementById('listBody');
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">No projects found.</td></tr>';
-    return;
   }
-  tbody.innerHTML = filtered.map(p => {
-    const sk = statusKey(p.paymentStatus);
-    return `<tr onclick="openProject('${esc(p.projectId)}')">
-      <td class="col-id">${esc(p.quotationId)}</td>
-      <td><strong>${esc(p.accountName)}</strong></td>
-      <td>${esc(p.projectName)}${p.status === 'Fulfilled' ? ' <span class="badge badge-fulfilled">✓ Fulfilled</span>' : (p.isDistributed ? ' <span class="badge badge-distributed">Distributed</span>' : '')}</td>
-      <td class="col-amt">${esc(p.currency)} ${fmt(p.totalAmount)}</td>
-      <td class="col-amt">${esc(p.currency)} ${fmt(p.amountPaid)}</td>
-      <td class="col-status"><span class="badge badge-${sk}">${esc(p.paymentStatus)}</span></td>
-      <td class="col-acts"><button class="btn-sm btn-sm-primary" onclick="event.stopPropagation();openProject('${esc(p.projectId)}')">Open →</button></td>
-    </tr>`;
-  }).join('');
+  SpreadsheetApp.getUi().alert(
+    'Migration complete. ' + updated + ' accounts updated.');
 }
-function showList() {
-  switchView('list');
-  document.getElementById('topbarTitle').textContent = 'Projects';
-  document.getElementById('formActions').classList.add('hidden');
-  google.script.run.withSuccessHandler(renderList).getProjects();
-}
-
-/* ══════════════════════════════════════════════════════
-   OPEN PROJECT
-══════════════════════════════════════════════════════ */
-function openProject(projectId) {
-  currentProjectId = projectId;
-  startProcessing(null, 'Loading project…');
-  google.script.run
-    .withSuccessHandler(detail => {
-      stopProcessing(null); hideToast();
-      if (!detail) { showToast('Could not load project.', 'error'); return; }
-      currentDetail = detail;
-      distEditing = false;
-      renderProjectDetail(detail);
-      switchView('project');
-      document.getElementById('topbarTitle').textContent = detail.project.quotationId + ' — ' + detail.project.projectName;
-      document.getElementById('formActions').classList.remove('hidden');
-    })
-    .withFailureHandler(err => { stopProcessing(null); showToast('Error: ' + err.message, 'error'); })
-    .getProjectDetail(projectId);
-}
-
-function renderProjectDetail(detail) {
-  const p = detail.project;
-  document.getElementById('projectSummary').innerHTML = `
-    <h3>Project Overview</h3>
-    <div class="meta-grid">
-      <div class="meta-cell"><div class="meta-label">Client</div><div class="meta-value">${esc(p.accountName)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Project</div><div class="meta-value">${esc(p.projectName)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Quotation</div><div class="meta-value">${esc(p.quotationId)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Due Date</div><div class="meta-value">${p.dueDate||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Deadline</div><div class="meta-value">${p.deliveryDeadline||'—'}</div></div>
-      <div class="meta-cell"><div class="meta-label">Total Amount</div><div class="meta-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
-      <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value">${p.status === 'Fulfilled' ? '<span class="badge badge-fulfilled">✓ Fulfilled</span>' : esc(p.status)}</div></div>
-      ${p.projectDesc ? `<div class="meta-cell" style="grid-column:1/-1;"><div class="meta-label">Description</div><div class="meta-value" style="font-weight:400;color:#555;">${esc(p.projectDesc)}</div></div>` : ''}
-    </div>`;
-
-  renderItemsRef(detail.items);
-  renderPayments(detail);
-  renderDistribution(detail);
-}
-
-/* ══════════════════════════════════════════════════════
-   ITEMS (reference only)
-══════════════════════════════════════════════════════ */
-function renderItemsRef(items) {
-  const el = document.getElementById('itemsRefTable');
-  if (!items || !items.length) { el.innerHTML = '<p class="empty-state">No items on this project.</p>'; return; }
-  el.innerHTML = `
-    <table class="items-ref-table">
-      <thead><tr><th>Item</th><th>Qty</th><th>Description</th><th>Notes</th></tr></thead>
-      <tbody>
-        ${items.map(i => `<tr>
-          <td><strong>${esc(i.displayValue || i.itemName)}</strong></td>
-          <td>${i.quantity}</td>
-          <td style="color:#555;">${esc(i.description || '—')}</td>
-          <td style="color:#888;font-style:italic;">${esc(i.notes || '—')}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
-
-/* ══════════════════════════════════════════════════════
-   PAYMENTS
-══════════════════════════════════════════════════════ */
-function renderPayments(detail) {
-  const p = detail.project;
-  const remaining = detail.remainingToPay;
-  const isFull = detail.isFullyPaid;
-  const isForeign = p.currency !== 'EGP';
-
-  document.getElementById('paidBanner').innerHTML = `
-    <div class="paid-banner">
-      <div class="paid-banner-stat"><div class="paid-banner-label">Total</div><div class="paid-banner-value">${esc(p.currency)} ${fmt(p.totalAmount)}</div></div>
-      <div class="paid-banner-stat"><div class="paid-banner-label">Paid</div><div class="paid-banner-value green">${esc(p.currency)} ${fmt(detail.amountPaid)}</div></div>
-      <div class="paid-banner-stat"><div class="paid-banner-label">Remaining</div><div class="paid-banner-value ${remaining > 0 ? 'orange' : ''}">${esc(p.currency)} ${fmt(remaining)}</div></div>
-    </div>`;
-
-  const wrap = document.getElementById('paymentsTableWrap');
-  if (!detail.payments.length) {
-    wrap.innerHTML = '<p class="empty-state">No payments recorded yet.</p>';
-  } else {
-    wrap.innerHTML = `
-      <table class="payments-table">
-        <thead><tr>
-          <th>Date</th><th>Amount</th>
-          ${isForeign ? '<th>EGP Equiv.</th><th>Rate</th>' : ''}
-          <th>Method</th><th>Notes</th><th>Recorded By</th><th class="col-acts"></th>
-        </tr></thead>
-        <tbody>
-          ${detail.payments.map(pm => `<tr>
-            <td>${pm.date || '—'}</td>
-            <td class="col-amt">${esc(p.currency)} ${fmt(pm.amount)}</td>
-            ${isForeign ? `
-            <td class="col-amt">${pm.egpEquivalent ? 'EGP ' + fmt(pm.egpEquivalent) : '—'}</td>
-            <td style="color:#888;font-size:12px;">${pm.exchangeRate ? pm.exchangeRate.toFixed(4) : '—'}</td>` : ''}
-            <td>${esc(pm.method || '—')}</td>
-            <td style="color:#555;">${esc(pm.notes || '—')}</td>
-            <td style="color:#888;font-size:12px;">${esc(pm.recordedBy)}</td>
-            <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="askDeletePayment('${esc(pm.paymentId)}')">Delete</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
+// ============================================================
+//  HELPER — extract plain URL from either a formula or raw string
+// ============================================================
+function extractUrl(cellValue) {
+  if (!cellValue) return '';
+  const str = String(cellValue);
+  // Handle =HYPERLINK("url","label") formula
+  if (str.toUpperCase().startsWith('=HYPERLINK')) {
+    const match = str.match(/\"(https?:\/\/[^\"]+)\"/);
+    return match ? match[1] : '';
   }
-
-  document.getElementById('btnAddPayment').classList.toggle('hidden', isFull);
+  return str;
 }
 
-function openAddPayment() {
-  setAmountValue('payAmount', 0);
-  setAmountValue('payEgpEquivalent', 0);
-  document.getElementById('payRateDisplay').textContent = '';
-  document.getElementById('payDate').valueAsDate = new Date();
-  document.getElementById('payNotes').value = '';
-  const isForeign = currentDetail.project.currency !== 'EGP';
-  document.getElementById('payEgpWrap').classList.toggle('hidden', !isForeign);
-  document.getElementById('payEgpLabel').textContent = 'EGP Equivalent Received (' + currentDetail.project.currency + ' → EGP)';
-  const sel = document.getElementById('payMethod');
-  if (!sel.options.length) {
-    google.script.run.withSuccessHandler(methods => {
-      sel.innerHTML = '<option value="">Select method...</option>' + (methods||[]).map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-    }).getPaymentMethods();
-  }
-  document.getElementById('overlayPayment').classList.add('open');
+// ============================================================
+//  HELPER — formats CREATED_AT for display. Real dates format
+//  as yyyy-MM-dd as before; non-date tags (e.g. "PRERUYA" on
+//  backfilled accounts) pass through as literal text instead
+//  of crashing Utilities.formatDate on an Invalid Date.
+// ============================================================
+function formatAccountDate(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  return isNaN(d.getTime())
+    ? String(val)
+    : Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
-function updatePayRateDisplay() {
-  const amount = getAmountValue('payAmount');
-  const egp = getAmountValue('payEgpEquivalent');
-  const el = document.getElementById('payRateDisplay');
-  if (amount > 0 && egp > 0) {
-    el.textContent = 'Exchange rate: 1 ' + currentDetail.project.currency + ' = ' + (egp / amount).toFixed(4) + ' EGP';
-  } else {
-    el.textContent = '';
-  }
-}
-function submitPayment() {
-  const amount = getAmountValue('payAmount');
-  const date   = document.getElementById('payDate').value;
-  const method = document.getElementById('payMethod').value;
-  const isForeign = currentDetail.project.currency !== 'EGP';
-  const egpEquivalent = isForeign ? getAmountValue('payEgpEquivalent') : '';
-  if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
-  if (!date)   { showToast('Select a date.', 'error'); return; }
-  if (!method) { showToast('Select a payment method.', 'error'); return; }
-  if (isForeign && (!egpEquivalent || egpEquivalent <= 0)) { showToast('Enter the EGP equivalent received.', 'error'); return; }
-
-  const btn = document.getElementById('btnPaymentSave');
-  startProcessing(btn, 'Saving payment...');
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
-      closeDialog('overlayPayment');
-      showToast('Payment recorded.', 'success');
-      openProject(currentProjectId);
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    .recordPayment(currentProjectId, {
-      amount, date, method, egpEquivalent,
-      notes: document.getElementById('payNotes').value
-    });
-}
-function askDeletePayment(paymentId) {
-  deletePaymentId = paymentId;
-  document.getElementById('overlayDeletePayment').classList.add('open');
-}
-function confirmDeletePayment() {
-  const btn = document.getElementById('btnDeletePaymentConfirm');
-  startProcessing(btn, 'Deleting...');
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      closeDialog('overlayDeletePayment');
-      if (!res.success) { showToast(res.error || 'Cannot delete.', 'error'); return; }
-      showToast('Payment deleted.', 'success');
-      openProject(currentProjectId);
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    .deletePayment(deletePaymentId);
-}
-
-/* ══════════════════════════════════════════════════════
-   REVENUE DISTRIBUTION
-══════════════════════════════════════════════════════ */
-function renderDistribution(detail) {
-  const area = document.getElementById('distributionArea');
-  const p = detail.project;
-
-  if (!detail.isFullyPaid) {
-    area.innerHTML = '<p class="locked-note">Distribute revenue once this project is fully paid.</p>';
-    return;
-  }
-
-  if (detail.distribution.length && !distEditing) {
-    const isForeign = p.currency !== 'EGP';
-    area.innerHTML = `
-      ${isForeign ? `<p class="locked-note" style="padding-top:0;margin-bottom:10px;">Distributed from EGP ${fmt(detail.totalEgpCollected)} actually collected (project total ${esc(p.currency)} ${fmt(p.totalAmount)}).</p>` : ''}
-      <table class="dist-table">
-        <thead><tr><th>Person</th><th class="col-amt">Amount (EGP)</th><th class="col-pct">%</th></tr></thead>
-        <tbody>
-          ${detail.distribution.map(d => `<tr>
-            <td><strong>${esc(d.personName)}</strong></td>
-            <td class="col-amt">EGP ${fmt(d.amount)}</td>
-            <td class="col-pct">${d.percent.toFixed(1)}%</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      <button class="btn" onclick="enterDistEdit()">Edit Distribution</button>`;
-    return;
-  }
-
-  // Editing mode
-  if (!distEditing) {
-    draftDistribution = [];
-    distEditing = true;
-  }
-  renderDistEditor(detail);
-}
-
-function enterDistEdit() {
-  draftDistribution = currentDetail.distribution.map(d => ({ personId: d.personId, personName: d.personName, percent: d.percent }));
-  distEditing = true;
-  renderDistEditor(currentDetail);
-}
-
-function renderDistEditor(detail) {
-  const area = document.getElementById('distributionArea');
-  const p = detail.project;
-  const egpPool = detail.totalEgpCollected || 0;
-  const isForeign = p.currency !== 'EGP';
-  const members = detail.teamMembers || [];
-  const sum = draftDistribution.reduce((s, r) => s + r.percent, 0);
-  const diff = 100 - sum;
-  const matchClass = Math.abs(diff) < 0.5 ? 'match' : 'mismatch';
-
-  const rowsHtml = draftDistribution.map((r, idx) => `
-    <tr>
-      <td><strong>${esc(r.personName)}</strong></td>
-      <td class="col-amt">EGP ${fmt(egpPool * r.percent / 100)}</td>
-      <td class="col-pct">${r.percent.toFixed(1)}%</td>
-      <td class="col-acts"><button class="btn-sm btn-sm-danger" onclick="removeDistRow(${idx})">Remove</button></td>
-    </tr>`).join('');
-
-  area.innerHTML = `
-    ${isForeign ? `<p class="locked-note" style="padding-top:0;margin-bottom:10px;">Distributing EGP ${fmt(egpPool)} actually collected (project total ${esc(p.currency)} ${fmt(p.totalAmount)}) — not a fresh conversion of the quotation total.</p>` : ''}
-    <table class="dist-table">
-      <thead><tr><th>Person</th><th class="col-amt">Amount (EGP)</th><th class="col-pct">%</th><th class="col-acts"></th></tr></thead>
-      <tbody>${rowsHtml || '<tr><td colspan="4" style="text-align:center;color:#888;">No one added yet.</td></tr>'}</tbody>
-    </table>
-    <div class="dist-progress ${matchClass}">
-      Distributed: <strong>${sum.toFixed(1)}%</strong> (EGP ${fmt(egpPool * sum / 100)}) / 100% (EGP ${fmt(egpPool)})
-      ${Math.abs(diff) >= 0.5 ? ` — ${diff > 0 ? diff.toFixed(1) + '% remaining' : 'over by ' + (-diff).toFixed(1) + '%'}` : ' ✓'}
-    </div>
-    <div class="inline-row">
-      <select id="distPersonSelect">${members.map(m => `<option value="${esc(m.id)}" data-name="${esc(m.name)}">${esc(m.name)}${m.role ? ' (' + esc(m.role) + ')' : ''}</option>`).join('')}</select>
-      <input type="text" id="distPercentInput" placeholder="%" inputmode="decimal">
-      <button class="btn-sm btn-sm-primary" onclick="addDistRow()">+ Add</button>
-      <button class="btn-sm" onclick="distributeRest()">Distribute Rest to Selected</button>
-    </div>
-    <div class="dialog-btns" style="margin-top:16px;">
-      <button class="btn" onclick="cancelDistEdit()">Cancel</button>
-      <button class="btn btn-success" id="btnSaveDist" onclick="submitDistribution()">
-        <div class="spinner"></div><span class="btn-label">Save Distribution</span>
-      </button>
-    </div>`;
-}
-
-function addDistRow() {
-  const sel = document.getElementById('distPersonSelect');
-  const pctEl = document.getElementById('distPercentInput');
-  if (!sel.options.length) { showToast('No team members found. Add some in the Team module first.', 'error'); return; }
-  const percent = safe(pctEl.value);
-  if (!percent || percent <= 0) { showToast('Enter a valid percentage.', 'error'); return; }
-  const personId = sel.value;
-  const personName = sel.options[sel.selectedIndex].dataset.name;
-  const existing = draftDistribution.find(r => r.personId === personId);
-  if (existing) { existing.percent += percent; } else { draftDistribution.push({ personId, personName, percent }); }
-  renderDistEditor(currentDetail);
-}
-function distributeRest() {
-  const sel = document.getElementById('distPersonSelect');
-  if (!sel.options.length) { showToast('No team members found. Add some in the Team module first.', 'error'); return; }
-  const sum = draftDistribution.reduce((s, r) => s + r.percent, 0);
-  const remaining = Math.round((100 - sum) * 10) / 10;
-  if (remaining <= 0) { showToast('No remaining percentage to distribute.', 'error'); return; }
-  const personId = sel.value;
-  const personName = sel.options[sel.selectedIndex].dataset.name;
-  const existing = draftDistribution.find(r => r.personId === personId);
-  if (existing) { existing.percent += remaining; } else { draftDistribution.push({ personId, personName, percent: remaining }); }
-  renderDistEditor(currentDetail);
-}
-function removeDistRow(idx) {
-  draftDistribution.splice(idx, 1);
-  renderDistEditor(currentDetail);
-}
-function cancelDistEdit() {
-  distEditing = false;
-  draftDistribution = [];
-  renderDistribution(currentDetail);
-}
-function submitDistribution() {
-  const btn = document.getElementById('btnSaveDist');
-  startProcessing(btn, 'Saving distribution...');
-  google.script.run
-    .withSuccessHandler(res => {
-      stopProcessing(btn);
-      if (!res.success) { showToast(res.error || 'Failed.', 'error'); return; }
-      showToast('Revenue distributed.', 'success');
-      distEditing = false;
-      openProject(currentProjectId);
-    })
-    .withFailureHandler(err => { stopProcessing(btn); showToast('Error: ' + err.message, 'error'); })
-    .saveDistribution(currentProjectId, draftDistribution);
-}
-
-/* ══════════════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════════════ */
-function switchView(name) {
-  document.getElementById('viewList').classList.toggle('active', name === 'list');
-  document.getElementById('viewProject').classList.toggle('active', name === 'project');
-}
-function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
-function statusKey(s) { return String(s||'').toLowerCase().replace(/\s+/g, '-'); }
-function fmt(n) { return Number(n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function safe(v) { return Number(String(v).replace(/,/g, '')) || 0; }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-init();
-</script>
-</body>
-</html>
