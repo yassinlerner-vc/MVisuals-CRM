@@ -1,17 +1,24 @@
 // ============================================================
 //  HOME — the workbook's landing tab. Always the active sheet
-//  on open. Ruya logo + welcome message on the left, full sheet
-//  index on the right. Rebuild manually (menu) whenever a sheet
-//  is added, renamed, or removed.
+//  on open — refreshHome() runs automatically from onOpen() in
+//  Main.gs, no menu item needed. It only rewrites the welcome
+//  text range and the sheet-index table range; it never touches
+//  images, so the logo (inserted manually, once, via
+//  Insert → Image → Image over cells) survives every refresh.
+//
+//  Logo placement guide (do this once, by hand, in the sheet):
+//    Anchor roughly at cell A3, resize to cover rows 3–24,
+//    columns A–F (1–6).
 // ============================================================
-const HOME_SHEET_NAME      = 'Home';
-const HOME_WELCOME_ROW     = 1;
-const HOME_LOGO_ANCHOR_ROW = 3;
-const HOME_LOGO_ANCHOR_COL = 1;   // column A
-const HOME_LOGO_WIDTH_PX   = 480;
-const HOME_LOGO_HEIGHT_PX  = 160; // adjust to match the logo's real aspect ratio
-const HOME_TABLE_START_COL = 10;  // column J — clears the logo area (A:H)
-const HOME_TABLE_START_ROW = 2;
+const HOME_SHEET_NAME       = 'Home';
+const HOME_WELCOME_ROW      = 1;
+const HOME_LOGO_START_ROW   = 3;
+const HOME_LOGO_END_ROW     = 24;
+const HOME_LOGO_START_COL   = 2;   // column B — logo lives here now
+const HOME_LOGO_END_COL     = 7;   // column G
+const HOME_WELCOME_COL_SPAN = 6;   // B–G, same width as the logo
+const HOME_TABLE_START_COL  = 9;   // column I
+const HOME_TABLE_START_ROW  = 2;
 
 const SHEET_INDEX_META = {
   // ── Module data (app-managed — edit via the CRM forms, not the sheet) ──
@@ -32,7 +39,8 @@ const SHEET_INDEX_META = {
   'Quotation Settings':      { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Currency list offered on quotations.' },
   'Items':                   { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Item catalog (name/description/default price) for quotations.' },
   'Branding':                { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Company name, colors, contact info shown on PDFs.' },
-  'Bank_Details':            { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Bank/Instapay details shown on quotation PDFs.' },
+  'Bank_Details':            { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Bank transfer details shown on quotation PDFs.' },
+  'Instapay Details':        { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Instapay display value + link shown on quotation PDFs.' },
   'Quotation_Terms':         { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Terms section printed on every quotation PDF.' },
   'Account Sources':         { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Dropdown list — Accounts "Source" field.' },
   'Account Channels':        { category: 'Editable Config & Reference', type: 'Editable',  desc: 'Dropdown list — Accounts "Channel" field.' },
@@ -58,15 +66,13 @@ const SHEET_INDEX_CATEGORY_ORDER = [
   '⚠️ Unrecognized / Review'
 ];
 
-// Category column highlight — background + text color
 const SHEET_INDEX_CATEGORY_STYLE = {
-  'Module Data (app-managed)':   { bg: '#c9daf8', fg: '#1a1a2e' }, // light blue
-  'Editable Config & Reference': { bg: '#fff3cd', fg: '#856404' }, // yellow
-  'Logs (view-only)':            { bg: '#d9d9d9', fg: '#555555' }, // grey
-  '⚠️ Unrecognized / Review':    { bg: '#f8d7da', fg: '#842029' }  // red
+  'Module Data (app-managed)':   { bg: '#c9daf8', fg: '#1a1a2e' },
+  'Editable Config & Reference': { bg: '#fff3cd', fg: '#856404' },
+  'Logs (view-only)':            { bg: '#d9d9d9', fg: '#555555' },
+  '⚠️ Unrecognized / Review':    { bg: '#f8d7da', fg: '#842029' }
 };
 
-// Physical tab color — same palette, so the tab strip matches the table
 const SHEET_INDEX_TAB_COLOR = {
   'Module Data (app-managed)':   '#c9daf8',
   'Editable Config & Reference': '#fff3cd',
@@ -74,21 +80,30 @@ const SHEET_INDEX_TAB_COLOR = {
   '⚠️ Unrecognized / Review':    '#f8d7da'
 };
 
-function buildSheetIndex() {
+// ============================================================
+//  REFRESH HOME — called automatically by onOpen() in Main.gs.
+//  Can also be run manually from the Apps Script editor
+//  (select refreshHome in the function dropdown ▸ Run) if you
+//  add/rename/remove a sheet mid-session and want the table to
+//  catch up immediately instead of waiting for the next open.
+// ============================================================
+function refreshHome() {
   const ss   = SpreadsheetApp.getActive();
   const ssId = ss.getId();
 
   let homeSheet = ss.getSheetByName(HOME_SHEET_NAME);
   if (!homeSheet) {
     homeSheet = ss.insertSheet(HOME_SHEET_NAME, 0);
-  } else {
-    homeSheet.getImages().forEach(img => img.remove()); // clear() doesn't remove images
-    homeSheet.clear();
   }
 
-  insertHomeWelcomeAndLogo(homeSheet);
+  writeHomeWelcome(homeSheet);
 
-  const headers = ['Category', 'Sheet', 'Type', 'Description', 'Open'];
+  const headers = ['Sheet', 'Type', 'Description', 'Open'];
+
+  // Clear only the table's own range — never sheet.clear(), and never
+  // touch images, so a manually-placed logo is never wiped out.
+  homeSheet.getRange(HOME_TABLE_START_ROW, HOME_TABLE_START_COL, 200, headers.length).clear();
+
   homeSheet.getRange(HOME_TABLE_START_ROW, HOME_TABLE_START_COL, 1, headers.length)
     .setValues([headers])
     .setFontWeight('bold')
@@ -109,12 +124,14 @@ function buildSheetIndex() {
       };
       const url = `https://docs.google.com/spreadsheets/d/${ssId}/edit#gid=${sheet.getSheetId()}`;
       byCategory[meta.category].push([
-        meta.category, name, meta.type, meta.desc, `=HYPERLINK("${url}","Open →")`
+        name, meta.type, meta.desc, `=HYPERLINK("${url}","Open →")`
       ]);
 
       const tabColor = SHEET_INDEX_TAB_COLOR[meta.category];
       if (tabColor) sheet.setTabColor(tabColor);
     });
+
+  const TYPE_COL_OFFSET = 1; // "Type" is the 2nd column (0-indexed) in the new 4-col layout
 
   let row = HOME_TABLE_START_ROW + 1;
   let totalRows = 0;
@@ -124,7 +141,7 @@ function buildSheetIndex() {
     homeSheet.getRange(row, HOME_TABLE_START_COL, rows.length, headers.length).setValues(rows);
     const style = SHEET_INDEX_CATEGORY_STYLE[cat];
     if (style) {
-      homeSheet.getRange(row, HOME_TABLE_START_COL, rows.length, 1)
+      homeSheet.getRange(row, HOME_TABLE_START_COL + TYPE_COL_OFFSET, rows.length, 1)
         .setBackground(style.bg)
         .setFontColor(style.fg)
         .setFontWeight('bold');
@@ -133,40 +150,30 @@ function buildSheetIndex() {
     totalRows += rows.length;
   });
 
-  homeSheet.setColumnWidth(HOME_TABLE_START_COL,     190); // Category
-  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 1, 190); // Sheet
-  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 2, 110); // Type
-  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 3, 430); // Description
-  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 4, 90);  // Open
+  homeSheet.setColumnWidth(HOME_TABLE_START_COL,     190); // Sheet
+  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 1, 150); // Type
+  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 2, 430); // Description
+  homeSheet.setColumnWidth(HOME_TABLE_START_COL + 3, 90);  // Open
   homeSheet.setFrozenRows(HOME_TABLE_START_ROW);
 
   ss.setActiveSheet(homeSheet);
   ss.moveActiveSheet(1);
 
-  SpreadsheetApp.getUi().alert('Home rebuilt — ' + totalRows + ' sheets listed.');
+  return totalRows;
 }
-
 // ============================================================
-//  WELCOME MESSAGE + LOGO — reuses RUYA_LOGO_BASE64 already
-//  defined in Logo.gs, so there's only one copy of the asset
-//  in the whole project.
+//  WELCOME MESSAGE — text only. The logo is a manually-placed
+//  image (see placement guide above) and is never touched here.
 // ============================================================
-function insertHomeWelcomeAndLogo(sheet) {
-  sheet.getRange(HOME_WELCOME_ROW, HOME_LOGO_ANCHOR_COL, 1, 8).merge();
-  sheet.getRange(HOME_WELCOME_ROW, HOME_LOGO_ANCHOR_COL)
-    .setValue('Welcome to Ruya')
-    .setFontSize(13)
+function writeHomeWelcome(sheet) {
+  // Break apart any old merge shape (e.g. from the previous 8-column
+  // version) before re-merging at the new 6-column width.
+  sheet.getRange(HOME_WELCOME_ROW, 1, 1, 10).breakApart();
+  const range = sheet.getRange(HOME_WELCOME_ROW, HOME_LOGO_START_COL, 1, HOME_WELCOME_COL_SPAN);
+  range.merge();
+  range.setValue('Welcome')
+    .setFontSize(30)
     .setFontStyle('italic')
-    .setFontColor('#888888')
+    .setFontColor('#1A1A1A')
     .setHorizontalAlignment('center');
-
-  try {
-    const match = RUYA_LOGO_BASE64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!match) return;
-    const blob  = Utilities.newBlob(Utilities.base64Decode(match[2]), match[1], 'ruya_logo');
-    const image = sheet.insertImage(blob, HOME_LOGO_ANCHOR_COL, HOME_LOGO_ANCHOR_ROW);
-    image.setWidth(HOME_LOGO_WIDTH_PX).setHeight(HOME_LOGO_HEIGHT_PX);
-  } catch(e) {
-    Logger.log('Home logo insert error: ' + e);
-  }
 }
