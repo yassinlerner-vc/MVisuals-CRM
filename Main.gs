@@ -118,38 +118,43 @@ const A = {
 //  COLUMN INDEXES — Quotations (0-based)
 //
 //  Col 27 (AB) added: IncludeBankDetails — checkbox, per-quotation
-//  toggle for whether the Payment Details section renders in the PDF.
-//  Added at the very end so no existing index shifts.
+//  toggle for whether the Bank Transfer sub-section renders in
+//  the PDF.
+//  Col 28 (AC) added: IncludeInstapayDetails — checkbox, same
+//  idea but for the Instapay sub-section. Independent toggle so
+//  a quotation can show either, both, or neither. Added at the
+//  very end so no existing index shifts.
 // ============================================================
 const Q = {
-  QUOTATION_ID:         0,
-  CURRENT_VERSION:      1,
-  ACCOUNT_ID:           2,
-  ACCOUNT_NAME:         3,
-  PROJECT_NAME:         4,
-  PROJECT_DESC:         5,
-  DATE_ISSUED:          6,
-  MIN_DAYS:             7,
-  MAX_DAYS:             8,
-  DELIVERY_DEADLINE:    9,
-  PRICING_MODE:         10,
-  CURRENCY:             11,
-  SUBTOTAL:             12,
-  DISCOUNTED:           13,
-  DISCOUNT_PERCENT:     14,
-  DISCOUNT_AMOUNT:      15,
-  TAXED:                16,
-  TAX_PERCENT:          17,
-  TAX_AMOUNT:           18,
-  TOTAL:                19,
-  STATUS:               20,
-  NOTES:                21,
-  FOLDER_URL:           22,
-  CREATED_BY:           23,
-  CREATED_AT:           24,
-  LAST_UPDATED_BY:      25,
-  LAST_UPDATED_AT:      26,
-  INCLUDE_BANK_DETAILS: 27
+  QUOTATION_ID:            0,
+  CURRENT_VERSION:         1,
+  ACCOUNT_ID:              2,
+  ACCOUNT_NAME:            3,
+  PROJECT_NAME:            4,
+  PROJECT_DESC:            5,
+  DATE_ISSUED:             6,
+  MIN_DAYS:                7,
+  MAX_DAYS:                8,
+  DELIVERY_DEADLINE:       9,
+  PRICING_MODE:            10,
+  CURRENCY:                11,
+  SUBTOTAL:                12,
+  DISCOUNTED:              13,
+  DISCOUNT_PERCENT:        14,
+  DISCOUNT_AMOUNT:         15,
+  TAXED:                   16,
+  TAX_PERCENT:             17,
+  TAX_AMOUNT:              18,
+  TOTAL:                   19,
+  STATUS:                  20,
+  NOTES:                   21,
+  FOLDER_URL:              22,
+  CREATED_BY:              23,
+  CREATED_AT:              24,
+  LAST_UPDATED_BY:         25,
+  LAST_UPDATED_AT:         26,
+  INCLUDE_BANK_DETAILS:    27,
+  INCLUDE_INSTAPAY_DETAILS: 28
 };
 
 // ============================================================
@@ -241,25 +246,38 @@ const PI = {
 //  COLUMN INDEXES — Bank_Details (0-based)
 //
 //  Sheet headers (row 1):
-//  Label | Account Name | Bank Name | IBAN | SWIFT Code |
-//  Nationality | Branch Name | Branch Code | Address |
-//  Instapay Payment Address | Instapay Mobile Number
+//  Label | Account Name | Account Number | Bank Name | IBAN |
+//  SWIFT Code | Branch Name
 //
-//  Only row 2 (the first data row) is read — one active bank
-//  details set is assumed for now.
+//  Instapay now lives on its own sheet (see IP below) — this
+//  sheet is purely bank-transfer details. Only row 2 (the first
+//  data row) is read — one active bank details set is assumed.
 // ============================================================
 const BD = {
-  LABEL:            0,
-  ACCOUNT_NAME:     1,
-  BANK_NAME:        2,
-  IBAN:             3,
-  SWIFT_CODE:       4,
-  NATIONALITY:      5,
-  BRANCH_NAME:      6,
-  BRANCH_CODE:      7,
-  ADDRESS:          8,
-  INSTAPAY_ADDRESS: 9,
-  INSTAPAY_MOBILE:  10
+  LABEL:          0,
+  ACCOUNT_NAME:   1,
+  ACCOUNT_NUMBER: 2,
+  BANK_NAME:      3,
+  IBAN:           4,
+  SWIFT_CODE:     5,
+  BRANCH_NAME:    6
+};
+
+// ============================================================
+//  COLUMN INDEXES — Instapay Details (0-based)
+//
+//  Sheet headers (row 1):
+//  Label | Display Value | Instapay Link
+//
+//  DISPLAY_VALUE is what's shown to the client on the PDF (e.g.
+//  a phone number or handle); LINK is the actual Instapay URL
+//  the display value is hyperlinked to — same pattern as the
+//  Website/Instagram footer links. Only row 2 is read.
+// ============================================================
+const IP = {
+  LABEL:         0,
+  DISPLAY_VALUE: 1,
+  LINK:          2
 };
 
 // ============================================================
