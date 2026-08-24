@@ -28,7 +28,8 @@ function logQuotationFieldChanges(oldRow, newData, accountId, accountName) {
     { key: 'TaxPercent',         old: oldRow[Q.TAX_PERCENT],      nw: newData.taxPercent },
     { key: 'Total',              old: oldRow[Q.TOTAL],            nw: newData.total },
     { key: 'Notes',              old: oldRow[Q.NOTES],            nw: newData.notes },
-    { key: 'IncludeBankDetails', old: oldRow[Q.INCLUDE_BANK_DETAILS], nw: newData.includeBankDetails }
+    { key: 'IncludeBankDetails', old: oldRow[Q.INCLUDE_BANK_DETAILS], nw: newData.includeBankDetails },
+    { key: 'IncludeInstapayDetails', old: oldRow[Q.INCLUDE_INSTAPAY_DETAILS], nw: newData.includeInstapayDetails }
   ];
 
   fields.forEach(f => {
@@ -183,32 +184,33 @@ function getQuotationById(quotationId) {
     }));
 
   return {
-    id:                 String(qRow[Q.QUOTATION_ID]),
-    version:            qRow[Q.CURRENT_VERSION] || 1,
-    accountId:          qRow[Q.ACCOUNT_ID],
-    accountName:        qRow[Q.ACCOUNT_NAME],
-    projectName:        qRow[Q.PROJECT_NAME],
-    projectDescription: qRow[Q.PROJECT_DESC],
-    dateIssued:         qRow[Q.DATE_ISSUED]
+    id:                     String(qRow[Q.QUOTATION_ID]),
+    version:                qRow[Q.CURRENT_VERSION] || 1,
+    accountId:              qRow[Q.ACCOUNT_ID],
+    accountName:            qRow[Q.ACCOUNT_NAME],
+    projectName:            qRow[Q.PROJECT_NAME],
+    projectDescription:     qRow[Q.PROJECT_DESC],
+    dateIssued:             qRow[Q.DATE_ISSUED]
       ? Utilities.formatDate(new Date(qRow[Q.DATE_ISSUED]), tz, 'yyyy-MM-dd') : '',
-    minDays:            qRow[Q.MIN_DAYS],
-    maxDays:            qRow[Q.MAX_DAYS],
-    deliveryDeadline:   qRow[Q.DELIVERY_DEADLINE]
+    minDays:                qRow[Q.MIN_DAYS],
+    maxDays:                qRow[Q.MAX_DAYS],
+    deliveryDeadline:       qRow[Q.DELIVERY_DEADLINE]
       ? Utilities.formatDate(new Date(qRow[Q.DELIVERY_DEADLINE]), tz, 'yyyy-MM-dd') : '',
-    pricingMode:        qRow[Q.PRICING_MODE],
-    currency:           qRow[Q.CURRENCY],
-    subtotal:           qRow[Q.SUBTOTAL],
-    discounted:         qRow[Q.DISCOUNTED],
-    discountPercent:    qRow[Q.DISCOUNT_PERCENT],
-    discountAmount:     qRow[Q.DISCOUNT_AMOUNT],
-    taxed:              qRow[Q.TAXED],
-    taxPercent:         qRow[Q.TAX_PERCENT],
-    taxAmount:          qRow[Q.TAX_AMOUNT],
-    total:              qRow[Q.TOTAL],
-    status:             qRow[Q.STATUS],
-    notes:              qRow[Q.NOTES],
-    includeBankDetails: !!qRow[Q.INCLUDE_BANK_DETAILS],
-    pdfUrl:             extractUrl(qRow[Q.FOLDER_URL]) || '', // the live quotation PDF
+    pricingMode:            qRow[Q.PRICING_MODE],
+    currency:               qRow[Q.CURRENCY],
+    subtotal:               qRow[Q.SUBTOTAL],
+    discounted:             qRow[Q.DISCOUNTED],
+    discountPercent:        qRow[Q.DISCOUNT_PERCENT],
+    discountAmount:         qRow[Q.DISCOUNT_AMOUNT],
+    taxed:                  qRow[Q.TAXED],
+    taxPercent:             qRow[Q.TAX_PERCENT],
+    taxAmount:              qRow[Q.TAX_AMOUNT],
+    total:                  qRow[Q.TOTAL],
+    status:                 qRow[Q.STATUS],
+    notes:                  qRow[Q.NOTES],
+    includeBankDetails:     !!qRow[Q.INCLUDE_BANK_DETAILS],
+    includeInstapayDetails: !!qRow[Q.INCLUDE_INSTAPAY_DETAILS],
+    pdfUrl:                 extractUrl(qRow[Q.FOLDER_URL]) || '', // the live quotation PDF
     items
   };
 }
@@ -324,7 +326,8 @@ function createQuotation(data) {
   const pdfFile = pipelineFolder.createFile(blob);
   const pdfUrl  = pdfFile.getUrl();
 
-  const includeBankDetails = !!data.includeBankDetails;
+  const includeBankDetails     = !!data.includeBankDetails;
+  const includeInstapayDetails = !!data.includeInstapayDetails;
 
   // ── Write quotation row ───────────────────────────────────
   // FOLDER_URL column now stores the quotation PDF FILE url directly
@@ -337,7 +340,7 @@ function createQuotation(data) {
     data.taxed, data.taxPercent, taxAmount,
     total, 'Drafted', data.notes, pdfUrl,
     user, now, user, now,
-    includeBankDetails
+    includeBankDetails, includeInstapayDetails
   ]);
 
   // ── Write items ───────────────────────────────────────────
@@ -410,7 +413,8 @@ function editQuotation(data) {
 
   const newVersion = Number(currentVersion) + 1;
   const status      = oldRow[Q.STATUS];
-  const includeBankDetails = !!data.includeBankDetails;
+  const includeBankDetails     = !!data.includeBankDetails;
+  const includeInstapayDetails = !!data.includeInstapayDetails;
 
   // ── Get account name ──────────────────────────────────────
   const accounts = accountsSheet.getDataRange().getValues();
@@ -469,12 +473,12 @@ function editQuotation(data) {
     }));
 
   // ── Log field-level changes ───────────────────────────────
-  logQuotationFieldChanges(oldRow, { ...data, subtotal, total, discountAmount, taxAmount, includeBankDetails },
+  logQuotationFieldChanges(oldRow, { ...data, subtotal, total, discountAmount, taxAmount, includeBankDetails, includeInstapayDetails },
     data.accountId, accountName);
 
   // ── Update quotation row — FOLDER_URL now points to the new PDF ──
-  // 28 columns now (added IncludeBankDetails at the end).
-  qSheet.getRange(qRowIndex, 1, 1, 28).setValues([[
+  // 29 columns now (added IncludeInstapayDetails at the end).
+  qSheet.getRange(qRowIndex, 1, 1, 29).setValues([[
     data.id, newVersion, data.accountId, accountName,
     data.projectName, data.projectDescription,
     data.dateIssued, data.minDays, data.maxDays, data.deliveryDeadline,
@@ -483,7 +487,7 @@ function editQuotation(data) {
     data.taxed, data.taxPercent, taxAmount,
     total, status, data.notes, newPdfUrl,
     oldRow[Q.CREATED_BY], oldRow[Q.CREATED_AT], user, now,
-    includeBankDetails
+    includeBankDetails, includeInstapayDetails
   ]]);
 
   // ── Update items ──────────────────────────────────────────
@@ -807,7 +811,9 @@ function getBranding() {
 }
 
 // ============================================================
-//  BANK DETAILS — read from the Bank_Details sheet (row 2)
+//  BANK DETAILS — read from the Bank_Details sheet (row 2).
+//  Bank-transfer info only — Instapay now lives on its own
+//  sheet (see getInstapayDetails below).
 // ============================================================
 function getBankDetails() {
   const sheet = getSheet('Bank_Details');
@@ -816,16 +822,30 @@ function getBankDetails() {
   if (data.length < 2) return null;
   const row = data[1];
   return {
-    accountName:     String(row[BD.ACCOUNT_NAME]     || ''),
-    bankName:        String(row[BD.BANK_NAME]        || ''),
-    iban:            String(row[BD.IBAN]             || ''),
-    swiftCode:       String(row[BD.SWIFT_CODE]       || ''),
-    nationality:     String(row[BD.NATIONALITY]      || ''),
-    branchName:      String(row[BD.BRANCH_NAME]      || ''),
-    branchCode:      String(row[BD.BRANCH_CODE]      || ''),
-    address:         String(row[BD.ADDRESS]          || ''),
-    instapayAddress: String(row[BD.INSTAPAY_ADDRESS] || ''),
-    instapayMobile:  String(row[BD.INSTAPAY_MOBILE]  || '')
+    accountName:   String(row[BD.ACCOUNT_NAME]   || ''),
+    accountNumber: String(row[BD.ACCOUNT_NUMBER] || ''),
+    bankName:      String(row[BD.BANK_NAME]      || ''),
+    iban:          String(row[BD.IBAN]           || ''),
+    swiftCode:     String(row[BD.SWIFT_CODE]     || ''),
+    branchName:    String(row[BD.BRANCH_NAME]    || '')
+  };
+}
+
+// ============================================================
+//  INSTAPAY DETAILS — read from the Instapay Details sheet
+//  (row 2). displayValue is what's printed on the PDF; link is
+//  the actual clickable URL it points to (same pattern as the
+//  Website/Instagram footer links).
+// ============================================================
+function getInstapayDetails() {
+  const sheet = getSheet('Instapay Details');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return null;
+  const row = data[1];
+  return {
+    displayValue: String(row[IP.DISPLAY_VALUE] || ''),
+    link:         String(row[IP.LINK]           || '')
   };
 }
 
@@ -916,41 +936,46 @@ function generateQuotationHTML(data) {
     </table>
   </div>` : '';
 
-  // ── Payment Details block (only if toggled on for this quotation) ──
-  const bank = data.includeBankDetails ? getBankDetails() : null;
+  // ── Payment Details block — Bank Transfer and Instapay are now
+  //    independent toggles per quotation, each with its own sheet ──
+  const bank     = data.includeBankDetails     ? getBankDetails()     : null;
+  const instapay = data.includeInstapayDetails ? getInstapayDetails() : null;
+
+  const hasBankTransfer = !!(bank && (
+    bank.accountName || bank.accountNumber || bank.bankName ||
+    bank.iban || bank.swiftCode || bank.branchName));
+  const hasInstapay = !!(instapay && (instapay.displayValue || instapay.link));
+
+  const bankTransferHtml = hasBankTransfer ? `
+    <div class="pay-subblock avoid-break">
+      <div class="pay-subheader">Bank Transfer</div>
+      <table class="pay-table">
+        <tr><td class="pay-label">Account Name</td><td class="pay-value">${esc(bank.accountName || '—')}</td><td class="pay-label">Account Number</td><td class="pay-value">${esc(bank.accountNumber || '—')}</td></tr>
+        <tr><td class="pay-label">Bank Name</td><td class="pay-value">${esc(bank.bankName || '—')}</td><td class="pay-label">IBAN</td><td class="pay-value">${esc(bank.iban || '—')}</td></tr>
+        <tr><td class="pay-label">SWIFT Code</td><td class="pay-value">${esc(bank.swiftCode || '—')}</td><td class="pay-label">Branch Name</td><td class="pay-value">${esc(bank.branchName || '—')}</td></tr>
+      </table>
+    </div>` : '';
+
+  const instapayValueHtml = instapay && instapay.link
+    ? pdfLink(instapay.link, esc(instapay.displayValue || instapay.link), 'pay-link')
+    : esc((instapay && instapay.displayValue) || '—');
+
+  const instapayHtml = hasInstapay ? `
+    <div class="pay-subblock avoid-break">
+      <div class="pay-subheader">Instapay</div>
+      <table class="pay-table">
+        <tr><td class="pay-label">Instapay</td><td class="pay-value" colspan="3">${instapayValueHtml}</td></tr>
+      </table>
+    </div>` : '';
+
   let paymentBlock = '';
-  if (data.includeBankDetails && bank) {
-    const hasBankTransfer = bank.accountName || bank.bankName || bank.iban ||
-      bank.swiftCode || bank.nationality || bank.branchName || bank.branchCode || bank.address;
-    const hasInstapay = bank.instapayAddress || bank.instapayMobile;
-
-    const bankTransferHtml = hasBankTransfer ? `
-      <div class="pay-subblock avoid-break">
-        <div class="pay-subheader">Bank Transfer</div>
-        <table class="pay-table">
-          <tr><td class="pay-label">Account Name</td><td class="pay-value">${esc(bank.accountName || '—')}</td><td class="pay-label">Bank Name</td><td class="pay-value">${esc(bank.bankName || '—')}</td></tr>
-          <tr><td class="pay-label">IBAN</td><td class="pay-value">${esc(bank.iban || '—')}</td><td class="pay-label">SWIFT Code</td><td class="pay-value">${esc(bank.swiftCode || '—')}</td></tr>
-          <tr><td class="pay-label">Nationality</td><td class="pay-value">${esc(bank.nationality || '—')}</td><td class="pay-label">Branch Name</td><td class="pay-value">${esc(bank.branchName || '—')}</td></tr>
-          <tr><td class="pay-label">Address</td><td class="pay-value">${esc(bank.address || '—')}</td><td class="pay-label">Branch Code</td><td class="pay-value">${esc(bank.branchCode || '—')}</td></tr>
-        </table>
-      </div>` : '';
-
-    const instapayHtml = hasInstapay ? `
-      <div class="pay-subblock avoid-break">
-        <div class="pay-subheader">Instapay</div>
-        <table class="pay-table">
-          <tr><td class="pay-label">Payment Address</td><td class="pay-value">${esc(bank.instapayAddress || '—')}</td><td class="pay-label">Mobile Number</td><td class="pay-value">${esc(bank.instapayMobile || '—')}</td></tr>
-        </table>
-      </div>` : '';
-
-    if (bankTransferHtml || instapayHtml) {
-      paymentBlock = `
-      <div class="section-block avoid-break">
-        <div class="section-label">Payment Details</div>
-        ${bankTransferHtml}
-        ${instapayHtml}
-      </div>`;
-    }
+  if (bankTransferHtml || instapayHtml) {
+    paymentBlock = `
+    <div class="section-block avoid-break">
+      <div class="section-label">Payment Details</div>
+      ${bankTransferHtml}
+      ${instapayHtml}
+    </div>`;
   }
 
   // ── Terms + Payment Details always start on a fresh page,
@@ -1077,6 +1102,7 @@ const footerNoteHtml = branding.footerNote
   .pay-table tr { page-break-inside: avoid; break-inside: avoid; }
   .pay-label { font-weight: 700; color: #1a1a2e; width: 22%; }
   .pay-value { color: #444; width: 28%; }
+  .pay-link { color: ${accent}; text-decoration: underline; }
   .notes-box { background: #f8f9ff; border-left: 3px solid ${accent}; padding: 10px 14px; font-size: 11px; color: #555; margin-top: 24px; line-height: 1.5; }
 
   /* ── Footer: fixed to the bottom of every page, full width,
